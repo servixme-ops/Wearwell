@@ -4,7 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<title>Wearwell Magazine Crate</title>
+<title>Lukks</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#6b1a2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lukks">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="phone.css">
+<link rel="stylesheet" href="profile.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,600&display=swap">
@@ -115,6 +125,14 @@ body[data-mode=pulled] #vignette,body[data-mode=reading] #vignette{opacity:1}
 body[data-mode=pulled] #pulled{opacity:1;visibility:visible}
 body[data-mode=reading] #read,body[data-mode=reading] #readBot{opacity:1;visibility:visible}
 body:not([data-mode=room]) #crateTag{display:none}
+#phoneTag{position:absolute;left:0;top:0;z-index:3;display:flex;align-items:center;gap:8px;background:var(--cream);color:var(--ink);font-size:13px;font-weight:600;padding:8px 12px 8px 11px;border-radius:99px;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:opacity .3s;white-space:nowrap}
+#phoneTag i{width:9px;height:9px;border-radius:50%;background:var(--maroon);animation:ping 1.8s infinite}
+#phoneBadge{min-width:20px;height:20px;border-radius:10px;background:#ff3b30;color:#fff;font-size:12px;display:grid;place-items:center;padding:0 5px}
+#phoneBadge[hidden]{display:none}
+body[data-mode=phone] #hero,body[data-mode=phone] #top,body[data-mode=phone] #topfade,body[data-mode=phone] #fab{opacity:0;pointer-events:none}
+body[data-mode=phone] #nav{transform:translateY(110%)}
+body[data-mode=phone] #cratePick,body[data-mode=phone] #phoneTag{opacity:0;pointer-events:none}
+body:not([data-mode=room]) #phoneTag{pointer-events:none}
 body[data-mode=browse] #cratePick .crateCard{box-shadow:0 4px 14px rgba(0,0,0,.3)}
 
 /* FAB */
@@ -188,7 +206,7 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
 <div id="topfade"></div>
 
 <div id="top" class="layer">
-  <div class="brand"><b>WEARWELL</b><span>Discover Nigerian fashion</span></div>
+  <div class="brand"><b>LUKKS</b><span>Discover Nigerian fashion</span></div>
   <div class="icons">
     <button id="searchBtn" aria-label="Search looks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
     <button id="heartBtn" aria-label="Saved looks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 20.5C5 15.5 3 12 3 9a4.8 4.8 0 0 1 9-2.3A4.8 4.8 0 0 1 21 9c0 3-2 6.5-9 11.5z"/></svg></button>
@@ -198,6 +216,7 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
   <h1>Pick a magazine.<br>Find your look.</h1>
 </div>
 <button id="crateTag" type="button"><i></i><span id="tagBtn">Browse the crate</span></button>
+<button id="phoneTag" type="button" aria-label="Pick up the phone"><i></i><span>Pick up the phone</span><b id="phoneBadge" hidden>0</b></button>
 
 <div id="browse" class="layer">
   <div class="row"><button id="backBtn" aria-label="Back to room"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg></button><span id="bNum">01 / 07</span><span style="width:44px"></span></div>
@@ -240,12 +259,33 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
 
 <div id="sheet"><div id="sheetBox" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div id="sheetHead"><h2 id="sheetTitle">Explore</h2><button id="sheetClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div id="sheetBody"></div></div></div>
 
-<div id="loading"><div><b>WEARWELL</b><span>Setting up the living room…</span></div></div>
+<div id="loading"><div><b>LUKKS</b><span>Setting up the living room…</span></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="src/data.js"></script>
 <script src="src/art.js"></script>
+<script src="src/config.js"></script>
+<script src="src/ui.js"></script>
 <script src="src/scene.js"></script>
+<script src="src/api.js"></script>
+<script src="src/sound.js"></script>
+<script src="src/phone.js"></script>
+<script src="src/profileview.js"></script>
+<script src="src/apps/common.js"></script>
+<script src="src/apps/calendar.js"></script>
+<script src="src/apps/camera.js"></script>
+<script src="src/apps/photos.js"></script>
+<script src="src/apps/messages.js"></script>
+<script src="src/apps/safari.js"></script>
+<script src="src/apps/notes.js"></script>
+<script src="src/apps/social.js"></script>
+<script src="src/apps/profile.js"></script>
+<script src="src/apps/receipt.js"></script>
+<script src="src/apps/ads.js"></script>
+<script src="src/apps/account.js"></script>
+<script src="src/pwa.js"></script>
+<script src="src/phone3d.js"></script>
 <script src="src/flow.js"></script>
 </body>
 </html>

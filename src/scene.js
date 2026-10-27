@@ -52,7 +52,7 @@ function texBack(m){
   const c=mk(256,338),g=c.getContext('2d');g.fillStyle=m.bg;g.fillRect(0,0,256,338);
   g.fillStyle=m.acc;g.beginPath();g.arc(128,150,70,0,7);g.fill();
   g.fillStyle=m.ink;g.font=`900 110px ${F.disp}`;g.textAlign='center';g.fillText('W',128,190);
-  g.font=`600 12px ${F.body}`;g.fillText('WEARWELL  ·  DISCOVER NIGERIAN FASHION',128,40);
+  g.font=`600 12px ${F.body}`;g.fillText('LUKKS  ·  DISCOVER NIGERIAN FASHION',128,40);
   barcode(g,80,262,96,52);return c;
 }
 

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lukks Profile</title>
+<meta name="theme-color" content="#6b1a2b">
+<meta name="robots" content="noindex">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;700&display=swap">
+<link rel="stylesheet" href="profile.css">
+<style>
+html,body{margin:0;min-height:100%;background:#f4ead9}
+body{font-family:'Instrument Sans',system-ui,sans-serif}
+#root{max-width:720px;margin:0 auto;min-height:100vh;background:var(--b,#f4ead9)}
+.msg{display:grid;place-items:center;min-height:70vh;text-align:center;padding:30px;color:#2a1710}
+.msg h1{font:700 28px 'Playfair Display',serif;margin:0 0 8px}.msg a{color:#6b1a2b;font-weight:600}
+.bar{position:fixed;right:14px;top:14px;z-index:5;display:flex;gap:8px}
+.bar button{background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:99px;padding:9px 14px;font:600 13px 'Instrument Sans',sans-serif;cursor:pointer;backdrop-filter:blur(8px)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a1710;color:#fff;padding:10px 16px;border-radius:99px;font-size:14px}
+.dlg-ov,.sheet-ov{display:none}
+</style>
+</head>
+<body>
+<div id="root"><div class="msg"><div>Loading…</div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="src/data.js"></script>
+<script src="src/config.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/api.js"></script>
+<script src="src/profileview.js"></script>
+<script>
+(async()=>{
+  const root=document.getElementById('root');
+  const u=(new URLSearchParams(location.search).get('u')||'').toLowerCase();
+  const home=CFG.site;
+  const notFound=(t,m)=>{root.replaceChildren(h('div',{class:'msg'},h('div',null,h('h1',null,t),h('p',null,m),h('p',null,h('a',{href:home},'Visit Lukks')))));document.title='Lukks Profile';};
+  if(!/^[a-z0-9_]{3,24}$/.test(u)){notFound('Profile not found','That link does not look right.');return;}
+  if(!sb){notFound('Cannot load right now','Please try again in a moment.');return;}
+  const r=await sb.rpc('get_public_profile',{p_username:u});
+  if(r.error){notFound('Something went wrong','Please try again in a moment.');return;}
+  if(!r.data){notFound('Profile not found','This profile is private or does not exist.');return;}
+  const p=r.data.profile;
+  document.title=(p.display_name||'@'+p.username)+' on Lukks';
+  root.replaceChildren(renderPublicProfile(r.data));
+  const t=getComputedStyle(root.firstChild).getPropertyValue('--b').trim();if(t)document.body.style.background=t;
+  const url=profileUrl(p.username);
+  const bar=h('div',{class:'bar'},h('button',{onclick:async()=>{if(navigator.share){try{await navigator.share({title:document.title,url});return;}catch(e){}}const ok=await copyText(url);toast(ok?'Link copied':'Could not copy');}},'Share'));
+  document.body.appendChild(bar);
+})();
+</script>
+</body>
+</html>

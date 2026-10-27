@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lukks</title><meta name="robots" content="noindex">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4ead9;color:#2a1710;font-family:system-ui,sans-serif;text-align:center;padding:24px}h1{font:700 28px Georgia,serif;margin:0 0 8px}a{color:#6b1a2b;font-weight:600}</style></head>
+<body><div id="m"><h1>Page not found</h1><p><a id="h" href="./">Back to Lukks</a></p></div>
+<script>
+// Pretty profile links: /<repo>/u/<username> open the profile page. GitHub Pages serves this file for unknown paths.
+(function(){
+  var m=location.pathname.match(/^(.*\/)u\/([A-Za-z0-9_]{3,24})\/?$/);
+  if(m){location.replace(m[1]+'profile.html?u='+encodeURIComponent(m[2]));return;}
+  var parts=location.pathname.split('/').filter(Boolean);
+  document.getElementById('h').href=(location.hostname.indexOf('github.io')>-1&&parts.length?'/'+parts[0]+'/':'/');
+})();
+</script></body></html>

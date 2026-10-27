@@ -40,7 +40,7 @@ function visHalf(fov){return Math.tan(fov*Math.PI/360);}
 async function boot(){
   const fonts=["700 40px 'Playfair Display'","900 40px 'Playfair Display'","italic 500 20px 'Playfair Display'","italic 600 20px 'Playfair Display'","400 40px 'Bebas Neue'","400 14px 'Instrument Sans'","600 14px 'Instrument Sans'","700 14px 'Instrument Sans'","500 14px 'Instrument Sans'"];
   try{await Promise.race([Promise.all(fonts.map(f=>document.fonts.load(f))),new Promise(r=>setTimeout(r,3000))]);}catch(e){}
-  initScene($('#stage'));
+  initScene($('#stage'));buildPhone3d();
   loadCrateMags(0);layoutMags(0);
   buildCratePicker();buildNav();bindInput();bindFab();resize();
   roomGoal();camera.position.copy(G.pos).add(new T.Vector3(.5,.5,.9));camera.fov=G.fov;cur.look.copy(G.look);
@@ -50,6 +50,11 @@ async function boot(){
   last=performance.now();requestAnimationFrame(frame);
   window.__ready=true;
   if(location.hash==='#night'){S.day=false;setDaylight(false);}
+  try{const sv=Local.get('sound',null);if(sv)Sound.load(sv.kind,true);}catch(e){}
+  Phone.init();Auth.init().then(()=>{Phone.afterAuth();});
+  if(typeof PWA!=='undefined')PWA.init();
+  const q=new URLSearchParams(location.search),ref=q.get('reference')||q.get('trxref');
+  if(ref&&q.get('pay')){try{history.replaceState({},'',location.pathname);}catch(e){}setTimeout(()=>{Phone.intentAfterUnlock={open:'ads',intent:{verify:ref}};enterPhone();},1400);}
 }
 function resize(){
   const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
@@ -87,7 +92,7 @@ function frame(now){
   L.book.intensity+=((S.mode==='pulled'||S.mode==='reading'||S.mode==='pulling'?.55:0)-L.book.intensity)*k;
   if(S.mode==='reading'||S.mode==='pulled'||S.mode==='pulling'){const f=frameBasis();L.book.position.copy(camera.position).addScaledVector(f.up,.5);L.book.target.position.copy(camera.position).addScaledVector(f.fwd,1);}
   curtainFlutter(now);
-  tagUpdate();
+  tagUpdate();tagPhone();phoneAnim(now);
   renderer.render(scene,camera);
 }
 function curtainFlutter(now){}
@@ -96,6 +101,7 @@ function curtainFlutter(now){}
 function setMode(m){
   S.mode=m;document.body.dataset.mode=m;
   if(m==='room'){roomGoal();}
+  if(m==='phone'){phoneGoal();}
   if(m==='browse'){browseGoal();S.sel=-1;}
   if(m==='pulled'||m==='pulling'||m==='reading'){pulledGoal();}
   updateFab();
@@ -284,6 +290,7 @@ function bindInput(){
     else if(S.mode==='reading'){turn(e.deltaY>0?1:-1);}
   },{passive:false});
   addEventListener('keydown',e=>{
+    if(S.mode==='phone')return;
     if(e.key==='Escape'){if(S.sheetOpen)closeSheet();else back();}
     if(S.sheetOpen)return;
     if(S.mode==='browse'){if(e.key==='ArrowUp'||e.key==='ArrowLeft')stepMag(-1);if(e.key==='ArrowDown'||e.key==='ArrowRight')stepMag(1);if(e.key==='Enter')pullOut();}
@@ -301,6 +308,7 @@ function pagePixels(){
 }
 function stepMag(d){if(S.mode!=='browse')return;S.target=Math.max(0,Math.min(magGroups.length-1,Math.round(S.target)+d));}
 function tapRoom(x,y){
+  const ph=pick(x,y,[phone3d.userData.hit]);if(ph.length){enterPhone();return;}
   const hit=pick(x,y,[crate]);if(hit.length)goBrowse();
 }
 function tapBrowse(x,y){
@@ -411,7 +419,13 @@ function renderLook(title,body,look){
   info.querySelector('#actSave').onclick=e=>{toggleSet(saved,'saved',look.id);renderLook(title,body,look);};
   info.querySelector('#actWard').onclick=e=>{toggleSet(wardrobe,'wardrobe',look.id);renderLook(title,body,look);};
 }
-function toggleSet(set,key,id){set.has(id)?set.delete(id):set.add(id);store.set(key,[...set]);}
+function toggleSet(set,key,id){const on=!set.has(id);on?set.add(id):set.delete(id);store.set(key,[...set]);if(typeof pushSaved==='function')pushSaved(set===saved?'saved':'wardrobe',id,on);}
+function goIssue(id){
+  const [ci,mi]=String(id).split('-').map(Number);if(isNaN(ci)||isNaN(mi)||!CRATES[ci])return;
+  if(S.mode!=='room')return;
+  const go=()=>{goBrowse();S.target=Math.min(magGroups.length-1,mi);};
+  if(ci!==S.crate){switchCrate(ci);setTimeout(go,820);}else go();
+}
 
 /* ---- FAB: circle control ---- */
 let fabOpen=false;
@@ -490,6 +504,7 @@ function bindFab(){
   $('#sheetClose').onclick=closeSheet;
   $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet();});
   $('#tagBtn').onclick=goBrowse;
+  $('#phoneTag').onclick=enterPhone;
   $('#searchBtn').onclick=()=>{setActiveTab('explore');openSheet('explore');};
   $('#heartBtn').onclick=()=>{setActiveTab('saved');openSheet('saved');};
 }

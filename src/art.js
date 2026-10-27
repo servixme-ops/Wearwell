@@ -182,7 +182,7 @@ function drawFace(m,i,W,H){
   const hot=(x,y,w,h,li)=>hs.push({x:x/W,y:y/H,w:w/W,h:h/H,look:m.looks[li]});
   g.textBaseline='alphabetic';g.textAlign='left';
   const folio=(side)=>{g.fillStyle='rgba(0,0,0,.45)';g.font=`600 ${11*k}px ${F.body}`;g.textAlign=side==='l'?'left':'right';
-    g.fillText(`${i+1}   WEARWELL · ${m.title.toUpperCase()}`,side==='l'?30*k:W-30*k,H-24*k);g.textAlign='left';};
+    g.fillText(`${i+1}   LUKKS · ${m.title.toUpperCase()}`,side==='l'?30*k:W-30*k,H-24*k);g.textAlign='left';};
   if(i===0){return {c:drawCover(m,W,H),hs};}
   if(i===1){
     g.fillStyle=paper;g.fillRect(0,0,W,H);
@@ -264,7 +264,7 @@ function drawFace(m,i,W,H){
   g.fillStyle=m.bg;g.fillRect(0,0,W,H);
   g.fillStyle=m.acc;g.beginPath();g.arc(W/2,H*.4,W*.3,0,7);g.fill();
   g.fillStyle=m.ink;g.font=`900 ${240*k}px ${F.disp}`;g.textAlign='center';g.fillText('W',W/2,H*.4+84*k);
-  g.font=`600 ${16*k}px ${F.body}`;g.fillText('WEARWELL',W/2,H*.4+W*.3+60*k);
+  g.font=`600 ${16*k}px ${F.body}`;g.fillText('LUKKS',W/2,H*.4+W*.3+60*k);
   g.font=`italic 500 ${18*k}px ${F.disp}`;g.fillText('Discover Nigerian fashion',W/2,H*.4+W*.3+90*k);
   barcode(g,W/2-70*k,H-130*k,140*k,80*k);
   return {c,hs};

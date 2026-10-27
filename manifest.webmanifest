@@ -1,0 +1,21 @@
+{
+  "name": "Lukks",
+  "short_name": "Lukks",
+  "description": "A 3D digital fashion magazine for Nigerian style, with a phone of your own.",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4ead9",
+  "theme_color": "#6b1a2b",
+  "categories": ["lifestyle", "shopping"],
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Open the crate", "url": "./?source=shortcut", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]}
+  ]
+}
