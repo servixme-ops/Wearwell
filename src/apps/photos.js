@@ -11,7 +11,7 @@ mount(el,ctx,live){
     drawAlbums();
     if(ctx.intent){const i=ctx.intent;ctx.intent=null;if(i.album){const a=albums.find(x=>x.slug===i.album);if(a)openAlbum(a);}if(i.tab==='mine')openMine();}
   }
-  function top(title,back,right){bar.replaceWith(bar=appBar({title,onBack:back,backLabel:back?'Albums':'Home',right}));}
+  function top(title,back,right){bar.replaceWith(bar=appBar({title,onBack:back,backLabel:'Back',right}));}
   function drawAlbums(){
     view={t:'albums'};top('Photos',ctx.close,h('button',{class:'icon-btn','aria-label':'My uploads',onclick:openMine},icon('user')));
     body.replaceChildren();

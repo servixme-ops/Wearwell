@@ -66,6 +66,8 @@ function frame(now){
   requestAnimationFrame(frame);
   const dt=Math.max(0,Math.min(window.__dtMax||.05,(now-last)/1000));last=now;
   for(let i=tweens.length-1;i>=0;i--){const t=tweens[i];t.t+=dt;const p=Math.min(1,t.t/t.dur);t.fn(p);if(p>=1){tweens.splice(i,1);t.done&&t.done();}}
+  // The phone covers the room: stop rendering 3D underneath so the phone UI stays fast.
+  if(S.mode==='phone'&&typeof Phone!=='undefined'&&Phone.layer&&Phone.layer.classList.contains('open')&&Phone.state!=='closing')return;
   // camera goal
   if(S.mode==='room'){
     if(S.auto&&!S.dragging&&idle>3){S.az+=dt*.03*Math.sin(now/9000);}
@@ -368,8 +370,8 @@ function openSheet(kind,arg){
   const sh=$('#sheet'),body=$('#sheetBody'),title=$('#sheetTitle');
   S.sheetOpen=true;sh.classList.add('open');body.scrollTop=0;
   if(kind==='explore')renderExplore(title,body,arg);
-  else if(kind==='saved')renderList(title,body,'Saved looks',saved,'Tap the heart on any look to keep it here.');
-  else if(kind==='wardrobe')renderList(title,body,'My wardrobe',wardrobe,'Add looks to your wardrobe to plan outfits.');
+  else if(kind==='saved')renderList(title,body,'Saved lukks',saved,'Tap the heart on any lukk to keep it here.');
+  else if(kind==='wardrobe')renderList(title,body,'My Lukks',wardrobe,'Add lukks to My Lukks to plan outfits.');
   else if(kind==='look')renderLook(title,body,arg);
 }
 function thumb(look,w,h){const c=mk(w,h),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h);g.fillStyle='rgba(255,255,255,.2)';g.beginPath();g.arc(w/2,h*.6,w*.42,0,7);g.fill();drawFigure(g,look,w/2,h*.05,h*.9);return c;}
@@ -409,7 +411,7 @@ function renderLook(title,body,look){
   const info=document.createElement('div');info.className='info';
   const isS=saved.has(look.id),isW=wardrobe.has(look.id);
   info.innerHTML=`<h3>${look.name}</h3><p class="by">${look.designer}</p><p class="price">${look.price}</p><p class="fab">${FAB[look.fab].label}</p><p class="desc">${look.desc}</p>
-  <div class="acts"><button id="actSave" class="${isS?'on':''}">${isS?'Saved':'Save look'}</button><button id="actWard" class="${isW?'on':''}">${isW?'In wardrobe':'Add to wardrobe'}</button></div>`;
+  <div class="acts"><button id="actSave" class="${isS?'on':''}">${isS?'Saved':'Save lukk'}</button><button id="actWard" class="${isW?'on':''}">${isW?'In My Lukks':'Add to My Lukks'}</button></div>`;
   wrap.appendChild(info);body.appendChild(wrap);
   const more=document.createElement('div');more.className='moreFrom';more.innerHTML=`<h4>More from this collection</h4>`;
   const row=document.createElement('div');row.className='row';

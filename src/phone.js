@@ -101,7 +101,7 @@ const Notifs={
     }
     if(pr.testimonials&&(day%3!==1)){
       let mine=0;if(Auth.user&&sb){const r=await sb.from('testimonials').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id);mine=r.count||0;}
-      if(!mine)add({id:'testi:'+week,app:'notes',cat:'testimonials',title:'Have a look to share?',body:'Leave a testimonial about Lukks.',intent:{section:'testimonials',compose:true},t:Date.now()-36e5});
+      if(!mine)add({id:'testi:'+week,app:'notes',cat:'testimonials',title:'Got a lukk to share?',body:'Leave a testimonial about Lukks.',intent:{section:'testimonials',compose:true},t:Date.now()-36e5});
     }
     if(Auth.user&&sb){
       try{
@@ -117,7 +117,7 @@ const Notifs={
         if(rev&&pr.campaigns)add({id:'adrev:'+rev,app:'ads',cat:'campaigns',title:'Your featured campaign is awaiting approval',body:'We are reviewing your creative.',intent:{tab:'mine'},t:Date.now()-5e6});
       }catch(e){console.warn('notif build (account)',e);}
     }else if(Local.get('customised')||(Local.get('opens',0)>2)){
-      add({id:'save:'+week,app:'account',cat:'features',title:'Keep your phone set up',body:'Sign up to save your wallpapers, photos and looks on every device.',intent:{mode:'signup'},t:Date.now()-96e5});
+      add({id:'save:'+week,app:'account',cat:'features',title:'Keep your phone set up',body:'Sign up to save your wallpapers, photos and lukks on every device.',intent:{mode:'signup'},t:Date.now()-96e5});
     }
     out.sort((a,b)=>b.t-a.t);this.items=out;Phone.renderNotifs();
   },
@@ -145,8 +145,8 @@ const Phone={
     this.build();
     this.tick();setInterval(()=>this.tick(),1000);
     this.initBattery();this.initNet();
-    document.addEventListener('visibilitychange',()=>{if(document.hidden)this.lock(true);else this.onReturn();});
-    addEventListener('pagehide',()=>this.lock(true));
+    document.addEventListener('visibilitychange',()=>{if(window.__picking||window.__camBusy)return;if(document.hidden)this.lock(true);else this.onReturn();});
+    addEventListener('pagehide',()=>{if(!window.__picking)this.lock(true);});
     addEventListener('pageshow',e=>{if(e.persisted)this.lock(true);});
     addEventListener('popstate',e=>this.onPop(e));
     addEventListener('resize',()=>this.fit());

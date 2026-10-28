@@ -3,13 +3,14 @@ defApp({id:'notes',name:'Notes',bg:'#fff',glyph:()=>`<svg viewBox="0 0 60 60"><r
 mount(el,ctx,live){
   let sec=null;const root=h('div',{class:'msg-root'});el.append(root);
   const ABOUT=[
-    ['What is Lukks?','Lukks is a fashion magazine you can hold. Each crate in the living room holds a set of Nigerian fashion issues. Pull one out, turn the pages with your finger and tap an outfit to see who made it and what it costs.'],
-    ['Collections','Every magazine has collections: groups of outfits you can save to your favourites or add to your wardrobe. Your saved looks follow you across devices when you have an account.'],
-    ['Your phone','The phone on the coffee table is yours. Set your wallpapers, add your social links, share photos, build a public style profile and keep receipts of what you wear.'],
-    ['Be featured','Send a photo from the Camera app to be considered for a magazine page. Brands can also book the front cover or a page in Ads.'],
+    ['What is Lukks?','Lukks is where you showcase your style and discover other people\'s. Find your kinda style, share your lukks, and see what everyone else is wearing.'],
+    ['Your Lukks','Add outfits to your Lukks with a photo and the pieces you wore. Mark when you wear them and watch the cost per wear drop in Lukks Receipt.'],
+    ['Share your profile','Lukks Profile is your shareable style page. Turn it on, choose what to show, and send your link to anyone.'],
+    ['Discover','Browse public lukks from other people, search by style or piece, and open their profiles for inspiration.'],
+    ['The crate','The magazine crate in the living room is full of Nigerian fashion to flip through. Tap any outfit to save it to My Lukks.'],
     ['Contact','Message the Lukks Team any time from the Messages app.']];
   function home(){
-    sec=null;root.replaceChildren(appBar({title:'Notes',onBack:ctx.close,backLabel:'Home'}));
+    sec=null;root.replaceChildren(appBar({title:'Notes',onBack:ctx.close,backLabel:'Back'}));
     const g=h('div',{class:'group',style:{marginTop:'14px'}},
       h('button',{class:'item',onclick:()=>open('about')},icon('shirt'),h('span',{class:'grow'},h('b',null,'About Lukks'),h('span',null,'What Lukks is and how it works')),h('span',{class:'chev'},icon('chevR'))),
       h('button',{class:'item',onclick:()=>open('testimonials')},icon('star'),h('span',{class:'grow'},h('b',null,'Testimonials'),h('span',null,'What readers say about Lukks')),h('span',{class:'chev'},icon('chevR'))));
@@ -18,10 +19,10 @@ mount(el,ctx,live){
   async function open(s,compose){
     sec=s;
     if(s==='about'){
-      root.replaceChildren(appBar({title:'About Lukks',onBack:home,backLabel:'Notes'}),appBody(h('article',{class:'note-doc'},h('h1',null,'About Lukks'),ABOUT.map(a=>[h('h3',null,a[0]),h('p',null,a[1])]))));return;
+      root.replaceChildren(appBar({title:'About Lukks',onBack:home,backLabel:'Back'}),appBody(h('article',{class:'note-doc'},h('h1',null,'About Lukks'),ABOUT.map(a=>[h('h3',null,a[0]),h('p',null,a[1])]))));return;
     }
     const add=h('button',{class:'icon-btn','aria-label':'Write a testimonial',onclick:write},icon('edit'));
-    const body=appBody(spinner());root.replaceChildren(appBar({title:'Testimonials',onBack:home,backLabel:'Notes',right:add}),body);
+    const body=appBody(spinner());root.replaceChildren(appBar({title:'Testimonials',onBack:home,backLabel:'Back',right:add}),body);
     let list=[],mine=[];
     try{const r=await sb.from('testimonials').select('*').order('created_at',{ascending:false}).limit(60);if(r.error)throw r.error;list=r.data||[];}catch(e){body.replaceChildren(empty('Could not load testimonials',errMsg(e),h('button',{class:'btn',onclick:()=>open('testimonials')},'Try again')));return;}
     mine=Auth.user?list.filter(x=>x.user_id===Auth.user.id&&x.status!=='approved'):[];

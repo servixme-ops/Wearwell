@@ -3,7 +3,7 @@ defApp({id:'calendar',name:'Calendar',bg:'#fff',glyph:()=>{const d=new Date();re
 mount(el,ctx,live){
   let events=[],mine=new Set(),month=new Date(),sel=isoDay(new Date()),loading=true,fail=false;
   const body=h('div',{class:'app-body'});
-  el.append(appBar({title:'Calendar',onBack:ctx.close,backLabel:'Home',right:h('button',{class:'icon-btn','aria-label':'Today',onclick:()=>{month=new Date();sel=isoDay(month);draw();}},icon('cal'))}),body);
+  el.append(appBar({title:'Calendar',onBack:ctx.close,backLabel:'Back',right:h('button',{class:'icon-btn','aria-label':'Today',onclick:()=>{month=new Date();sel=isoDay(month);draw();}},icon('cal'))}),body);
   async function load(){
     loading=true;fail=false;draw();
     try{

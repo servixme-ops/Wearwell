@@ -9,12 +9,4 @@ const CFG={
   // Public website opened by Safari's "Open in browser". Change if Lukks gets its own domain.
   mainSite:'https://servixme-ops.github.io/Wearwell/',
   limits:{magazinePhotos:2,imageMB:12,wallpaperMB:6,gifMB:5,avatarMB:2},
-  // Social profile URL patterns. Users add their own handle; none are preset.
-  socials:{
-    instagram:{label:'Instagram',base:'https://instagram.com/'},
-    x:{label:'X',base:'https://x.com/'},
-    youtube:{label:'YouTube',base:'https://youtube.com/@'},
-    tiktok:{label:'TikTok',base:'https://tiktok.com/@'},
-    linkedin:{label:'LinkedIn',base:'https://linkedin.com/in/'}
-  }
 };

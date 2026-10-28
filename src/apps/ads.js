@@ -17,7 +17,7 @@ const Ads={
 defApp({id:'ads',name:'Lukks Ads',bg:'linear-gradient(#e9b44c,#c2701c)',glyph:()=>`<svg viewBox="0 0 60 60"><path d="M14 26h8l16-9v26l-16-9h-8z" fill="#fff"/><path d="M42 24c3 3 3 9 0 12" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M24 36l2 9h5l-2-9" fill="#fff"/></svg>`,
 mount(el,ctx,live){
   let tab=(ctx.intent&&ctx.intent.tab)||'new',pkgs=[],issues=[];const intent=ctx.intent;ctx.intent=null;
-  const bar=appBar({title:'Lukks Ads',onBack:ctx.close,backLabel:'Home'});
+  const bar=appBar({title:'Lukks Ads',onBack:ctx.close,backLabel:'Back'});
   const seg=h('div',{class:'pad',style:{paddingBottom:0}},h('div',{class:'seg'},[['new','Advertise'],['mine','My campaigns']].map(t=>h('button',{'data-t':t[0],onclick:()=>{tab=t[0];draw();}},t[1]))));
   const body=h('div',{class:'app-body'});el.append(bar,seg,body);
   async function boot(){

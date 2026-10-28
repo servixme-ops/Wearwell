@@ -3,14 +3,14 @@ defApp({id:'account',name:'Account',bg:'linear-gradient(#a8a8ae,#6a6a70)',glyph:
 mount(el,ctx,live){
   const wanted=ctx.intent&&ctx.intent.mode;let mode='signin';ctx.intent=null;
   const root=h('div',{class:'msg-root'});el.append(root);
-  const bar=(title,back,right)=>appBar({title,onBack:back,backLabel:back?'Account':'Home',right});
+  const bar=(title,back,right)=>appBar({title,onBack:back,backLabel:'Back',right});
   function main(){
-    const body=appBody();root.replaceChildren(appBar({title:'Account',onBack:ctx.close,backLabel:'Home'}),body);
+    const body=appBody();root.replaceChildren(appBar({title:'Account',onBack:ctx.close,backLabel:'Back'}),body);
     if(Auth.user){
       const p=Auth.profile||{};
       body.append(h('button',{class:'group acct-card',onclick:editProfile},h('span',{class:'item'},avatarEl(p,'lg'),h('span',{class:'grow'},h('b',{style:{fontSize:'20px'}},p.display_name||p.username||'You'),h('span',null,'@'+(p.username||'')),h('span',null,Auth.user.email)),h('span',{class:'chev'},icon('chevR')))));
     }else{
-      body.append(h('div',{class:'group'},h('div',{class:'pad stack'},h('b',{style:{fontSize:'18px'}},'Welcome to Lukks'),h('span',{class:'muted'},'Sign in to save your wallpapers, looks, photos and profile across devices.'),h('button',{class:'btn primary block',onclick:()=>auth('signin')},'Sign in'),h('button',{class:'btn block',onclick:()=>auth('signup')},'Create account'))));
+      body.append(h('div',{class:'group'},h('div',{class:'pad stack'},h('b',{style:{fontSize:'18px'}},'Welcome to Lukks'),h('span',{class:'muted'},'Sign in to save your wallpapers, lukks, photos and profile across devices.'),h('button',{class:'btn primary block',onclick:()=>auth('signin')},'Sign in'),h('button',{class:'btn block',onclick:()=>auth('signup')},'Create account'))));
     }
     const row=(ic,t,sub,fn)=>h('button',{class:'item',onclick:fn},icon(ic),h('span',{class:'grow'},h('b',null,t),sub&&h('span',null,sub)),h('span',{class:'chev'},icon('chevR')));
     body.append(h('div',{class:'sec-t'},'Personalise'),h('div',{class:'group'},row('image','Wallpapers','Lock screen and home screen',wallpapers),row('speaker','Sound',Sound.kind==='off'?'Off':Sound.KINDS.find(k=>k.id===Sound.kind).label+(Sound.muted?' (muted)':''),soundSheet),row('bell','Notifications','Choose what you hear about',notifPrefs)));

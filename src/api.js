@@ -1,6 +1,18 @@
 /* ---------- API: Supabase client, auth, local storage, media helpers ---------- */
 let sb=null;
-try{if(window.supabase&&window.supabase.createClient)sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}catch(e){console.warn('Supabase unavailable',e);}
+/* Durable session storage: mirrors to a second key and a cookie so a cleared/blocked store doesn't log people out. */
+const DurableStore={
+  get(k){try{const v=localStorage.getItem(k);if(v)return v;}catch(e){}
+    try{const b=localStorage.getItem(k+'.bak');if(b)return b;}catch(e){}
+    try{const m=document.cookie.match(new RegExp('(?:^|; )'+k+'=([^;]*)'));if(m)return decodeURIComponent(m[1]);}catch(e){}
+    return DurableStore._mem[k]||null;},
+  set(k,v){DurableStore._mem[k]=v;try{localStorage.setItem(k,v);localStorage.setItem(k+'.bak',v);}catch(e){}
+    try{const s=JSON.parse(v);const small=JSON.stringify({access_token:s.access_token,refresh_token:s.refresh_token,expires_at:s.expires_at,expires_in:s.expires_in,token_type:s.token_type,user:{id:s.user&&s.user.id,email:s.user&&s.user.email}});
+      if(small.length<3800)document.cookie=k+'='+encodeURIComponent(small)+'; max-age=31536000; path=/; SameSite=Lax'+(location.protocol==='https:'?'; Secure':'');}catch(e){}},
+  remove(k){delete DurableStore._mem[k];try{localStorage.removeItem(k);localStorage.removeItem(k+'.bak');}catch(e){}try{document.cookie=k+'=; max-age=0; path=/';}catch(e){}},
+  _mem:{}
+};
+try{if(window.supabase&&window.supabase.createClient)sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'lukks-auth',storage:DurableStore},global:{fetch:(u,o)=>{const c=new AbortController();const t=setTimeout(()=>c.abort(),/\/auth\/v1\//.test(String(u))?60000:20000);const sg=o&&o.signal;if(sg){if(sg.aborted)c.abort();else sg.addEventListener('abort',()=>c.abort());}return fetch(u,Object.assign({},o,{signal:c.signal})).finally(()=>clearTimeout(t));}}});}catch(e){console.warn('Supabase unavailable',e);}
 
 const Local={
   get(k,d){try{const v=localStorage.getItem('lukks_'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
@@ -30,14 +42,22 @@ const Auth={
   async init(){
     if(!sb){this.ready=true;return;}
     try{
-      const {data}=await sb.auth.getSession();
-      if(data&&data.session)await this._load(data.session.user);
+      let data=(await sb.auth.getSession()).data;
+      if(!data||!data.session){await new Promise(r=>setTimeout(r,400));data=(await sb.auth.getSession()).data;}
+      if(data&&data.session){this.user=data.session.user;try{await this._load(data.session.user);}catch(e){console.warn(e);}}
     }catch(e){console.warn(e);}
     this.ready=true;
-    sb.auth.onAuthStateChange(async(ev,session)=>{
+    sb.auth.onAuthStateChange((ev,session)=>{
       if(ev==='INITIAL_SESSION')return;
-      if(session&&session.user){const was=this.user&&this.user.id;await this._load(session.user);if(was!==session.user.id)this.emit('signin');else this.emit('refresh');}
-      else if(ev==='SIGNED_OUT'){this.user=null;this.profile=null;this.settings=null;this.isAdmin=false;this.emit('signout');}
+      // Never call Supabase inside this callback (it deadlocks the client): defer to the next tick.
+      setTimeout(async()=>{
+        try{
+          if(session&&session.user){
+            if(this.user&&this.user.id===session.user.id&&ev!=='USER_UPDATED'){this.user=session.user;return;}
+            const was=this.user&&this.user.id;await this._load(session.user);if(was!==session.user.id)this.emit('signin');else this.emit('refresh');
+          }else if(ev==='SIGNED_OUT'){this.user=null;this.profile=null;this.settings=null;this.isAdmin=false;this.emit('signout');}
+        }catch(e){console.warn(e);}
+      },0);
     });
   },
   async _load(user){
@@ -136,8 +156,9 @@ async function signedUrl(bucket,path,secs=3600){
 function pickFile(accept,capture){
   return new Promise(res=>{
     const i=h('input',{type:'file',accept,capture:capture||null,style:{display:'none'}});
-    i.addEventListener('change',()=>{res(i.files&&i.files[0]||null);i.remove();});
-    i.addEventListener('cancel',()=>{res(null);i.remove();});
+    window.__picking=true;const done=()=>{setTimeout(()=>{window.__picking=false;},1500);};const guardT=setTimeout(()=>{window.__picking=false;},180000);
+    i.addEventListener('change',()=>{clearTimeout(guardT);done();res(i.files&&i.files[0]||null);i.remove();});
+    i.addEventListener('cancel',()=>{clearTimeout(guardT);done();res(null);i.remove();});
     document.body.appendChild(i);i.click();
   });
 }

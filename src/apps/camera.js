@@ -52,7 +52,7 @@ mount(el,ctx){
   const flip=h('button',{class:'cam-side','aria-label':'Switch camera',onclick:()=>{facing=facing==='environment'?'user':'environment';start();}},icon('flip'));
   const pick=h('button',{class:'cam-side','aria-label':'Choose a photo',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(f)Contrib.sendSheet(ctx,f);}},icon('image'));
   const stage=h('div',{class:'cam-stage'},video,msg,flash);
-  el.append(appBar({title:'Camera',onBack:ctx.close,backLabel:'Home'}),stage,h('div',{class:'cam-bar'},pick,shutter,flip));
+  el.append(appBar({title:'Camera',onBack:ctx.close,backLabel:'Back'}),stage,h('div',{class:'cam-bar'},pick,shutter,flip));
   async function start(){
     stop();msg.textContent='';
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){fallback('Live camera is not available here. You can still choose a photo from your device.');return;}

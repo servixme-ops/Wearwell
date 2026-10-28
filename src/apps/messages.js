@@ -5,7 +5,7 @@ mount(el,ctx,live){
   const root=h('div',{class:'msg-root'});el.append(root);
   const meId=()=>Auth.user&&Auth.user.id;
   async function loadThreads(){
-    root.replaceChildren(appBar({title:'Messages',onBack:ctx.close,backLabel:'Home'}));
+    root.replaceChildren(appBar({title:'Messages',onBack:ctx.close,backLabel:'Back'}));
     if(!Auth.user){root.append(appBody(gate(ctx,'Sign in to message the Lukks team.')));return;}
     const body=appBody(spinner());root.append(body);
     const r=await sb.from('messages').select('*').order('created_at',{ascending:false}).limit(300);
@@ -30,7 +30,7 @@ mount(el,ctx,live){
     const send=h('button',{class:'send','aria-label':'Send',disabled:true},icon('send'));
     ta.addEventListener('input',()=>{send.disabled=!ta.value.trim();ta.style.height='auto';ta.style.height=Math.min(110,ta.scrollHeight)+'px';});
     ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send.click();}});
-    root.replaceChildren(appBar({title:key==='team'?'Lukks Team':'Direct message',onBack:()=>{unsub();cur=null;loadThreads();},backLabel:'Messages'}),scroll,h('div',{class:'compose'},ta,send));
+    root.replaceChildren(appBar({title:key==='team'?'Lukks Team':'Direct message',onBack:()=>{unsub();cur=null;loadThreads();},backLabel:'Back'}),scroll,h('div',{class:'compose'},ta,send));
     const draw=()=>{list.replaceChildren();if(!msgs.length)list.append(h('p',{class:'muted',style:{textAlign:'center',margin:'30px 0'}},'No messages yet. Write the first one.'));
       msgs.forEach(m=>list.append(h('div',{class:'bubble '+(m.sender_id===meId()?'me':'them')},m.body,h('small',null,fmtTime(m.created_at)))));scroll.scrollTop=scroll.scrollHeight;};
     const q=key==='team'?sb.from('messages').select('*').or(`and(sender_id.eq.${meId()},recipient_id.is.null),and(recipient_id.eq.${meId()},from_team.eq.true)`):sb.from('messages').select('*').or(`and(sender_id.eq.${meId()},recipient_id.eq.${key}),and(sender_id.eq.${key},recipient_id.eq.${meId()})`);

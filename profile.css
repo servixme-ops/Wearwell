@@ -1,5 +1,6 @@
 /* Public Lukks Profile (also used inside the phone preview) */
 .pv{--a:#6b1a2b;--b:#f4ead9;--c:#2a1710;--d:#d9a441;background:var(--b);color:var(--c);min-height:100%;font-family:'Instrument Sans',system-ui,sans-serif;padding-bottom:30px}
+.pv.t-lilac{--a:#8a79c9;--b:#f4f1fb;--c:#241c3d;--d:#c9bdf2}
 .pv.t-ochre{--a:#b57b12;--b:#fbf1d8;--c:#3a2606;--d:#6b1a2b}
 .pv.t-indigo{--a:#14284b;--b:#e9eef5;--c:#0e1a30;--d:#9fb8d8}
 .pv.t-forest{--a:#2b5d4f;--b:#eaf1ea;--c:#12261f;--d:#e9c46a}

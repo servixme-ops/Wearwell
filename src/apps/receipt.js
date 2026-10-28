@@ -18,7 +18,7 @@ const RC={
     for(let x=x0;x<W-x0;x+=16){g.lineTo(x+8,22);g.lineTo(x+16,14);}g.lineTo(W-x0,H-14);
     for(let x=W-x0;x>x0;x-=16){g.lineTo(x-8,H-22);g.lineTo(x-16,H-14);}g.closePath();g.fill();
     let y=pad+24;g.fillStyle='#2a1710';g.textAlign='center';g.font="700 34px 'Playfair Display',Georgia,serif";g.fillText('LUKKS RECEIPT',W/2,y);
-    y+=30;g.font="500 17px 'Instrument Sans',Arial,sans-serif";g.fillStyle='#6a5648';g.fillText(`Look #${look.look_no||''} · ${fmtDate(look.created_at||new Date(),{day:'numeric',month:'short',year:'numeric'})}`,W/2,y);
+    y+=30;g.font="500 17px 'Instrument Sans',Arial,sans-serif";g.fillStyle='#6a5648';g.fillText(`Lukk #${look.look_no||''} · ${fmtDate(look.created_at||new Date(),{day:'numeric',month:'short',year:'numeric'})}`,W/2,y);
     y+=30;g.fillStyle='#2a1710';g.font="700 28px 'Playfair Display',Georgia,serif";g.fillText(look.title,W/2,y);
     y+=22;if(photo){g.drawImage(photo,pad,y,W-pad*2,phH);y+=phH+22;}
     g.textAlign='left';g.font="600 17px 'Instrument Sans',Arial,sans-serif";
@@ -38,18 +38,18 @@ mount(el,ctx,live){
   let looks=[],items={},cols=[],filter='all';
   const root=h('div',{class:'msg-root'});el.append(root);
   async function load(){
-    root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Home'}),appBody(spinner()));
+    root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Back'}),appBody(spinner()));
     if(!Auth.user){return guest();}
     try{
       const [l,i,c]=await Promise.all([sb.from('looks').select('*').order('created_at',{ascending:false}),sb.from('look_items').select('*').order('created_at'),sb.from('collections').select('*').order('created_at')]);
       if(l.error)throw l.error;looks=l.data||[];items={};(i.data||[]).forEach(x=>(items[x.look_id]=items[x.look_id]||[]).push(x));cols=c.data||[];
-    }catch(e){root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Home'}),appBody(empty('Could not load your looks',errMsg(e),h('button',{class:'btn',onclick:load},'Try again'))));return;}
+    }catch(e){root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Back'}),appBody(empty('Could not load your lukks',errMsg(e),h('button',{class:'btn',onclick:load},'Try again'))));return;}
     list();
   }
   function guest(){
     const demo={title:'Sunday Gown',look_no:1,currency:'NGN',wear_count:6,created_at:new Date().toISOString()};
     const di=[{name:'Ankara gown',brand:'Atelier Ife',price:85000,prior_wears:0},{name:'Gold sandals',brand:'',price:24000,prior_wears:4}];
-    root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Home'}),appBody(h('div',{class:'pad stack'},h('h3',{class:'h-large',style:{margin:0,fontSize:'24px'}},'Know what your clothes really cost'),h('p',{class:'muted',style:{margin:0}},'Log outfits, mark when you wear them and watch the cost per wear fall. Here is an example:'),receiptCard(demo,di),h('button',{class:'btn primary block',onclick:()=>ctx.open('account',{mode:'signup'})},'Create a free account to start'))));
+    root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Back'}),appBody(h('div',{class:'pad stack'},h('h3',{class:'h-large',style:{margin:0,fontSize:'24px'}},'Know what your clothes really cost'),h('p',{class:'muted',style:{margin:0}},'Log outfits, mark when you wear them and watch the cost per wear fall. Here is an example:'),receiptCard(demo,di),h('button',{class:'btn primary block',onclick:()=>ctx.open('account',{mode:'signup'})},'Create a free account to start'))));
   }
   function stats(){
     const wears=looks.reduce((s,l)=>s+(l.wear_count||0),0);
@@ -62,11 +62,12 @@ mount(el,ctx,live){
     const fl=looks.filter(l=>filter==='all'||(filter==='fav'?l.favourite:l.collection_id===filter));
     const pills=h('div',{class:'pill-tabs'},[['all','All'],['fav','Favourites'],...cols.map(c=>[c.id,c.name])].map(f=>h('button',{class:filter===f[0]?'on':'',onclick:()=>{filter=f[0];list();}},f[1])),h('button',{onclick:newCol},'+ Collection'));
     const body=appBody(stats(),pills);
-    if(!fl.length)body.append(empty(looks.length?'Nothing in this filter':'No looks yet',looks.length?'Try another filter.':'Add your first outfit to start tracking cost per wear.',h('button',{class:'btn primary',onclick:()=>form()},'Add a look')));
+    if(!fl.length)body.append(empty(looks.length?'Nothing in this filter':'No lukks yet',looks.length?'Try another filter.':'Add your first outfit to start tracking cost per wear.',h('button',{class:'btn primary',onclick:()=>form()},'Add a lukk')));
     else{const g=h('div',{class:'rc-grid'});fl.forEach(l=>{const c=RC.calc(l,items[l.id]||[]);
       g.append(h('button',{class:'rc-card',onclick:()=>detail(l.id)},l.photo_path?h('img',{src:publicUrl('looks',l.photo_path),alt:'',loading:'lazy'}):h('span',{class:'rc-noimg'},icon('shirt')),l.favourite&&h('span',{class:'rc-fav'},icon('heart')),h('b',null,l.title),h('em',null,`#${l.look_no} · ${c.wears} wear${c.wears===1?'':'s'}`),h('u',null,c.rows.length?RC.money(c.cpw,l.currency)+' / wear':'No items')));});body.append(g);}
-    root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Home',right:h('button',{class:'icon-btn','aria-label':'Add a look',onclick:()=>form()},icon('plus'))}),body);
+    root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Back',right:h('button',{class:'icon-btn','aria-label':'Add a lukk',onclick:()=>form()},icon('plus'))}),body);
     if(ctx.intent&&ctx.intent.add){ctx.intent=null;form();}
+    else if(ctx.intent&&ctx.intent.look){const id=ctx.intent.look;ctx.intent=null;detail(id);}
   }
   async function newCol(){
     const nm=h('input',{type:'text',maxlength:'40',placeholder:'e.g. Work, Owambe, Travel'});
@@ -76,7 +77,7 @@ mount(el,ctx,live){
   }
   function receiptCard(look,its){
     const c=RC.calc(look,its),cur=look.currency||'NGN';
-    return h('div',{class:'receipt'},h('div',{class:'rc-brand'},'LUKKS RECEIPT'),h('div',{class:'rc-sub'},`Look #${look.look_no||'—'} · ${fmtDate(look.created_at||new Date(),{day:'numeric',month:'short',year:'numeric'})}`),h('h3',null,look.title),
+    return h('div',{class:'receipt'},h('div',{class:'rc-brand'},'LUKKS RECEIPT'),h('div',{class:'rc-sub'},`Lukk #${look.look_no||'—'} · ${fmtDate(look.created_at||new Date(),{day:'numeric',month:'short',year:'numeric'})}`),h('h3',null,look.title),
       look.photo_path&&h('img',{class:'rc-photo',src:publicUrl('looks',look.photo_path),alt:look.title}),
       h('div',{class:'rc-lines'},c.rows.length?c.rows.map(r=>h('div',{class:'rc-line'},h('div',{class:'rc-l1'},h('span',null,r.name),h('b',null,RC.money(r.price,cur))),h('div',{class:'rc-l2'},h('span',null,(r.brand?r.brand+' · ':'')+r.total_wears+' wear'+(r.total_wears===1?'':'s')),h('span',null,RC.money(r.cpw,cur)+' / wear')))):h('p',{class:'muted small-t'},'No items added.')),
       h('div',{class:'rc-total'},h('span',null,'Total spent'),h('b',null,RC.money(c.total,cur))),h('div',{class:'rc-total cpw'},h('span',null,'Cost per wear'),h('b',null,RC.money(c.cpw,cur))),
@@ -89,8 +90,8 @@ mount(el,ctx,live){
       h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>history_(look)},'Wear history'),h('button',{class:'btn',onclick:async e=>guard(e.currentTarget,async()=>{const r=await sb.from('looks').update({favourite:!look.favourite}).eq('id',id);if(r.error)throw r.error;look.favourite=!look.favourite;detail(id);}),'aria-label':'Favourite'},icon('heart'),look.favourite?'Favourited':'Favourite')),
       h('div',{class:'group',style:{margin:0}},h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Show on my Lukks Profile'),h('span',null,Auth.profile&&Auth.profile.is_public?'Visible on your public page':'Your profile is private right now')),toggleEl(look.is_public,async v=>{const r=await sb.from('looks').update({is_public:v}).eq('id',id);if(r.error){toast(errMsg(r.error),'err');}else{look.is_public=v;toast(v?'Shared to your profile':'Removed from your profile');}},'Share on profile'))),
       h('button',{class:'btn block',onclick:e=>guard(e.currentTarget,async()=>{const bl=await RC.image(look,its);download(bl,'lukks-receipt-'+look.look_no+'.png');toast('Saved as image','ok');})},icon('download'),'Save as image'),
-      h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>form(look)},icon('edit'),'Edit'),h('button',{class:'btn danger grow',onclick:async()=>{if(!await confirmBox('Delete this look?','Its receipt and wear history will be removed.','Delete',true))return;const r=await sb.from('looks').delete().eq('id',id);if(r.error){toast(errMsg(r.error),'err');return;}if(look.photo_path)removeFile('looks',look.photo_path);toast('Deleted');await load();}},icon('trash'),'Delete'))));
-    root.replaceChildren(appBar({title:'Receipt',onBack:list,backLabel:'Looks'}),body);
+      h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>form(look)},icon('edit'),'Edit'),h('button',{class:'btn danger grow',onclick:async()=>{if(!await confirmBox('Delete this lukk?','Its receipt and wear history will be removed.','Delete',true))return;const r=await sb.from('looks').delete().eq('id',id);if(r.error){toast(errMsg(r.error),'err');return;}if(look.photo_path)removeFile('looks',look.photo_path);toast('Deleted');await load();}},icon('trash'),'Delete'))));
+    root.replaceChildren(appBar({title:'Receipt',onBack:list,backLabel:'Back'}),body);
   }
   async function refreshOne(id){const r=await sb.from('looks').select('*').eq('id',id).single();if(r.data){const i=looks.findIndex(l=>l.id===id);looks[i]=r.data;}}
   async function history_(look){
@@ -115,13 +116,13 @@ mount(el,ctx,live){
       box.append(h('div',{class:'card stack'},n,h('div',{class:'row-flex'},b,c),h('div',{class:'row-flex'},p,w),rows.length>1&&h('button',{class:'btn small danger',onclick:()=>{rows.splice(i,1);drawRows();}},'Remove item')));});
       box.append(h('button',{class:'btn block',onclick:()=>{rows.push({name:'',brand:'',category:'Other',price:'',prior_wears:0});drawRows();}},icon('plus'),'Add an item'));};drawRows();
     const err=h('p',{class:'err-t',role:'alert'});
-    const wardrobeBtn=!editing&&wardrobe.size?h('button',{class:'btn block',onclick:()=>fromWardrobe(l=>{title.value=l.name;const pr=parseInt(String(l.price).replace(/[^\d]/g,''))||'';rows=[{name:l.name,brand:l.designer,category:'Dress',price:pr,prior_wears:0}];drawRows();})},icon('shirt'),'Start from my crate wardrobe'):null;
-    root.replaceChildren(appBar({title:editing?'Edit look':'New look',onBack:()=>editing?detail(look.id):list(),backLabel:editing?'Receipt':'Looks'}),appBody(h('div',{class:'pad stack'},wardrobeBtn,
+    const wardrobeBtn=!editing&&wardrobe.size?h('button',{class:'btn block',onclick:()=>fromWardrobe(l=>{title.value=l.name;const pr=parseInt(String(l.price).replace(/[^\d]/g,''))||'';rows=[{name:l.name,brand:l.designer,category:'Dress',price:pr,prior_wears:0}];drawRows();})},icon('shirt'),'Start from My Lukks (crate)'):null;
+    root.replaceChildren(appBar({title:editing?'Edit lukk':'New lukk',onBack:()=>editing?detail(look.id):list(),backLabel:'Back'}),appBody(h('div',{class:'pad stack'},wardrobeBtn,
       h('div',{class:'f-label'},'Photo (optional)'),pv,h('button',{class:'btn block',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;photo=await prepareImage(f,{max:1400});pv.replaceChildren(h('img',{src:URL.createObjectURL(photo.blob),alt:''}));}catch(e){toast(errMsg(e),'err');}}},icon('image'),photo||pv.firstChild?'Change photo':'Add photo'),
-      field('Look name',title),field('Currency',cur),field('Collection',col),h('div',{class:'f-label'},'Items'),box,field('Notes',notes),err,
+      field('Lukk name',title),field('Currency',cur),field('Collection',col),h('div',{class:'f-label'},'Items'),box,field('Notes',notes),err,
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         err.textContent='';try{
-          if(!title.value.trim())throw new Error('Give this look a name.');
+          if(!title.value.trim())throw new Error('Give this lukk a name.');
           const clean=rows.filter(r=>r.name.trim()).map(r=>{const price=Number(r.price);if(r.price===''||isNaN(price)||price<0)throw new Error('Enter a price for “'+r.name+'”.');const pw=Math.max(0,parseInt(r.prior_wears)||0);return{name:r.name.trim().slice(0,80),brand:(r.brand||'').trim().slice(0,60)||null,category:r.category||'Other',price,prior_wears:pw};});
           if(!clean.length)throw new Error('Add at least one item with a price.');
           let path=look&&look.photo_path||null;
@@ -137,7 +138,7 @@ mount(el,ctx,live){
   }
   function fromWardrobe(cb){
     ensureLooks();
-    sheet('My crate wardrobe',(b,close)=>{b.append(h('div',{class:'group'},[...wardrobe].map(id=>LOOKS[id]).filter(Boolean).map(l=>h('button',{class:'item',onclick:()=>{close();cb(l);}},h('span',{class:'grow'},h('b',null,l.name),h('span',null,l.designer+' · '+l.price)),h('span',{class:'chev'},icon('chevR'))))));});
+    sheet('My Lukks from the crate',(b,close)=>{b.append(h('div',{class:'group'},[...wardrobe].map(id=>LOOKS[id]).filter(Boolean).map(l=>h('button',{class:'item',onclick:()=>{close();cb(l);}},h('span',{class:'grow'},h('b',null,l.name),h('span',null,l.designer+' · '+l.price)),h('span',{class:'chev'},icon('chevR'))))));});
   }
   live(load);load();
 }});
