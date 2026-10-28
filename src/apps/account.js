@@ -36,7 +36,7 @@ mount(el,ctx,live){
       name=h('input',{type:'text',maxlength:'60',autocomplete:'name',placeholder:'Your name'});
       const hint=h('span',{class:'f-hint'},'3 to 24 letters, numbers or underscores.');
       user=h('input',{type:'text',maxlength:'24',autocapitalize:'none',autocomplete:'username',placeholder:'username'});
-      let t;user.addEventListener('input',()=>{user.value=slugify(user.value);clearTimeout(t);if(user.value.length<3){hint.textContent='3 to 24 letters, numbers or underscores.';hint.className='f-hint';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:user.value});hint.textContent=r.data?'✓ Available':'Already taken';hint.className='f-hint '+(r.data?'ok-t':'err-t');},350);});
+      let t;user.addEventListener('input',()=>{user.value=slugify(user.value);clearTimeout(t);if(user.value.length<3){hint.textContent='3 to 24 letters, numbers or underscores.';hint.className='f-hint';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:user.value});if(r.error){hint.textContent='Could not check right now';hint.className='f-hint';return;}hint.textContent=r.data?'✓ Available':'Already taken';hint.className='f-hint '+(r.data?'ok-t':'err-t');},350);});
       cons=h('input',{type:'checkbox'});
       form.append(field('Name',name),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),user,hint));
     }
@@ -72,7 +72,7 @@ mount(el,ctx,live){
       const pr=await prepareImage(f,{max:512,maxMB:CFG.limits.avatarMB*3});const path=await uploadFile('avatars',pr.blob,pr.ext,pr.type);
       const r=await Auth.saveProfile({avatar_url:publicUrl('avatars',path)});if(r.error)throw r.error;toast('Photo updated','ok');editProfile();})},'Change photo'));
     const hint=h('span',{class:'f-hint'});let t;
-    un.addEventListener('input',()=>{un.value=slugify(un.value);clearTimeout(t);if(un.value===p.username||un.value.length<3){hint.textContent='';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:un.value});hint.textContent=r.data?'✓ Available':'Already taken';hint.className='f-hint '+(r.data?'ok-t':'err-t');},350);});
+    un.addEventListener('input',()=>{un.value=slugify(un.value);clearTimeout(t);if(un.value===p.username||un.value.length<3){hint.textContent='';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:un.value});if(r.error){hint.textContent='Could not check right now';hint.className='f-hint';return;}hint.textContent=r.data?'✓ Available':'Already taken';hint.className='f-hint '+(r.data?'ok-t':'err-t');},350);});
     body.append(av,h('div',{class:'pad'},field('Name',dn),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),field('Bio',bio),
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         if(un.value.length<3)throw new Error('Username must be at least 3 characters.');

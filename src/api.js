@@ -2,6 +2,7 @@
 let sb=null;
 /* Durable session storage: mirrors to a second key and a cookie so a cleared/blocked store doesn't log people out. */
 const DurableStore={
+  getItem(k){return DurableStore.get(k);},setItem(k,v){return DurableStore.set(k,v);},removeItem(k){return DurableStore.remove(k);},
   get(k){try{const v=localStorage.getItem(k);if(v)return v;}catch(e){}
     try{const b=localStorage.getItem(k+'.bak');if(b)return b;}catch(e){}
     try{const m=document.cookie.match(new RegExp('(?:^|; )'+k+'=([^;]*)'));if(m)return decodeURIComponent(m[1]);}catch(e){}
