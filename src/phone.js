@@ -314,12 +314,13 @@ const Phone={
   },
   onPop(e){
     if(this.state==='closed'||this.state==='closing')return;
-    if(this.app){this._appHist=false;this.closeApp(true);try{history.pushState({lukks:'phone'},'');}catch(_){}return;}
-    if(this.state==='home'){this.lock();try{history.pushState({lukks:'phone'},'');}catch(_){}return;}
+    if(this._skipPop>0){this._skipPop--;return;}
+    if(this.app){this.closeApp(true);return;}
+    if(this.state==='lock'||this.state==='home'){this.exit(true);return;}
     this.exit(true);
   },
   goHome(){
-    if(this.app)this.closeApp();else if(this.state==='home'){this.homeScroll.scrollTo({left:0,behavior:'smooth'});this.setEditing(false);}
+    if(this.app){this.backTo=null;this.closeApp();}else if(this.state==='home'){this.homeScroll.scrollTo({left:0,behavior:'smooth'});this.setEditing(false);}
   },
   /* ---- notifications on lock screen ---- */
   renderNotifs(){
@@ -433,17 +434,19 @@ const Phone={
       const b=$$('.app-icon[data-id=messages] .badge');b.forEach(x=>{x.hidden=!r.count;x.textContent=r.count>9?'9+':r.count;});}catch(e){}
   },
   /* ---- app host ---- */
-  openApp(id,intent,fromEl){
+  openApp(id,intent,fromEl,opener){
     const a=Apps.get(id);if(!a)return;
     if(this.state==='lock'){this.intentAfterUnlock={open:id,intent};this.unlock();return;}
-    if(this.app){this.closeAppNow();}
+    const noPush=this._noPush;this._noPush=false;
+    if(this.app){if(!opener&&this.app.id&&this.app.id!==id)opener=null;this.closeAppNow();}
+    this.backTo=opener||null;
     this.setEditing(false);
     const el=h('div',{class:'app','data-app':id});this.appEl=el;this.app=a;
     this.appHost.innerHTML='';this.appHost.appendChild(el);this.screen.dataset.state='app';this.state='app';
-    const ctx={close:()=>this.closeApp(),open:(i,n)=>this.openApp(i,n),el,intent:intent||{}};
+    const ctx={close:()=>this.closeApp(),open:(i,n)=>this.openApp(i,n,null,id),el,intent:intent||{}};
     try{a.mount(el,ctx);}catch(e){console.error(e);el.appendChild(empty('Something went wrong','Please close the app and try again.'));}
     this.ctx=ctx;
-    try{history.pushState({lukks:'app',id},'');this._appHist=true;}catch(e){}
+    if(!noPush){try{history.pushState({lukks:'app',id},'');}catch(e){}}this._appHist=true;
     // zoom from icon
     const src=fromEl||this.homeEl.querySelector(`.app-icon[data-id="${id}"] .glyph`)||this.dockEl.querySelector(`.app-icon[data-id="${id}"] .glyph`);
     const sr=this.screen.getBoundingClientRect();
@@ -463,9 +466,11 @@ const Phone={
     }else if(el)el.remove();
     a.unmount&&a.unmount();
     this.app=null;this.appEl=null;this.state='home';this.screen.dataset.state='home';this.homeEl.classList.remove('behind');
-    if(!fromPop&&this._appHist){this._appHist=false;try{history.back();}catch(e){}}
+    const back=this.backTo;this.backTo=null;
+    if(!fromPop&&this._appHist){try{history.back();this._skipPop=(this._skipPop||0)+1;}catch(e){}}
     this._appHist=false;
     this.updateBadges();
+    if(back&&Apps.get(back)){this._noPush=true;this.openApp(back,undefined,null,null);}
   },
   closeAppNow(){
     if(this.appEl)this.appEl.remove();if(this.app&&this.app.unmount)this.app.unmount();
