@@ -411,7 +411,7 @@ function renderLook(title,body,look){
   const info=document.createElement('div');info.className='info';
   const isS=saved.has(look.id),isW=wardrobe.has(look.id);
   info.innerHTML=`<h3>${look.name}</h3><p class="by">${look.designer}</p><p class="price">${look.price}</p><p class="fab">${FAB[look.fab].label}</p><p class="desc">${look.desc}</p>
-  <div class="acts"><button id="actSave" class="${isS?'on':''}">${isS?'Saved':'Save lukk'}</button><button id="actWard" class="${isW?'on':''}">${isW?'In My Lukks':'Add to My Lukks'}</button></div>`;
+  <div class="acts"><button id="actSave" class="${isS?'on':''}">${isS?'Saved':'Save lukk'}</button><button id="actWard" class="${isW?'on':''}">${isW?'In My Lukks':'Add to My Lukks'}</button><button id="actReal">See real lukks</button></div>`;
   wrap.appendChild(info);body.appendChild(wrap);
   const more=document.createElement('div');more.className='moreFrom';more.innerHTML=`<h4>More from this collection</h4>`;
   const row=document.createElement('div');row.className='row';
@@ -419,6 +419,7 @@ function renderLook(title,body,look){
   mag.looks.forEach(l=>{const t=tile(l);if(l.id===look.id)t.classList.add('cur');row.appendChild(t);});
   more.appendChild(row);body.appendChild(more);
   info.querySelector('#actSave').onclick=e=>{toggleSet(saved,'saved',look.id);renderLook(title,body,look);};
+  info.querySelector('#actReal').onclick=()=>{const m=crateMags(look.ci)[look.mi];closeSheet();setTimeout(()=>{Phone.intentAfterUnlock={open:'lukks',intent:{cat:m.title}};enterPhone();},250);};
   info.querySelector('#actWard').onclick=e=>{toggleSet(wardrobe,'wardrobe',look.id);renderLook(title,body,look);};
 }
 function toggleSet(set,key,id){const on=!set.has(id);on?set.add(id):set.delete(id);store.set(key,[...set]);if(typeof pushSaved==='function')pushSaved(set===saved?'saved':'wardrobe',id,on);}

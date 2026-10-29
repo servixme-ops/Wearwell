@@ -6,7 +6,7 @@ Static site (no build step): vanilla JS + three.js r128 + Supabase. Host it on G
 
 ## Phone
 Lock screen (live clock, battery, signal, notifications, swipe up) → home screen (draggable icons, dock, widgets page) → apps:
-Calendar · Camera · Photos · Messages · Safari · Notes (About Lukks + Testimonials) · Account · Lukks (profile, Discover, share link) · Lukks Receipt
+Lukks (discover, save, challenges, groups) · Profile (name, banner, shareable link) · Lukks Receipt · Calendar · Camera · Photos · Messages · Safari · Notes · Account · Ads
 
 ## Pages
 - `index.html` the experience (PWA: `manifest.webmanifest`, `sw.js`, install banner)

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<title>Lukks · Find your kinda style</title>
+<title>Lukks · Find Your Kind of Style</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#6b1a2b">
+<meta name="theme-color" content="#f0501e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lukks">
@@ -22,7 +22,7 @@
 /* Layout: full-bleed 3D room, cream UI chrome on top, one circular control bottom-right. */
 :root{
   --cream:#f4ead9; --cream-2:#ebdcc3; --ink:#2a1710; --ink-2:#6a5648;
-  --maroon:#6b1a2b; --ochre:#d9a441; --line:rgba(42,23,16,.14);
+  --maroon:#f0501e; --ochre:#d9a441; --line:rgba(42,23,16,.14);
   --disp:'Playfair Display',Georgia,'Times New Roman',serif;
   --cond:'Bebas Neue',Impact,'Arial Narrow',sans-serif;
   --body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
@@ -195,25 +195,26 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
 #loading{position:absolute;inset:0;z-index:20;background:var(--cream);display:grid;place-items:center;transition:opacity .7s,visibility .7s}
 #loading.gone{opacity:0;visibility:hidden}
 #loading div{text-align:center;font-family:var(--disp)}
-#loading b{display:block;letter-spacing:.24em;font-weight:500;font-size:24px}
-#loading span{display:block;margin-top:8px;font-size:14px;color:var(--ink-2);font-family:var(--body)}
+#loading b{display:block;letter-spacing:.24em;font-weight:600;font-size:24px;margin-top:10px;background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+#loading .lk-splash>span:not(.lk-logo-wrap){display:block;margin-top:8px;font-size:14px;color:var(--ink-2);font-family:var(--body)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body data-mode="room">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lkGrad" x1="0" y1="0.2" x2="1" y2="0.8"><stop offset="0" stop-color="#d81bff"/><stop offset=".28" stop-color="#ff1f9a"/><stop offset=".6" stop-color="#ff4a22"/><stop offset=".85" stop-color="#ff9a1a"/><stop offset="1" stop-color="#ffd21f"/></linearGradient><radialGradient id="lkShine" cx=".3" cy=".25" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs></svg>
 <canvas id="stage" aria-label="Interactive 3D Nigerian living room with a crate of fashion magazines"></canvas>
 <div id="vignette"></div>
 <div id="topfade"></div>
 
 <div id="top" class="layer">
-  <div class="brand"><b>LUKKS</b><span>Find your kinda style</span></div>
+  <div class="brand"><b>LUKKS</b><span>Find Your Kind of Style</span></div>
   <div class="icons">
     <button id="searchBtn" aria-label="Search lukks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
     <button id="heartBtn" aria-label="Saved lukks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 20.5C5 15.5 3 12 3 9a4.8 4.8 0 0 1 9-2.3A4.8 4.8 0 0 1 21 9c0 3-2 6.5-9 11.5z"/></svg></button>
   </div>
 </div>
 <div id="hero" class="layer">
-  <h1>Find your<br>kinda style.</h1>
+  <h1>Find your kind<br>of style.</h1>
   <p>Showcase your style. Discover others.</p>
 </div>
 <button id="crateTag" type="button"><i></i><span id="tagBtn">Browse the crate</span></button>
@@ -260,13 +261,16 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
 
 <div id="sheet"><div id="sheetBox" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div id="sheetHead"><h2 id="sheetTitle">Explore</h2><button id="sheetClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div id="sheetBody"></div></div></div>
 
-<div id="loading"><div><b>LUKKS</b><span>Setting up the living room…</span></div></div>
+<div id="loading"><div class="lk-splash"><span class="lk-logo-wrap" style="--s:120px"><svg class="lk-logo" viewBox="0 0 200 200" aria-hidden="true"><path d="M189.7 102.0 C188.5 105.3 185.4 108.6 182.6 111.4 C179.7 114.3 175.5 116.6 172.7 119.0 C169.8 121.3 167.0 123.2 165.3 125.6 C163.6 128.1 163.1 130.7 162.5 133.8 C162.0 136.9 162.6 140.7 162.0 144.3 C161.4 147.9 160.9 152.2 159.0 155.3 C157.2 158.5 154.3 161.5 150.8 163.3 C147.3 165.0 142.5 165.6 138.1 165.6 C133.8 165.7 128.8 164.3 124.5 163.4 C120.3 162.5 116.3 160.8 112.6 160.3 C109.0 159.8 106.0 159.7 102.5 160.4 C99.1 161.0 95.8 162.8 92.0 164.3 C88.1 165.7 83.8 168.0 79.5 169.0 C75.2 170.0 70.2 170.8 66.2 170.1 C62.1 169.5 58.1 167.6 55.2 165.2 C52.3 162.7 50.3 158.9 48.7 155.4 C47.1 152.0 46.7 147.9 45.6 144.7 C44.5 141.5 44.0 138.6 42.2 136.2 C40.4 133.8 37.9 132.1 34.9 130.2 C31.9 128.2 27.5 126.7 24.0 124.5 C20.5 122.3 16.2 119.8 13.7 116.9 C11.3 114.0 9.5 110.5 9.4 107.2 C9.3 103.8 11.0 100.2 13.2 97.1 C15.4 94.0 19.3 91.1 22.4 88.6 C25.5 86.0 29.2 84.1 31.6 81.7 C34.0 79.4 35.6 77.3 36.6 74.6 C37.6 71.8 37.4 68.6 37.7 65.2 C38.1 61.8 37.8 57.6 39.0 54.0 C40.1 50.5 41.7 46.6 44.4 44.1 C47.1 41.6 51.1 39.7 55.2 38.8 C59.2 38.0 64.3 38.5 68.8 39.1 C73.2 39.7 77.8 41.5 81.7 42.3 C85.7 43.2 89.1 44.2 92.5 44.2 C96.0 44.1 99.0 43.2 102.6 42.0 C106.2 40.9 109.9 38.6 114.0 37.2 C118.2 35.8 123.0 34.0 127.3 33.8 C131.5 33.5 136.2 34.0 139.8 35.6 C143.4 37.2 146.5 40.2 148.7 43.3 C150.9 46.4 151.9 50.6 153.1 54.0 C154.3 57.5 154.5 61.1 155.8 63.9 C157.1 66.8 158.5 68.9 160.9 71.0 C163.3 73.1 166.8 74.5 170.3 76.5 C173.7 78.5 178.4 80.4 181.6 83.0 C184.8 85.5 188.1 88.6 189.4 91.8 C190.8 94.9 190.8 98.7 189.7 102.0Z" fill="url(#lkGrad)"/><path d="M189.7 102.0 C188.5 105.3 185.4 108.6 182.6 111.4 C179.7 114.3 175.5 116.6 172.7 119.0 C169.8 121.3 167.0 123.2 165.3 125.6 C163.6 128.1 163.1 130.7 162.5 133.8 C162.0 136.9 162.6 140.7 162.0 144.3 C161.4 147.9 160.9 152.2 159.0 155.3 C157.2 158.5 154.3 161.5 150.8 163.3 C147.3 165.0 142.5 165.6 138.1 165.6 C133.8 165.7 128.8 164.3 124.5 163.4 C120.3 162.5 116.3 160.8 112.6 160.3 C109.0 159.8 106.0 159.7 102.5 160.4 C99.1 161.0 95.8 162.8 92.0 164.3 C88.1 165.7 83.8 168.0 79.5 169.0 C75.2 170.0 70.2 170.8 66.2 170.1 C62.1 169.5 58.1 167.6 55.2 165.2 C52.3 162.7 50.3 158.9 48.7 155.4 C47.1 152.0 46.7 147.9 45.6 144.7 C44.5 141.5 44.0 138.6 42.2 136.2 C40.4 133.8 37.9 132.1 34.9 130.2 C31.9 128.2 27.5 126.7 24.0 124.5 C20.5 122.3 16.2 119.8 13.7 116.9 C11.3 114.0 9.5 110.5 9.4 107.2 C9.3 103.8 11.0 100.2 13.2 97.1 C15.4 94.0 19.3 91.1 22.4 88.6 C25.5 86.0 29.2 84.1 31.6 81.7 C34.0 79.4 35.6 77.3 36.6 74.6 C37.6 71.8 37.4 68.6 37.7 65.2 C38.1 61.8 37.8 57.6 39.0 54.0 C40.1 50.5 41.7 46.6 44.4 44.1 C47.1 41.6 51.1 39.7 55.2 38.8 C59.2 38.0 64.3 38.5 68.8 39.1 C73.2 39.7 77.8 41.5 81.7 42.3 C85.7 43.2 89.1 44.2 92.5 44.2 C96.0 44.1 99.0 43.2 102.6 42.0 C106.2 40.9 109.9 38.6 114.0 37.2 C118.2 35.8 123.0 34.0 127.3 33.8 C131.5 33.5 136.2 34.0 139.8 35.6 C143.4 37.2 146.5 40.2 148.7 43.3 C150.9 46.4 151.9 50.6 153.1 54.0 C154.3 57.5 154.5 61.1 155.8 63.9 C157.1 66.8 158.5 68.9 160.9 71.0 C163.3 73.1 166.8 74.5 170.3 76.5 C173.7 78.5 178.4 80.4 181.6 83.0 C184.8 85.5 188.1 88.6 189.4 91.8 C190.8 94.9 190.8 98.7 189.7 102.0Z" fill="url(#lkShine)"/>
+<g transform="translate(84 112) rotate(-18)"><ellipse rx="23" ry="27" fill="#fff6ee"/><g class="lk-pup lk-p1"><ellipse cx="4" cy="-1" rx="14" ry="19" fill="#12061a"/><path d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4Z" transform="translate(4 -1) scale(.9)" fill="#fff"/></g></g>
+<g transform="translate(130 88) rotate(-12)"><ellipse rx="21" ry="26" fill="#fff6ee"/><g class="lk-pup lk-p2"><ellipse cx="3" cy="-1" rx="13" ry="18" fill="#12061a"/><path d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4Z" transform="translate(3 -1) scale(.85)" fill="#fff"/></g></g></svg></span><b>LUKKS</b><span>Find your kind of style</span></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="src/data.js"></script>
 <script src="src/art.js"></script>
 <script src="src/config.js"></script>
+<script src="src/logo.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/scene.js"></script>
 <script src="src/api.js"></script>
@@ -274,6 +278,7 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
 <script src="src/phone.js"></script>
 <script src="src/profileview.js"></script>
 <script src="src/apps/common.js"></script>
+<script src="src/apps/lukks.js"></script>
 <script src="src/apps/calendar.js"></script>
 <script src="src/apps/camera.js"></script>
 <script src="src/apps/photos.js"></script>

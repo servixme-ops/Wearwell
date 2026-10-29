@@ -315,7 +315,7 @@ const Phone={
   onPop(e){
     if(this.state==='closed'||this.state==='closing')return;
     if(this._skipPop>0){this._skipPop--;return;}
-    if(this.app){this.closeApp(true);return;}
+    if(this.app){if(this.ctx&&typeof this.ctx.onBack==='function'&&this.ctx.onBack()){try{history.pushState({lukks:'app'},'');this._appHist=true;}catch(_){}return;}this.closeApp(true);return;}
     if(this.state==='lock'||this.state==='home'){this.exit(true);return;}
     this.exit(true);
   },

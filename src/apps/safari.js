@@ -1,6 +1,6 @@
 /* ---------- SAFARI: Lukks pages inside the phone; outside links open in your real browser ---------- */
 const SAFARI_PAGES={
-  about:{title:'About Lukks',body:['Lukks is where you showcase your style and discover other people\'s. Find your kinda style, share your lukks and see what everyone else is wearing.','The magazine crate in the room is full of Nigerian fashion to flip through, and your phone holds your Lukks, your shareable profile and your outfit receipts.']},
+  about:{title:'About Lukks',body:['Lukks is where you showcase your style and discover other people\'s. Find Your Kind of Style, share your lukks and see what everyone else is wearing.','The magazine crate in the room is full of Nigerian fashion to flip through, and your phone holds your Lukks, your shareable profile and your outfit receipts.']},
   privacy:{title:'Privacy',body:['We store the details you give us (account, profile, photos, lukks and messages) so the app can work across your devices.','Photos and magazine submissions are reviewed before they are shown to anyone. Your public profile only shows the sections you switch on, and prices stay hidden unless you choose to show them.','You can edit or delete what you add at any time. Ask us to delete your account by messaging the Lukks Team.']},
   help:{title:'Help',body:['Swipe up on the lock screen to unlock the phone. Press and hold an icon to rearrange the home screen.','Wallpapers, sound and notifications live in Account. Your public profile link lives in Lukks.','Need a hand? Message the Lukks Team in Messages.']}
 };
@@ -35,7 +35,7 @@ mount(el,ctx,live){
     if(!issues||!issues.length){issues=[];CRATES.forEach((c,ci)=>crateMags(ci).forEach((m,mi)=>issues.push({id:ci+'-'+mi,title:m.title,crate:c.name,issue_no:ci*7+mi+1})));}
     return issues;
   }
-  const favs=[['Magazines','magazines','#6b1a2b'],['Events',null,'#d9a441','calendar'],['Advertise',null,'#14284b','ads'],['Testimonials',null,'#2a6f5c','notes',{section:'testimonials'}],['About','about','#c8372d'],['Privacy','privacy','#3d2c5e'],['Help','help','#2f5d4e'],['Lukks site','EXT','#2a1710']];
+  const favs=[['Magazines','magazines','#f0501e'],['Events',null,'#d9a441','calendar'],['Advertise',null,'#14284b','ads'],['Testimonials',null,'#2a6f5c','notes',{section:'testimonials'}],['About','about','#c8372d'],['Privacy','privacy','#3d2c5e'],['Help','help','#2f5d4e'],['Lukks site','EXT','#2a1710']];
   async function render(){
     back.disabled=idx===0;fwd.disabled=idx>=hist.length-1;
     const pg=hist[idx];url.value=pg.p==='home'?'':'lukks://'+(pg.p==='issue'?'issue/'+pg.id:pg.p==='search'?'search?q='+pg.q:pg.p);

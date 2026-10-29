@@ -3,7 +3,7 @@ defApp({id:'notes',name:'Notes',bg:'#fff',glyph:()=>`<svg viewBox="0 0 60 60"><r
 mount(el,ctx,live){
   let sec=null;const root=h('div',{class:'msg-root'});el.append(root);
   const ABOUT=[
-    ['What is Lukks?','Lukks is where you showcase your style and discover other people\'s. Find your kinda style, share your lukks, and see what everyone else is wearing.'],
+    ['What is Lukks?','Lukks is where you showcase your style and discover other people\'s. Find Your Kind of Style, share your lukks, and see what everyone else is wearing.'],
     ['Your Lukks','Add outfits to your Lukks with a photo and the pieces you wore. Mark when you wear them and watch the cost per wear drop in Lukks Receipt.'],
     ['Share your profile','Lukks Profile is your shareable style page. Turn it on, choose what to show, and send your link to anyone.'],
     ['Discover','Browse public lukks from other people, search by style or piece, and open their profiles for inspiration.'],

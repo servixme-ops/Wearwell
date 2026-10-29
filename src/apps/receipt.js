@@ -107,7 +107,8 @@ mount(el,ctx,live){
     const editing=!!look;let rows=editing?(items[look.id]||[]).map(i=>({name:i.name,brand:i.brand||'',category:i.category||'Other',price:i.price,prior_wears:i.prior_wears||0})):[{name:'',brand:'',category:'Top',price:'',prior_wears:0}];
     let photo=null;
     const title=h('input',{type:'text',maxlength:'80',placeholder:'e.g. Sunday gown',value:look?look.title:''}),notes=h('textarea',{maxlength:'400'}),cur=h('select',null,['NGN','USD','GBP','EUR'].map(c=>h('option',{value:c,selected:(look?look.currency:'NGN')===c},c))),
-      col=h('select',null,h('option',{value:''},'No collection'),cols.map(c=>h('option',{value:c.id,selected:look&&look.collection_id===c.id},c.name)));notes.value=look&&look.notes||'';
+      cat=h('select',null,h('option',{value:''},'Choose a category'),Object.keys(CFG.categories).map(g=>h('optgroup',{label:g},CFG.categories[g].map(c=>h('option',{value:c,selected:look&&look.category===c},c))))),link=h('input',{type:'url',inputmode:'url',placeholder:'https://… (optional)',maxlength:'500',value:look&&look.external_url||''}),pub=h('input',{type:'checkbox'}),
+      col=h('select',null,h('option',{value:''},'No collection'),cols.map(c=>h('option',{value:c.id,selected:look&&look.collection_id===c.id},c.name)));notes.value=look&&look.notes||'';pub.checked=look?!!look.is_public:true;
     const pv=h('div',{class:'ad-prev'});if(look&&look.photo_path)pv.append(h('img',{src:publicUrl('looks',look.photo_path),alt:''}));
     const box=h('div',{class:'stack'});
     const drawRows=()=>{box.replaceChildren();rows.forEach((r,i)=>{
@@ -119,7 +120,7 @@ mount(el,ctx,live){
     const wardrobeBtn=!editing&&wardrobe.size?h('button',{class:'btn block',onclick:()=>fromWardrobe(l=>{title.value=l.name;const pr=parseInt(String(l.price).replace(/[^\d]/g,''))||'';rows=[{name:l.name,brand:l.designer,category:'Dress',price:pr,prior_wears:0}];drawRows();})},icon('shirt'),'Start from My Lukks (crate)'):null;
     root.replaceChildren(appBar({title:editing?'Edit lukk':'New lukk',onBack:()=>editing?detail(look.id):list(),backLabel:'Back'}),appBody(h('div',{class:'pad stack'},wardrobeBtn,
       h('div',{class:'f-label'},'Photo (optional)'),pv,h('button',{class:'btn block',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;photo=await prepareImage(f,{max:1400});pv.replaceChildren(h('img',{src:URL.createObjectURL(photo.blob),alt:''}));}catch(e){toast(errMsg(e),'err');}}},icon('image'),photo||pv.firstChild?'Change photo':'Add photo'),
-      field('Lukk name',title),field('Currency',cur),field('Collection',col),h('div',{class:'f-label'},'Items'),box,field('Notes',notes),err,
+      field('Lukk name',title),field('Category',cat,'Where should people find this lukk?'),field('Link to see more (optional)',link,'Shop or post link shown with your lukk'),h('label',{class:'check'},pub,h('span',null,'Share this lukk on Discover and my profile')),field('Currency',cur),field('Collection',col),h('div',{class:'f-label'},'Items'),box,field('Notes',notes),err,
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         err.textContent='';try{
           if(!title.value.trim())throw new Error('Give this lukk a name.');
@@ -127,7 +128,7 @@ mount(el,ctx,live){
           if(!clean.length)throw new Error('Add at least one item with a price.');
           let path=look&&look.photo_path||null;
           if(photo){const np=await uploadFile('looks',photo.blob,photo.ext,photo.type);if(path)removeFile('looks',path);path=np;}
-          const row={title:title.value.trim(),notes:notes.value.trim()||null,currency:cur.value,collection_id:col.value||null,photo_path:path};
+          const row={title:title.value.trim(),notes:notes.value.trim()||null,currency:cur.value,collection_id:col.value||null,photo_path:path,category:cat.value||null,external_url:(()=>{const v=link.value.trim();if(!v)return null;const u=safeUrl(v);if(!u)throw new Error('The link is not a valid web address.');return u;})(),is_public:pub.checked};
           let id;
           if(editing){const r=await sb.from('looks').update(row).eq('id',look.id);if(r.error)throw r.error;id=look.id;const d=await sb.from('look_items').delete().eq('look_id',id);if(d.error)throw d.error;}
           else{const r=await sb.from('looks').insert(Object.assign({user_id:Auth.user.id},row)).select().single();if(r.error)throw r.error;id=r.data.id;}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lukks Profile</title>
-<meta name="theme-color" content="#6b1a2b">
+<meta name="theme-color" content="#f0501e">
 <meta name="robots" content="noindex">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;700&display=swap">
@@ -14,7 +14,7 @@ html,body{margin:0;min-height:100%;background:#f4ead9}
 body{font-family:'Instrument Sans',system-ui,sans-serif}
 #root{max-width:720px;margin:0 auto;min-height:100vh;background:var(--b,#f4ead9)}
 .msg{display:grid;place-items:center;min-height:70vh;text-align:center;padding:30px;color:#2a1710}
-.msg h1{font:700 28px 'Playfair Display',serif;margin:0 0 8px}.msg a{color:#6b1a2b;font-weight:600}
+.msg h1{font:700 28px 'Playfair Display',serif;margin:0 0 8px}.msg a{color:#f0501e;font-weight:600}
 .bar{position:fixed;right:14px;top:14px;z-index:5;display:flex;gap:8px}
 .bar button{background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:99px;padding:9px 14px;font:600 13px 'Instrument Sans',sans-serif;cursor:pointer;backdrop-filter:blur(8px)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a1710;color:#fff;padding:10px 16px;border-radius:99px;font-size:14px}
@@ -42,7 +42,7 @@ body{font-family:'Instrument Sans',system-ui,sans-serif}
   if(!r.data){notFound('Profile not found','This profile is private or does not exist.');return;}
   const p=r.data.profile;
   document.title=(p.display_name||'@'+p.username)+' on Lukks';
-  root.replaceChildren(renderPublicProfile(r.data));
+  root.replaceChildren(renderPublicProfile(r.data,{highlight:new URLSearchParams(location.search).get('l')}));
   const t=getComputedStyle(root.firstChild).getPropertyValue('--b').trim();if(t)document.body.style.background=t;
   const url=profileUrl(p.username);
   const bar=h('div',{class:'bar'},h('button',{onclick:async()=>{if(navigator.share){try{await navigator.share({title:document.title,url});return;}catch(e){}}const ok=await copyText(url);toast(ok?'Link copied':'Could not copy');}},'Share'));

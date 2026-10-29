@@ -1,10 +1,13 @@
 /* ---------- CAMERA + contribution helpers (community photos, magazine submissions) ---------- */
 const Contrib={
   async postCommunity(p,caption){
-    if(!Auth.user)throw new Error('Sign in first.');
-    const path=await uploadFile('gallery',p.blob,p.ext,p.type);
-    const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:'community',storage_path:path,caption:(caption||'').slice(0,200)||null,status:'pending'});
-    if(r.error){removeFile('gallery',path);throw r.error;}
+    const fd=new FormData();fd.append('file',new File([p.blob],'photo.'+p.ext,{type:p.type}));fd.append('caption',(caption||'').slice(0,200));
+    const headers={apikey:CFG.supabaseKey};
+    try{const s=await sb.auth.getSession();if(s&&s.data&&s.data.session)headers.Authorization='Bearer '+s.data.session.access_token;}catch(e){}
+    const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),45000);
+    let res;try{res=await fetch(CFG.supabaseUrl+'/functions/v1/community-upload',{method:'POST',headers,body:fd,signal:ctl.signal});}catch(e){throw new Error('Could not reach the server. Check your connection and try again.');}finally{clearTimeout(to);}
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(j.message||'Could not upload the photo.');
   },
   async mySubmissions(){const r=await sb.from('magazine_submissions').select('*').eq('user_id',Auth.user.id).order('created_at',{ascending:false});return r.data||[];},
   async submitMagazine(p,caption,credit,consent){
@@ -24,18 +27,12 @@ const Contrib={
       let prepared;
       try{prepared=await prepareImage(blobOrFile instanceof File?blobOrFile:new File([blobOrFile],'photo.jpg',{type:blobOrFile.type||'image/jpeg'}),{max:1800});}catch(e){b.append(h('p',{class:'err-t'},errMsg(e)));return;}
       const url=URL.createObjectURL(prepared.blob);
-      const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption'}),credit=h('input',{type:'text',maxlength:'80',placeholder:'Credit, e.g. @yourname'});
-      const consent=h('input',{type:'checkbox',id:'cons'});
+      const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption'});
       const note=h('p',{class:'muted small-t'},'Photos are reviewed before they appear. Nothing is public until approved.');
       b.append(h('img',{src:url,alt:'Your photo',style:{width:'100%',maxHeight:'240px',objectFit:'contain',borderRadius:'12px',background:'#000'}}),
         field('Caption',cap),
-        h('button',{class:'btn block',onclick:e=>guard(e.currentTarget,async()=>{if(!Auth.user){toast('Sign in to share photos','err');return;}await this.postCommunity(prepared,cap.value);toast('Sent for review','ok');close();})},icon('image'),'Post to Community album'),
-        h('div',{class:'sec-t',style:{padding:'16px 0 6px'}},'Or submit to a Lukks magazine'),
-        field('Credit (optional)',credit),
-        h('label',{class:'check'},consent,h('span',null,'This is my photo and I agree to Lukks featuring it in a magazine.')),
-        h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{await this.submitMagazine(prepared,cap.value,credit.value,consent.checked);toast('Submitted for magazine review','ok');close();})},icon('send'),'Submit to magazine'),
+        h('button',{class:'btn block',onclick:e=>guard(e.currentTarget,async()=>{await this.postCommunity(prepared,cap.value);toast('Sent for review','ok');close();})},icon('image'),'Post to Community album'),
         h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{download(prepared.blob,'lukks-photo.'+prepared.ext);}},icon('download'),'Save to my device'),note);
-      if(!Auth.user)b.append(h('button',{class:'btn ghost block',onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to post or submit'));
     });
   }
 };

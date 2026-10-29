@@ -19,12 +19,12 @@ const HEADLINES=["LET'S DO IT","WEAR IT LOUD","MADE IN LAGOS","STEP OUT","FULL C
 const SHOPS=['Lekki Phase 1 · Admiralty Way','Victoria Island · Adeola Odeku','Ikeja City Mall · Obafemi Awolowo Way','Balogun Market · Lagos Island','Yaba · Herbert Macaulay Way','Abuja · Wuse 2'];
 
 const CRATES=[
-  {id:'ankara',name:'Ankara Edit',blurb:'Bold wax prints, cut sharp',wood:'#b9854c',label:'#7a1f2b',
-    mags:[['Ankara Now','Seven ways to wear wax print',0,'block'],['Print Parade','Pattern on pattern, done well',1,'frame'],['Wax & Wonder','Prints worth the tailor',2,'split'],['Colour Block','Brights for every season',3,'block'],['Sunday Prints','Church to brunch',4,'frame'],['Kaftan Club','Easy shapes, loud colour',5,'split'],['Boldly Lagos','Street meets studio',6,'block']]},
-  {id:'owambe',name:'Owambe & Aso Ebi',blurb:'Celebration season, dressed',wood:'#a8723f',label:'#2f5d4e',
-    mags:[['Aso Ebi Weekly','Matching, but make it stylish',6,'frame'],['Owambe Season','Every invitation, answered',1,'block'],['Gele Gazette','Head wraps, step by step',2,'split'],['Bridal Lagos','Two days, four outfits',4,'frame'],['Lace & Coral','Swiss lace, reimagined',7,'block'],['Asoke Letters','Woven cloth, modern cuts',8,'split'],['Traditional Wedding','Iro, buba and beyond',0,'frame']]},
-  {id:'street',name:'Lagos Street',blurb:'Everyday style from the city',wood:'#8f5e34',label:'#14284b',
-    mags:[['Lagos Street','Looks from Yaba to Lekki',5,'split'],['Island Linen','Cool cloth for hot days',4,'frame'],['Agbada & Co.','Modern robes, sharp lines',2,'block'],['Adire Atlas','An indigo map of Nigeria',5,'frame'],['Yaba Style','Thrift, tailor, repeat',3,'split'],['Surulere Sundays','Weekend ease',7,'block'],['Balogun Finds','Market fabric, studio fit',1,'frame']]}
+  {id:'styles',name:'Fashion Styles',blurb:'Find your kind of style',wood:'#b9854c',label:'#d4351f',
+    mags:[['Creative Models','Full looks, modelled your way',0,'block'],['Baddies','Confidence, dressed up',1,'frame'],['Aesthetic Girlyss','Soft, pretty, put together',4,'split'],['Drip Gang','Street heat and fresh kicks',5,'block'],['Nature Aesthetic','Earth tones and easy layers',3,'frame'],['Witchy Style','Dark, moody and magical',7,'split'],['Soft Statements','Quiet looks that say a lot',2,'frame']]},
+  {id:'occasions',name:'Occasions',blurb:'Dressed for the moment',wood:'#a8723f',label:'#2f5d4e',
+    mags:[['Beach Fun','Sun, sand and light fabrics',3,'frame'],['Matrimonio','Wedding season, all of it',4,'block'],['Dream Wedding','Gowns, lace and aso ebi',1,'frame'],['The Wedding Guest','What to wear when invited',2,'split'],['School Outfits','Smart, simple, campus ready',5,'block'],['Cozy Style','Soft layers for slow days',6,'frame'],['Everyday Style','Looks for the daily run',0,'split']]},
+  {id:'night',name:'After Dark',blurb:'Evenings, events and glam',wood:'#8f5e34',label:'#14284b',
+    mags:[['After Dark','Night out, dressed to land',5,'split'],['Date Night','Dinner looks with a spark',1,'frame'],['Owambe Glam','Celebration season, glowing',2,'block'],['Club Fits','Dance floor ready',7,'frame'],['Midnight Soft','Evening, but gentle',4,'split'],['Gala Lights','Black tie, Lagos style',6,'block'],['Lounge Hour','Low light, high style',0,'frame']]}
 ];
 
 const LOOKS={};

@@ -31,25 +31,18 @@ mount(el,ctx,live){
     body.append(g);
   }
   async function addPhoto(){
-    if(!Auth.user){toast('Sign in to share photos');ctx.open('account',{mode:'signin'});return;}
     const f=await pickFile('image/jpeg,image/png,image/webp');if(f)Contrib.sendSheet(ctx,f);
   }
   async function openMine(){
     view={t:'mine'};top('My uploads',drawAlbums,h('button',{class:'icon-btn','aria-label':'Add a photo',onclick:addPhoto},icon('plus')));
-    if(!Auth.user){body.replaceChildren(gate(ctx,'Sign in to see photos and magazine submissions you have sent.'));return;}
+    if(!Auth.user){body.replaceChildren(gate(ctx,'Sign in to see the photos you have shared.'));return;}
     body.replaceChildren(spinner());
-    const [p,s]=await Promise.all([sb.from('photos').select('*').eq('user_id',Auth.user.id).order('created_at',{ascending:false}),Contrib.mySubmissions()]);
+    const p=await sb.from('photos').select('*').eq('user_id',Auth.user.id).order('created_at',{ascending:false});
     body.replaceChildren();
     body.append(h('div',{class:'sec-t'},'Community photos'));
     const list=p.data||[];
     if(!list.length)body.append(h('p',{class:'muted pad small-t'},'You have not shared any photos yet.'));
     list.forEach(x=>body.append(h('div',{class:'group',style:{marginBottom:'8px'}},h('div',{class:'item'},h('img',{class:'thumb',src:photoSrc(x,120),alt:''}),h('span',{class:'grow'},h('b',null,x.caption||'Untitled'),h('span',null,timeAgo(x.created_at)+' ago · '+x.like_count+' likes')),chip(x.status),h('button',{class:'icon-btn','aria-label':'Delete photo',onclick:async()=>{if(!await confirmBox('Delete this photo?','It will be removed for good.','Delete',true))return;const r=await sb.from('photos').delete().eq('id',x.id);if(r.error)toast(errMsg(r.error),'err');else{if(x.storage_path)removeFile('gallery',x.storage_path);openMine();}}},icon('trash'))))));
-    body.append(h('div',{class:'sec-t'},'Magazine submissions ('+(s.filter(x=>x.status!=='rejected').length)+'/'+CFG.limits.magazinePhotos+')'));
-    if(!s.length)body.append(h('p',{class:'muted pad small-t'},'Submit a photo from the Camera app for a chance to be featured.'));
-    for(const x of s){
-      const im=h('img',{class:'thumb',alt:''});signedUrl('submissions',x.storage_path).then(u=>{if(u)im.src=u;});
-      body.append(h('div',{class:'group',style:{marginBottom:'8px'}},h('div',{class:'item'},im,h('span',{class:'grow'},h('b',null,x.caption),h('span',null,x.admin_note&&x.status==='rejected'?x.admin_note:timeAgo(x.created_at)+' ago')),chip(x.status),x.status==='pending'&&h('button',{class:'icon-btn','aria-label':'Withdraw submission',onclick:async()=>{if(!await confirmBox('Withdraw this submission?',null,'Withdraw',true))return;const r=await sb.from('magazine_submissions').delete().eq('id',x.id);if(r.error)toast(errMsg(r.error),'err');else{removeFile('submissions',x.storage_path);openMine();}}},icon('trash')))));
-    }
   }
   function viewer(list,i){
     const p=list[i];

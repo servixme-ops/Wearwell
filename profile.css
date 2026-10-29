@@ -1,7 +1,7 @@
 /* Public Lukks Profile (also used inside the phone preview) */
-.pv{--a:#6b1a2b;--b:#f4ead9;--c:#2a1710;--d:#d9a441;background:var(--b);color:var(--c);min-height:100%;font-family:'Instrument Sans',system-ui,sans-serif;padding-bottom:30px}
+.pv{--a:#f0501e;--b:#f4ead9;--c:#2a1710;--d:#d9a441;background:var(--b);color:var(--c);min-height:100%;font-family:'Instrument Sans',system-ui,sans-serif;padding-bottom:30px}
 .pv.t-lilac{--a:#8a79c9;--b:#f4f1fb;--c:#241c3d;--d:#c9bdf2}
-.pv.t-ochre{--a:#b57b12;--b:#fbf1d8;--c:#3a2606;--d:#6b1a2b}
+.pv.t-ochre{--a:#b57b12;--b:#fbf1d8;--c:#3a2606;--d:#f0501e}
 .pv.t-indigo{--a:#14284b;--b:#e9eef5;--c:#0e1a30;--d:#9fb8d8}
 .pv.t-forest{--a:#2b5d4f;--b:#eaf1ea;--c:#12261f;--d:#e9c46a}
 .pv.t-noir{--a:#e9c46a;--b:#16110e;--c:#f4ead9;--d:#e9c46a}
@@ -26,3 +26,5 @@
 .pv-ward{display:flex;flex-wrap:wrap;gap:6px}.pv-ward span{font-size:13px;padding:6px 12px;border-radius:99px;background:color-mix(in srgb,var(--c) 8%,transparent)}
 .pv-foot{text-align:center;margin-top:34px;font-size:12px;opacity:.75;display:flex;flex-direction:column;gap:2px}.pv-foot a{color:inherit;font-weight:700;letter-spacing:.2em}
 .pv .ic svg{width:34px;height:34px}
+
+.pv-look.hl{outline:3px solid var(--a);outline-offset:2px}.pv-more{display:inline-block;margin-top:8px;font-size:13px;font-weight:700;color:var(--a);text-decoration:none}.pv-cover{background-image:linear-gradient(135deg,#ff2d8a,#ff4a22 55%,#ffa51a)}
