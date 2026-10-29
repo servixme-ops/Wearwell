@@ -46,14 +46,15 @@ async function boot(){
   roomGoal();camera.position.copy(G.pos).add(new T.Vector3(.5,.5,.9));camera.fov=G.fov;cur.look.copy(G.look);
   addEventListener('resize',resize);
   setMode('room');
+  Phone.init();
+  try{if(Local.get('inPhone',false)){S.auto=false;setMode('phone');Phone.enter();}}catch(e){}
   $('#loading').classList.add('gone');
   last=performance.now();requestAnimationFrame(frame);
   window.__ready=true;
   if(location.hash==='#night'){S.day=false;setDaylight(false);}
   try{const sv=Local.get('sound',null);if(sv)Sound.load(sv.kind,true);}catch(e){}
-  Phone.init();Auth.init().then(()=>{Phone.afterAuth();});
+  Auth.init().then(()=>{Phone.afterAuth();});
   if(typeof PWA!=='undefined')PWA.init();
-  try{if(Local.get('inPhone',false))setTimeout(()=>{if(S.mode==='room')enterPhone();},1200);}catch(e){}
   const q=new URLSearchParams(location.search),ref=q.get('reference')||q.get('trxref');
   if(ref&&q.get('pay')){try{history.replaceState({},'',location.pathname);}catch(e){}setTimeout(()=>{Phone.intentAfterUnlock={open:'ads',intent:{verify:ref}};enterPhone();},1400);}
 }

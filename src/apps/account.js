@@ -3,8 +3,11 @@ defApp({id:'account',name:'Account',bg:'linear-gradient(#a8a8ae,#6a6a70)',glyph:
 mount(el,ctx,live){
   const wanted=ctx.intent&&ctx.intent.mode;let mode='signin';ctx.intent=null;
   const root=h('div',{class:'msg-root'});el.append(root);
-  const bar=(title,back,right)=>appBar({title,onBack:back,backLabel:'Back',right});
+  let onMain=true;
+  const bar=(title,back,right)=>{onMain=false;return appBar({title,onBack:back,backLabel:'Back',right});};
+  ctx.onBack=()=>{if(onMain)return false;main();return true;};
   function main(){
+    onMain=true;
     const body=appBody();root.replaceChildren(appBar({title:'Account',onBack:ctx.close,backLabel:'Back'}),body);
     if(Auth.user){
       const p=Auth.profile||{};

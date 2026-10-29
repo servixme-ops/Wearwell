@@ -298,8 +298,15 @@ const Phone={
     Notifs.build();Notifs.subscribe();this.renderNotifs();this.tick();
     try{history.pushState({lukks:'phone'},'');this._hist=true;}catch(e){}
     Local.set('inPhone',true);
-    if(Local.get('phoneSeen',false)){const last=Local.get('lastApp',null);const pend=this.intentAfterUnlock;setTimeout(()=>{if(this.state==='lock')this.unlock(pend||(last&&Apps.get(last)?{open:last}:undefined));},60);this.intentAfterUnlock=null;}
+    const last=Local.get('lastApp',null),pend=this.intentAfterUnlock;
+    if(pend){this.intentAfterUnlock=null;setTimeout(()=>{if(this.state==='lock')this.unlock(pend);},60);}
+    else if(last&&Apps.get(last))this.restore(last);
     else setTimeout(()=>this.lockEl.focus({preventScroll:true}),400);
+  },
+  /* Come back exactly where you were: straight into the app, no lock screen, no zoom animation. */
+  restore(id){
+    this.state='home';this.screen.dataset.state='home';this.lockEl.classList.add('gone');this.renderHome();
+    this._instant=true;try{this.openApp(id,undefined,null,null);}finally{this._instant=false;}
   },
   exit(fromPop){
     if(this.state==='closed')return;
@@ -450,7 +457,7 @@ const Phone={
     // zoom from icon
     const src=fromEl||this.homeEl.querySelector(`.app-icon[data-id="${id}"] .glyph`)||this.dockEl.querySelector(`.app-icon[data-id="${id}"] .glyph`);
     const sr=this.screen.getBoundingClientRect();
-    if(src&&el.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    if(src&&el.animate&&!this._instant&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
       const r=(src.querySelector?src.querySelector('.glyph')||src:src).getBoundingClientRect();const sc=this.shell.getBoundingClientRect().width/this.shell.offsetWidth||1;
       const cx=(r.left+r.width/2-sr.left)/sc,cy=(r.top+r.height/2-sr.top)/sc,W=this.screen.offsetWidth,H=this.screen.offsetHeight;
       el.animate([{transform:`translate(${cx-W/2}px,${cy-H/2}px) scale(${r.width/sc/W},${r.height/sc/H})`,borderRadius:'18px',opacity:.4},{transform:'none',borderRadius:'0px',opacity:1}],{duration:380,easing:'cubic-bezier(.2,.85,.25,1)'});
