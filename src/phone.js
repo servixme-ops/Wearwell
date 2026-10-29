@@ -453,6 +453,8 @@ const Phone={
     const ctx={close:()=>this.closeApp(),open:(i,n)=>this.openApp(i,n,null,id),el,intent:intent||{}};
     try{a.mount(el,ctx);}catch(e){console.error(e);el.appendChild(empty('Something went wrong','Please close the app and try again.'));}
     this.ctx=ctx;
+    // The tap that opened the app must not also press whatever is under the finger in the new screen.
+    if(!this._instant){el.style.pointerEvents='none';setTimeout(()=>{el.style.pointerEvents='';},420);}
     if(!noPush){try{history.pushState({lukks:'app',id},'');}catch(e){}}this._appHist=true;
     // zoom from icon
     const src=fromEl||this.homeEl.querySelector(`.app-icon[data-id="${id}"] .glyph`)||this.dockEl.querySelector(`.app-icon[data-id="${id}"] .glyph`);
