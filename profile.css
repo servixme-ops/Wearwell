@@ -28,3 +28,5 @@
 .pv .ic svg{width:34px;height:34px}
 
 .pv-look.hl{outline:3px solid var(--a);outline-offset:2px}.pv-more{display:inline-block;margin-top:8px;font-size:13px;font-weight:700;color:var(--a);text-decoration:none}.pv-cover{background-image:linear-gradient(135deg,#ff2d8a,#ff4a22 55%,#ffa51a)}
+
+.pv-strip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:2px}.pv-strip img{flex:none;width:100%;aspect-ratio:3/4;object-fit:cover;scroll-snap-align:center}.pv-det{margin:4px 0 0;font-size:13px;line-height:1.35}
