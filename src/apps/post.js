@@ -24,7 +24,8 @@ const Posts={
     return wrap;
   },
   /* Create or edit a post. existing = a post object from discover_posts */
-  async compose(existing,onDone){
+  cleanStyle(s){s=String(s||'').trim().replace(/\s+/g,' ').slice(0,30);if(!s)return null;const all=[].concat(...Object.values(CFG.categories));const m=all.find(c=>c.toLowerCase()===s.toLowerCase());return m||s.replace(/\b([a-z])/g,(x,c)=>c.toUpperCase());},
+  async compose(existing,onDone,extraStyles){
     if(!Auth.user){toast('Sign in to post','err');return;}
     let recs=[];try{const r=await sb.from('looks').select('id,title').eq('user_id',Auth.user.id).order('created_at',{ascending:false});recs=r.data||[];}catch(e){}
     const items=(existing?existing.photos:[]).map(p=>({path:p}));   // {path} existing or {blob,ext,type,url} new
@@ -33,20 +34,20 @@ const Posts={
       const title=h('input',{type:'text',maxlength:'100',placeholder:'Give your lukk a title',value:existing?existing.title:''}),
         det=h('textarea',{maxlength:'1000',placeholder:'Tell people about this lukk: what you wore, where it is from…'}),
         link=h('input',{type:'url',inputmode:'url',maxlength:'500',placeholder:'https://… (optional link to see more)',value:existing&&existing.external_url||''}),
-        cat=h('select',null,h('option',{value:''},'Choose a category'),Object.keys(CFG.categories).map(g=>h('optgroup',{label:g},CFG.categories[g].map(c=>h('option',{value:c,selected:existing&&existing.category===c},c))))),
+        cat=h('input',{type:'text',maxlength:'30',list:'lxStyles',placeholder:'Pick a style or type your own',value:existing&&existing.category||''}),dl=h('datalist',{id:'lxStyles'},[].concat(...Object.values(CFG.categories)).concat(extraStyles||[]).map(c=>h('option',{value:c}))),
         rec=h('select',null,h('option',{value:''},'No receipt'),recs.map(r=>h('option',{value:r.id,selected:existing&&existing.receipt_id===r.id},r.title)));
       det.value=existing&&existing.details||'';
-      const draw=()=>{grid.replaceChildren(items.map((it,i)=>h('div',{class:'lx-pthumb'+(i===0?' cover':'')},h('img',{src:it.url||Posts.ph(it.path),alt:''}),i===0?h('em',null,'Cover'):h('button',{class:'mk','aria-label':'Make cover',onclick:()=>{items.unshift(items.splice(i,1)[0]);draw();}},'Cover'),h('button',{class:'rm','aria-label':'Remove photo',onclick:()=>{items.splice(i,1);draw();}},icon('close')))),
-        items.length<8?h('button',{class:'lx-padd',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;const pr=await prepareImage(f,{max:1600,maxMB:12});items.push({blob:pr.blob,ext:pr.ext,type:pr.type,url:URL.createObjectURL(pr.blob)});draw();}catch(e){toast(errMsg(e),'err');}}},icon('plus'),h('span',null,items.length?'Add more':'Add photo')):null);};
+      const draw=()=>{grid.replaceChildren(...items.map((it,i)=>h('div',{class:'lx-pthumb'+(i===0?' cover':'')},h('img',{src:it.url||Posts.ph(it.path),alt:''}),i===0?h('em',null,'Cover'):h('button',{class:'mk','aria-label':'Make cover',onclick:()=>{items.unshift(items.splice(i,1)[0]);draw();}},'Cover'),h('button',{class:'rm','aria-label':'Remove photo',onclick:()=>{items.splice(i,1);draw();}},icon('close')))).concat([
+        items.length<8?h('button',{class:'lx-padd',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;const pr=await prepareImage(f,{max:1600,maxMB:12});items.push({blob:pr.blob,ext:pr.ext,type:pr.type,url:URL.createObjectURL(pr.blob)});draw();}catch(e){toast(errMsg(e),'err');}}},icon('plus'),h('span',null,items.length?'Add more':'Add photo')):null]).filter(Boolean));};
       draw();
       const err=h('p',{class:'err-t',role:'alert'});
-      b.append(h('div',{class:'stack pad'},h('div',{class:'f-label'},'Photos (the first one is the cover)'),grid,field('Title',title),field('Details',det),field('Link',link),field('Category',cat),field('Tag a receipt',rec,'Show the pieces and cost per wear on this lukk'),err,
+      b.append(h('div',{class:'stack pad'},h('div',{class:'f-label'},'Photos (the first one is the cover)'),grid,field('Title',title),field('Details',det),field('Link',link),field('Style',cat,'Type your own style if it is not listed. Styles with plenty of lukks appear on the home screen.'),dl,field('Tag a receipt',rec,'Show the pieces and cost per wear on this lukk'),err,
         h('p',{class:'muted small-t',style:{margin:0}},'Lukks are public. Anyone can see them.'),
         h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
           err.textContent='';try{
             const t=title.value.trim();if(!t)throw new Error('Add a title.');if(!items.length)throw new Error('Add at least one photo.');
             let u=link.value.trim();if(u){u=safeUrl(u);if(!u)throw new Error('The link is not a valid web address.');}
-            const row={title:t,details:det.value.trim()||null,category:cat.value||null,external_url:u||null,receipt_id:rec.value||null};
+            const row={title:t,details:det.value.trim()||null,category:Posts.cleanStyle(cat.value),external_url:u||null,receipt_id:rec.value||null};
             let id;
             if(existing){const r=await sb.from('posts').update(row).eq('id',existing.id);if(r.error)throw r.error;id=existing.id;}
             else{const r=await sb.from('posts').insert(Object.assign({user_id:Auth.user.id},row)).select().single();if(r.error)throw r.error;id=r.data.id;}

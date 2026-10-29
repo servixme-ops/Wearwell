@@ -36,6 +36,10 @@ mount(el,ctx,live){
     if(saves.length){const r=await sb.rpc('discover_posts',{p_limit:100,p_ids:saves.map(x=>x.look_id)});lukks=Array.isArray(r.data)?r.data:[];}
     saved={boards:b.data||[],saves,lukks};
   }
+  /* styles shown on the home screen: the built-in ones, plus any style people added once it has 5 or more lukks */
+  const styles=()=>{const base=CATS.slice(),n={};(feed||[]).forEach(x=>{if(x.category)n[x.category]=(n[x.category]||0)+1;});const extra=Object.keys(n).filter(c=>!base.includes(c)&&n[c]>=5).sort((a,b)=>n[b]-n[a]);return base.concat(extra);};
+  const customStyles=()=>{const set=new Set(CATS);return [...new Set((feed||[]).map(x=>x.category).filter(c=>c&&!set.has(c)))];};
+  const afterChange=()=>{feed=null;saved=null;const top=stack[stack.length-1];if(top&&top._reload)top._reload();if(tab==='home'||tab==='search')draw();};
   const isSaved=id=>saved&&saved.saves.some(s=>s.look_id===id);
 
   /* ---------- shell ---------- */
@@ -58,16 +62,16 @@ mount(el,ctx,live){
   function titleBar(t,right){
     return h('div',{class:'lx-title'},h('button',{class:'lx-circ','aria-label':'Back',onclick:ctx.close},icon('back')),h('h1',null,t),h('span',{class:'grow'}),right,meBtn());
   }
-  const addBtn=()=>h('button',{class:'lx-circ plus','aria-label':'Add a lukk',onclick:()=>{if(authed())Posts.compose(null,()=>{feed=null;if(tab==='home')draw();});}},icon('plus'));
+  const addBtn=()=>h('button',{class:'lx-circ plus','aria-label':'Add a lukk',onclick:()=>{if(authed())Posts.compose(null,()=>afterChange(),customStyles());}},icon('plus'));
   const masonry=(list,open)=>list.length?h('div',{class:'lx-mas'},list.map(x=>h('div',{class:'lx-card'},
     h('button',{class:'lx-cardimg','aria-label':x.title,onclick:()=>open(x)},h('img',{src:ph(x.photos[0]),alt:x.title,loading:'lazy'}),x.photos.length>1?h('span',{class:'lx-multi'},icon('image'),String(x.photos.length)):null),
     h('div',{class:'lx-capr'},h('span',{class:'lx-cap'},x.title),Posts.likeBtn(x,authed))))):null;
 
   /* ---------- Home ---------- */
   function drawHome(){
-    const chips=h('div',{class:'lx-chips'},['For You'].concat(CATS).map(c=>h('button',{class:(c==='For You'&&!cat)||c===cat?'on':'',onclick:()=>{cat=c==='For You'?'':c;Local.set('lxCat',cat);drawHome();}},c)));
+    const chips=h('div',{class:'lx-chips'},['For You'].concat(styles()).map(c=>h('button',{class:(c==='For You'&&!cat)||c===cat?'on':'',onclick:()=>{cat=c==='For You'?'':c;Local.set('lxCat',cat);drawHome();}},c)));
     const list=feed.filter(x=>!cat||x.category===cat);
-    const body=masonry(list,openPost)||empty(cat?'No lukks in '+cat+' yet':'No lukks yet',cat?'Be the first to post one.':'Tap + to share your first lukk.',h('button',{class:'btn primary',onclick:()=>{if(authed())Posts.compose(null,()=>{feed=null;draw();});}},'Add a lukk'));
+    const body=masonry(list,openPost)||empty(cat?'No lukks in '+cat+' yet':'No lukks yet',cat?'Be the first to post one.':'Tap + to share your first lukk.',h('button',{class:'btn primary',onclick:()=>{if(authed())Posts.compose(null,()=>afterChange(),customStyles());}},'Add a lukk'));
     main.replaceChildren(titleBar('Home',addBtn()),chips,h('div',{class:'lx-scroll'},body));
     const sc=$('.lx-chips .on',main);sc&&sc.scrollIntoView({inline:'center',block:'nearest'});
   }
@@ -86,7 +90,7 @@ mount(el,ctx,live){
     if(rc&&rc.items&&rc.items.length){const c=RC.calc({wear_count:rc.wear_count},rc.items.map(i=>({name:i.name,price:i.price,prior_wears:i.prior_wears})));
       receiptCard=h('div',{class:'lx-receipt'},h('b',null,'Receipt · '+rc.title),h('div',{class:'group',style:{margin:'8px 0 0'}},c.rows.map(r=>h('div',{class:'item'},h('span',{class:'grow'},h('b',null,r.name),h('span',null,(rc.items.find(i=>i.name===r.name)||{}).brand||'')),h('span',{class:'muted'},RC.money(r.price,rc.currency||'NGN')))),
         h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Total')),h('b',null,RC.money(c.total,rc.currency||'NGN'))),h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Cost per wear'),h('span',null,'Worn '+c.wears+(c.wears===1?' time':' times'))),h('b',null,RC.money(c.cpw,rc.currency||'NGN')))));}
-    const menu=()=>sheet('Options',(b,close)=>{const rows=x.mine?[['Edit lukk',()=>Posts.compose(x,()=>{feed=null;popView();draw();})],['Delete lukk',async()=>{if(!await confirmBox('Delete this lukk?','Its photos and likes will be removed.','Delete',true))return;const r=await sb.from('posts').delete().eq('id',x.id);if(r.error){toast(errMsg(r.error),'err');return;}x.photos.forEach(p=>removeFile('looks',p));feed=null;saved=null;popView();draw();toast('Deleted');}]]:[['Report this lukk',()=>{if(!authed())return;sb.from('post_reports').upsert({post_id:x.id,user_id:Auth.user.id,reason:'reported'},{onConflict:'post_id,user_id'}).then(r=>toast(r.error?errMsg(r.error):'Thanks, we will review it',r.error?'err':'ok'));}]];
+    const menu=()=>sheet('Options',(b,close)=>{const rows=x.mine?[['Edit lukk',()=>Posts.compose(x,()=>{popView();afterChange();},customStyles())],['Delete lukk',async()=>{if(!await confirmBox('Delete this lukk?','Its photos and likes will be removed.','Delete',true))return;const r=await sb.from('posts').delete().eq('id',x.id);if(r.error){toast(errMsg(r.error),'err');return;}x.photos.forEach(p=>removeFile('looks',p));popView();afterChange();toast('Deleted');}]]:[['Report this lukk',()=>{if(!authed())return;sb.from('post_reports').upsert({post_id:x.id,user_id:Auth.user.id,reason:'reported'},{onConflict:'post_id,user_id'}).then(r=>toast(r.error?errMsg(r.error):'Thanks, we will review it',r.error?'err':'ok'));}]];
       b.append(h('div',{class:'group',style:{margin:'8px 14px'}},rows.concat([['Copy link',()=>copyText(profileUrl(x.username)).then(()=>toast('Link copied'))]]).map(a=>h('button',{class:'item',onclick:()=>{close();setTimeout(a[1],150);}},h('span',{class:'grow'},h('b',null,a[0]))))));});
     const v=pushView(h('div',{class:'lx-detail'},
       h('div',{class:'lx-hero'},Posts.carousel(x.photos,x.title),h('div',{class:'lx-herotop'},backBtn('glass'),h('span',{class:'grow'}),
@@ -129,7 +133,7 @@ mount(el,ctx,live){
       if(ptab==='created')body.append(masonry(posts,openPost)||empty(me?'No lukks yet':'No lukks yet',me?'Tap + to share your first lukk.':'This person has not posted yet.'));
       else if(folder)body.append(folderGrid(folder));
       else body.append(foldersGrid());
-      const fab=me&&ptab==='created'?h('button',{class:'lx-fab','aria-label':'Add a lukk',onclick:()=>Posts.compose(null,async()=>{feed=null;await load();render();})},icon('plus')):null;
+      const fab=me&&ptab==='created'?h('button',{class:'lx-fab','aria-label':'Add a lukk',onclick:()=>Posts.compose(null,async()=>{feed=null;await load();render();},customStyles())},icon('plus')):null;
       wrap.replaceChildren(...[h('div',{class:'lx-scroll nopad'},head,info,tabs,body),fab].filter(Boolean));
     };
     const uploadImg=(field,max)=>pickFile('image/jpeg,image/png,image/webp').then(async f=>{if(!f)return false;const pr=await prepareImage(f,{max,maxMB:12});const path=await uploadFile('avatars',pr.blob,pr.ext,pr.type);const r=await Auth.saveProfile({[field]:publicUrl('avatars',path)});if(r.error)throw r.error;return true;});
@@ -152,6 +156,7 @@ mount(el,ctx,live){
     function shareSheet(){const p=Auth.profile||{},url=profileUrl(p.username||'');sheet('Share my profile',(b,close)=>{const st={is_public:!!p.is_public};b.append(h('div',{class:'stack pad'},h('div',{class:'group',style:{margin:0}},h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Public web page'),h('span',null,'Let anyone open your link without the app')),toggleEl(st.is_public,v=>st.is_public=v,'Public web page'))),
       h('div',{class:'group',style:{margin:0}},h('div',{class:'item'},h('span',{class:'grow',style:{minWidth:0}},h('b',null,'Your link'),h('span',{style:{wordBreak:'break-all'}},url)),h('button',{class:'icon-btn','aria-label':'Copy link',onclick:async()=>toast(await copyText(url)?'Link copied':'Could not copy')},icon('copy')),h('button',{class:'icon-btn','aria-label':'Share link',onclick:()=>shareUrl(url,(p.display_name||p.username)+' on Lukks')},icon('share')))),
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{const r=await Auth.saveProfile({is_public:st.is_public,show_looks:true});if(r.error)throw r.error;toast('Saved','ok');close();})},'Save')));});}
+    v._reload=async()=>{try{if(await load())render();}catch(e){}};
     load().then(ok=>{if(ok)render();}).catch(e=>wrap.replaceChildren(bar('Profile'),empty('Could not load',errMsg(e))));
   }
 
@@ -180,7 +185,7 @@ mount(el,ctx,live){
     const run=async()=>{
       const s=searchQ.trim();out.replaceChildren();
       if(s){out.append(spinner());const r=await sb.rpc('discover_posts',{p_limit:60,p_q:s});if(searchQ.trim()!==s)return;out.replaceChildren(r.error?empty('Search failed',errMsg(r.error)):(masonry(Array.isArray(r.data)?r.data:[],openPost)||empty('Nothing found','Try another style, piece or name.')));return;}
-      const counts=CATS.map(c=>({c,n:feed.filter(x=>x.category===c).length,cover:(feed.find(x=>x.category===c)||{photos:[]}).photos[0]}));
+      const counts=styles().map(c=>({c,n:feed.filter(x=>x.category===c).length,cover:(feed.find(x=>x.category===c)||{photos:[]}).photos[0]}));
       const go=c=>{cat=c;Local.set('lxCat',c);setTab('home');};
       out.append(h('h3',{class:'lx-h3'},'Ideas for You'),h('div',{class:'lx-tiles'},counts.slice(0,8).map(o=>h('button',{class:'lx-tile',onclick:()=>go(o.c)},o.cover?h('img',{src:ph(o.cover),alt:''}):h('div',{class:'lx-tilebg'},logoEl(40)),h('span',null,o.c)))),
         h('h3',{class:'lx-h3'},'Trending'),h('div',{class:'group',style:{margin:'0 0 90px'}},counts.slice().sort((a,b)=>b.n-a.n).slice(0,6).map(o=>h('button',{class:'item',onclick:()=>go(o.c)},icon('search'),h('span',{class:'grow'},h('b',null,o.c.toLowerCase())),h('span',{class:'muted'},o.n+' lukks')))));
