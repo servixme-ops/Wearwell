@@ -53,6 +53,7 @@ async function boot(){
   try{const sv=Local.get('sound',null);if(sv)Sound.load(sv.kind,true);}catch(e){}
   Phone.init();Auth.init().then(()=>{Phone.afterAuth();});
   if(typeof PWA!=='undefined')PWA.init();
+  try{if(Local.get('inPhone',false))setTimeout(()=>{if(S.mode==='room')enterPhone();},1200);}catch(e){}
   const q=new URLSearchParams(location.search),ref=q.get('reference')||q.get('trxref');
   if(ref&&q.get('pay')){try{history.replaceState({},'',location.pathname);}catch(e){}setTimeout(()=>{Phone.intentAfterUnlock={open:'ads',intent:{verify:ref}};enterPhone();},1400);}
 }
@@ -269,6 +270,7 @@ function bindInput(){
     if(ptrs.size>0||!g0)return;
     S.dragging=false;const dt=performance.now()-g0.t,dx=e.clientX-g0.x,dy=e.clientY-g0.y;const tap=g0.moved<9&&dt<450;
     if(S.mode==='room'){if(tap)tapRoom(e.clientX,e.clientY);}
+    else if(S.mode==='phone'){if(tap&&(Phone.state==='closed'||Phone.layer.hidden))Phone.enter();}
     else if(S.mode==='browse'){
       if(tap)tapBrowse(e.clientX,e.clientY);
       else{const flick=-dy/Math.max(dt,60)*220/95;S.target=Math.max(0,Math.min(magGroups.length-1,Math.round(S.target+flick*.6)));}
@@ -358,6 +360,7 @@ function buildNav(){
       const t=b.dataset.tab;
       if(t==='crates'){closeSheet();if(S.mode==='browse')goRoom();setActiveTab('crates');return;}
       if(S.mode==='pulled'||S.mode==='reading')return;
+      if(t==='lukks'){closeSheet();if(S.mode==='browse')goRoom();setTimeout(()=>{Phone.intentAfterUnlock={open:'lukks'};enterPhone();},S.mode==='room'?0:700);return;}
       setActiveTab(t);openSheet(t);
     };
   });
@@ -508,7 +511,6 @@ function bindFab(){
   $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet();});
   $('#tagBtn').onclick=goBrowse;
   $('#phoneTag').onclick=enterPhone;
-  $('#searchBtn').onclick=()=>{setActiveTab('explore');openSheet('explore');};
   $('#heartBtn').onclick=()=>{setActiveTab('saved');openSheet('saved');};
 }
 function tagUpdate(){

@@ -3,10 +3,14 @@ const PHONE={x:0.235,z:TABLE.z+0.075,ry:0.5,w:0.088,h:0.182,t:0.0085};
 let phone3d,phoneScreenMat,phoneTex,_phoneWp=null,_phoneBadge=0;
 function buildPhone3d(){
   phone3d=new T.Group();phone3d.position.set(PHONE.x,TABLE.top+PHONE.t/2+.001,PHONE.z);phone3d.rotation.y=PHONE.ry;scene.add(phone3d);
-  const body=new T.Mesh(rbox(PHONE.w,PHONE.h,PHONE.t,.014),mat('#15151a',.35,.6));body.rotation.x=-Math.PI/2;body.castShadow=true;body.receiveShadow=true;phone3d.add(body);
+  // iPhone: titanium frame, black glass front, flat rounded sides, side buttons
+  const body=new T.Mesh(rbox(PHONE.w,PHONE.h,PHONE.t,.0125),mat('#a9a49c',.28,.85));body.rotation.x=-Math.PI/2;body.castShadow=true;body.receiveShadow=true;phone3d.add(body);
+  const glass=new T.Mesh(rbox(PHONE.w-.0022,PHONE.h-.0022,PHONE.t*.5,.0115),mat('#050507',.15,.2));glass.rotation.x=-Math.PI/2;glass.position.y=PHONE.t*.27;phone3d.add(glass);
+  const btn=(x,z,w,l)=>{const m=new T.Mesh(new T.BoxGeometry(w,PHONE.t*.5,l),mat('#8f8a83',.35,.8));m.position.set(x,0,z);phone3d.add(m);};
+  btn(-PHONE.w/2-.0003,-.052,.0012,.011);btn(-PHONE.w/2-.0003,-.034,.0012,.018);btn(-PHONE.w/2-.0003,-.011,.0012,.018);btn(PHONE.w/2+.0003,-.03,.0012,.03);
   const cv=mk(288,600);phoneTex=new T.CanvasTexture(cv);phoneTex.encoding=T.sRGBEncoding;phoneTex.anisotropy=4;phoneTex._cv=cv;
   phoneScreenMat=new T.MeshStandardMaterial({map:phoneTex,roughness:.25,metalness:0,emissive:new T.Color('#ffffff'),emissiveMap:phoneTex,emissiveIntensity:.55});
-  const scr=new T.Mesh(new T.PlaneGeometry(PHONE.w-.007,PHONE.h-.007),phoneScreenMat);scr.rotation.x=-Math.PI/2;scr.position.y=PHONE.t/2+.0006;phone3d.add(scr);
+  const scr=new T.Mesh(new T.PlaneGeometry(PHONE.w-.0065,PHONE.h-.0065),phoneScreenMat);scr.rotation.x=-Math.PI/2;scr.position.y=PHONE.t/2+.0006;phone3d.add(scr);
   // invisible, larger hit target so it is easy to tap on a phone
   const hit=new T.Mesh(new T.BoxGeometry(PHONE.w*1.6,.05,PHONE.h*1.3),new T.MeshBasicMaterial({visible:false}));hit.position.y=.01;phone3d.add(hit);phone3d.userData.hit=hit;
   // soft glow on the table
@@ -25,6 +29,7 @@ function updatePhoneScreenTexture(){
   const n=Math.min(3,_phoneBadge||0);
   for(let i=0;i<n;i++){g.fillStyle='rgba(245,245,247,.75)';g.beginPath();g.roundRect?g.roundRect(22,262+i*76,W-44,62,18):g.rect(22,262+i*76,W-44,62);g.fill();g.fillStyle='#6b1a2b';g.fillRect(36,278+i*76,30,30);g.fillStyle='rgba(0,0,0,.55)';g.fillRect(80,282+i*76,120,9);g.fillRect(80,298+i*76,170,8);}
   g.fillStyle='rgba(255,255,255,.9)';g.fillRect(W/2-52,H-26,104,5);
+  g.fillStyle='#000';g.beginPath();g.roundRect?g.roundRect(W/2-44,14,88,25,12.5):g.rect(W/2-44,14,88,25);g.fill();
   phoneTex.needsUpdate=true;
 }
 function phoneBadge(n){_phoneBadge=n;updatePhoneScreenTexture();const b=document.getElementById('phoneBadge');if(b){b.textContent=n>9?'9+':n;b.hidden=!n;}}
@@ -41,9 +46,13 @@ function phoneGoal(){
   G.pos.set(p.x-.02,p.y+(a<.8?.42:.34),p.z+(a<.8?.2:.15));G.look.set(p.x,p.y,p.z-.004);G.fov=a<.8?44:40;
 }
 function enterPhone(){
+  if(S.mode==='phone'&&(Phone.state==='closed'||Phone.layer.hidden)){Phone.enter();return;}
   if(S.mode!=='room'||S.switching)return;
   S.auto=false;setMode('phone');
   setTimeout(()=>{if(S.mode==='phone')Phone.enter();},620);
+  // safety net: if the overlay did not open, try again, then fall back to the room
+  setTimeout(()=>{if(S.mode==='phone'&&(Phone.state==='closed'||Phone.layer.hidden))Phone.enter();},1500);
+  setTimeout(()=>{if(S.mode==='phone'&&(Phone.state==='closed'||Phone.layer.hidden))phoneClosed();},2600);
 }
 function phoneClosed(){if(S.mode==='phone'){setMode('room');idle=0;}}
 function tagPhone(){

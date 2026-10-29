@@ -52,7 +52,7 @@ mount(el,ctx,live){
   }
   function titleBar(t,right){
     const p=Auth.profile;
-    return h('div',{class:'lx-title'},h('h1',null,t),h('span',{class:'grow'}),right,h('button',{class:'lx-me','aria-label':'Profile',onclick:()=>ctx.open('profile')},Auth.user?avatar(p):icon('user')));
+    return h('div',{class:'lx-title'},h('button',{class:'lx-circ','aria-label':'Back',onclick:ctx.close},icon('back')),h('h1',null,t),h('span',{class:'grow'}),right,h('button',{class:'lx-me','aria-label':'Profile',onclick:()=>ctx.open('profile')},Auth.user?avatar(p):icon('user')));
   }
   const masonry=(list,open)=>list.length?h('div',{class:'lx-mas'},list.map(x=>h('button',{class:'lx-card',onclick:()=>open(x)},h('img',{src:ph(x.photo_path),alt:x.title,loading:'lazy'}),h('span',{class:'lx-cap'},x.title)))):null;
 

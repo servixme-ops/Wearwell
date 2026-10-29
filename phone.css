@@ -441,3 +441,4 @@ body[data-mode=phone] .pwa-banner,body:not([data-mode=room]) .pwa-banner{display
 .lx-simhead{display:flex;gap:10px;align-items:center;padding:0 14px 10px}.lx-simhead img{width:44px;height:44px;border-radius:10px;object-fit:cover}.lx-simhead span{display:flex;flex-direction:column}.lx-simhead em{font-style:normal;font-size:12px;color:#777}
 .lx-newrow{display:flex;gap:8px;padding:6px 14px}.lx-newrow input{flex:1}
 .lx-tile .lx-tilebg{position:absolute;inset:0}.lx-tile{display:block}
+.lx-title h1{font-size:28px}.lx-title .lx-circ{margin-right:2px}

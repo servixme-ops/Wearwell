@@ -42,14 +42,14 @@ button:focus-visible{outline:2px solid var(--maroon);outline-offset:2px}
 .layer>*{pointer-events:auto}
 
 /* top */
-#topfade{position:absolute;left:0;right:0;top:0;height:200px;pointer-events:none;background:linear-gradient(var(--cream) 0%,rgba(244,234,217,.94) 50%,rgba(244,234,217,0));transition:opacity .5s}
+#topfade{position:absolute;left:0;right:0;top:0;height:120px;pointer-events:none;background:linear-gradient(var(--cream) 0%,rgba(244,234,217,.94) 50%,rgba(244,234,217,0));transition:opacity .5s}
 #top{top:0;padding-top:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;transition:opacity .4s}
 .brand b{display:block;font-family:var(--disp);font-weight:500;letter-spacing:.2em;font-size:19px}
 .brand span{font-size:13px;color:var(--ink-2)}
 .icons{display:flex;gap:6px}
 .icons button{width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
 .icons svg{width:25px;height:25px}
-#hero{top:78px;transition:opacity .4s,transform .5s}
+#hero{top:44px;transition:opacity .4s,transform .5s}
 #hero h1{margin:0;font-family:var(--disp);font-weight:500;font-size:clamp(34px,9.4vw,60px);line-height:1;letter-spacing:-.02em;text-wrap:balance}
 #hero p{margin:10px 0 0;font-size:14px;color:var(--ink-2);max-width:34ch}
 #crateTag{position:absolute;left:0;top:0;z-index:3;display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--cream);font-size:13px;font-weight:600;padding:8px 14px 8px 11px;border-radius:99px;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:opacity .3s;white-space:nowrap}
@@ -207,18 +207,16 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
 <div id="topfade"></div>
 
 <div id="top" class="layer">
-  <div class="brand"><b>LUKKS</b><span>Find Your Kind of Style</span></div>
+  <div class="brand"><b>LUKKS</b></div>
   <div class="icons">
-    <button id="searchBtn" aria-label="Search lukks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
     <button id="heartBtn" aria-label="Saved lukks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 20.5C5 15.5 3 12 3 9a4.8 4.8 0 0 1 9-2.3A4.8 4.8 0 0 1 21 9c0 3-2 6.5-9 11.5z"/></svg></button>
   </div>
 </div>
 <div id="hero" class="layer">
-  <h1>Find your kind<br>of style.</h1>
-  <p>Showcase your style. Discover others.</p>
+  <h1>Find Your Kind<br>of Style</h1>
 </div>
 <button id="crateTag" type="button"><i></i><span id="tagBtn">Browse the crate</span></button>
-<button id="phoneTag" type="button" aria-label="Open your Lukks phone"><i></i><span>Open your Lukks</span><b id="phoneBadge" hidden>0</b></button>
+<button id="phoneTag" type="button" aria-label="Pick up the phone"><i></i><span>Pick up the phone</span><b id="phoneBadge" hidden>0</b></button>
 
 <div id="browse" class="layer">
   <div class="row"><button id="backBtn" aria-label="Back to room"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg></button><span id="bNum">01 / 07</span><span style="width:44px"></span></div>
@@ -251,9 +249,7 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
   <div id="cratePick" aria-label="Choose a crate"></div>
   <nav id="nav" aria-label="Main">
     <button data-tab="crates" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 8.5h17V20h-17z"/><path d="M3.5 8.5l1.8-4h13.4l1.8 4"/><path d="M8.5 12.5h7"/></svg>Crates</button>
-    <button data-tab="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</button>
-    <button data-tab="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5C5 15.5 3 12 3 9a4.8 4.8 0 0 1 9-2.3A4.8 4.8 0 0 1 21 9c0 3-2 6.5-9 11.5z"/></svg>Saved</button>
-    <button data-tab="wardrobe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9 3.5L3 6.5l2.2 4.3L7.5 9.700V20.500h9V9.700l2.300 1.100L21 6.500l-6-3a3 3 0 0 1-6 0z"/></svg>My Lukks</button>
+    <button data-tab="lukks"><img src="icons/logo.png" alt="" width="24" height="24" style="display:block;margin:0 auto 2px">Lukks</button>
   </nav>
 </div>
 

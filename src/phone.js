@@ -145,9 +145,7 @@ const Phone={
     this.build();
     this.tick();setInterval(()=>this.tick(),1000);
     this.initBattery();this.initNet();
-    document.addEventListener('visibilitychange',()=>{if(window.__picking||window.__camBusy)return;if(document.hidden)this.lock(true);else this.onReturn();});
-    addEventListener('pagehide',()=>{if(!window.__picking)this.lock(true);});
-    addEventListener('pageshow',e=>{if(e.persisted)this.lock(true);});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.onReturn();});
     addEventListener('popstate',e=>this.onPop(e));
     addEventListener('resize',()=>this.fit());
     Auth.on(ev=>{
@@ -215,18 +213,16 @@ const Phone={
   },
   async initBattery(){
     try{
-      if(navigator.getBattery){const b=await navigator.getBattery();this._batt=b;const up=()=>this.setBatt({level:b.level,charging:b.charging});b.addEventListener('levelchange',up);b.addEventListener('chargingchange',up);up();return;}
+      if(navigator.getBattery){const b=await navigator.getBattery();this._batt=b;const up=()=>this.setBatt({level:b.level,charging:b.charging});['levelchange','chargingchange'].forEach(ev=>b.addEventListener(ev,up));setInterval(up,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)up();});up();return;}
     }catch(e){}
     this.setBatt(null);
   },
   setBatt(real){
-    let pct,sim=false,chg=false;
-    if(real){pct=Math.round(real.level*100);chg=real.charging;}
-    else{sim=true;const mins=(Date.now()-(window._t0||(window._t0=Date.now())))/6e4;pct=Math.max(21,Math.round(86-mins*.4));}
-    this.sbBatt.firstChild.textContent=(sim?'≈ ':'')+pct+'%';
-    this.sbBatt.title=sim?'Simulated battery level (your browser does not share the real one)':'Battery'+(chg?' (charging)':'');
-    const cell=this.sbBatt.lastChild.firstChild;cell.style.width=pct+'%';this.sbBatt.classList.toggle('low',pct<=20);this.sbBatt.classList.toggle('sim',sim);this.sbBatt.classList.toggle('chg',chg);
-    if(sim&&!this._simT)this._simT=setInterval(()=>this.setBatt(null),60000);
+    const cell=this.sbBatt.lastChild.firstChild;
+    if(!real){this.sbBatt.firstChild.textContent='';this.sbBatt.title='Battery level is not shared by this browser';cell.style.width='100%';this.sbBatt.classList.remove('low','chg');this.sbBatt.classList.add('sim');return;}
+    const pct=Math.round(real.level*100),chg=real.charging;
+    this.sbBatt.firstChild.textContent=pct+'%';this.sbBatt.title='Battery'+(chg?' (charging)':'');
+    cell.style.width=pct+'%';this.sbBatt.classList.toggle('low',pct<=20);this.sbBatt.classList.remove('sim');this.sbBatt.classList.toggle('chg',chg);
   },
   initNet(){
     const up=()=>{
@@ -283,31 +279,35 @@ const Phone={
     this.state='home';this.screen.dataset.state='home';
     this.lockEl.style.transform='';this.lockEl.style.opacity='';this.lockEl.classList.add('gone');
     this.homeEl.classList.remove('enter');void this.homeEl.offsetWidth;this.homeEl.classList.add('enter');
+    Local.set('phoneSeen',true);
     const a=after||this.intentAfterUnlock;this.intentAfterUnlock=null;
     if(a&&a.open)setTimeout(()=>this.openApp(a.open,a.intent),320);
     this.renderHome();
   },
   onReturn(){
-    // Coming back to the tab: phone stays locked and requires unlocking. Saved data is untouched.
-    if(this.state!=='closed'&&this.state!=='lock')this.lock(true);
+    // Coming back to the tab: the phone stays exactly where it was.
     if(this.state==='lock'||this.state==='home')Notifs.build();
   },
   /* ---- enter / exit from the 3D room ---- */
   enter(){
+    if(this.state==='closing'||(this.state!=='closed'&&this.layer.hidden)){clearTimeout(this._ct);this.layer.hidden=true;this.state='closed';}
     if(this.state!=='closed')return;
     this.layer.hidden=false;this.fit();
     this.state='lock';this.screen.dataset.state='lock';this.lockEl.classList.remove('gone');this.lockEl.style.transform='';this.lockEl.style.opacity='';
     requestAnimationFrame(()=>this.layer.classList.add('open'));
     Notifs.build();Notifs.subscribe();this.renderNotifs();this.tick();
     try{history.pushState({lukks:'phone'},'');this._hist=true;}catch(e){}
-    setTimeout(()=>this.lockEl.focus({preventScroll:true}),400);
+    Local.set('inPhone',true);
+    if(Local.get('phoneSeen',false)){const last=Local.get('lastApp',null);const pend=this.intentAfterUnlock;setTimeout(()=>{if(this.state==='lock')this.unlock(pend||(last&&Apps.get(last)?{open:last}:undefined));},60);this.intentAfterUnlock=null;}
+    else setTimeout(()=>this.lockEl.focus({preventScroll:true}),400);
   },
   exit(fromPop){
     if(this.state==='closed')return;
+    Local.set('inPhone',false);if(this.app)Local.set('lastApp',this.app.id);
     this.closeAppNow();this.setEditing(false);
     this.layer.classList.remove('open');
     const done=()=>{this.layer.hidden=true;this.state='closed';};
-    setTimeout(done,380);this.state='closing';
+    clearTimeout(this._ct);this._ct=setTimeout(done,380);this.state='closing';
     if(typeof phoneClosed==='function')phoneClosed();
     if(!fromPop&&this._hist){this._hist=false;try{history.back();}catch(e){}}
     this._hist=false;
@@ -456,6 +456,7 @@ const Phone={
       el.animate([{transform:`translate(${cx-W/2}px,${cy-H/2}px) scale(${r.width/sc/W},${r.height/sc/H})`,borderRadius:'18px',opacity:.4},{transform:'none',borderRadius:'0px',opacity:1}],{duration:380,easing:'cubic-bezier(.2,.85,.25,1)'});
     }
     this.homeEl.classList.add('behind');
+    Local.set('lastApp',id);
   },
   closeApp(fromPop){
     if(!this.app)return;
@@ -465,7 +466,7 @@ const Phone={
       an.onfinish=()=>{if(el.parentElement)el.remove();};
     }else if(el)el.remove();
     a.unmount&&a.unmount();
-    this.app=null;this.appEl=null;this.state='home';this.screen.dataset.state='home';this.homeEl.classList.remove('behind');
+    this.app=null;this.appEl=null;this.state='home';this.screen.dataset.state='home';this.homeEl.classList.remove('behind');Local.set('lastApp',null);
     const back=this.backTo;this.backTo=null;
     if(!fromPop&&this._appHist){try{history.back();this._skipPop=(this._skipPop||0)+1;}catch(e){}}
     this._appHist=false;

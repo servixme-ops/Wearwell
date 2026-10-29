@@ -20,7 +20,7 @@ const SHOPS=['Lekki Phase 1 · Admiralty Way','Victoria Island · Adeola Odeku',
 
 const CRATES=[
   {id:'styles',name:'Fashion Styles',blurb:'Find your kind of style',wood:'#b9854c',label:'#d4351f',
-    mags:[['Creative Models','Full looks, modelled your way',0,'block'],['Baddies','Confidence, dressed up',1,'frame'],['Aesthetic Girlyss','Soft, pretty, put together',4,'split'],['Drip Gang','Street heat and fresh kicks',5,'block'],['Nature Aesthetic','Earth tones and easy layers',3,'frame'],['Witchy Style','Dark, moody and magical',7,'split'],['Soft Statements','Quiet looks that say a lot',2,'frame']]},
+    mags:[['Creative Models','Full looks, modelled your way',0,'block'],['Baddies','Confidence, dressed up',1,'frame'],['Aesthetic Girlyss','Soft, pretty, put together',4,'split'],['Drip Gang','Street heat and fresh kicks',5,'block'],['Nature Aesthetic','Earth tones and easy layers',3,'frame'],['Monochrome','Black, white and everything between',7,'split'],['Soft Statements','Quiet looks that say a lot',2,'frame']]},
   {id:'occasions',name:'Occasions',blurb:'Dressed for the moment',wood:'#a8723f',label:'#2f5d4e',
     mags:[['Beach Fun','Sun, sand and light fabrics',3,'frame'],['Matrimonio','Wedding season, all of it',4,'block'],['Dream Wedding','Gowns, lace and aso ebi',1,'frame'],['The Wedding Guest','What to wear when invited',2,'split'],['School Outfits','Smart, simple, campus ready',5,'block'],['Cozy Style','Soft layers for slow days',6,'frame'],['Everyday Style','Looks for the daily run',0,'split']]},
   {id:'night',name:'After Dark',blurb:'Evenings, events and glam',wood:'#8f5e34',label:'#14284b',
