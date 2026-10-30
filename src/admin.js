@@ -1,8 +1,9 @@
 /* ---------- Lukks Admin: standalone dashboard. Every action is enforced by Supabase RLS / admin-only functions. ---------- */
 const app=document.getElementById('app');
+const RC={calc(look,items){const w=look.wear_count||0;const rows=items.map(i=>({price:Number(i.price)||0}));return{total:rows.reduce((a,r)=>a+r.price,0)};},money:(n,cur)=>fmtMoney(Math.round((Number(n)||0)*100)/100,cur||'NGN')};
 const Ads={async verify(reference){const r=await sb.functions.invoke('paystack-verify',{body:{reference}});let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(_){}}if(!d)throw new Error('Could not verify payment.');if(d.error&&!d.paid)throw new Error(d.message||'Could not verify payment.');return d;}};
 function thumb(look,w,h_){const c=mk(w,h_),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h_);drawFigure(g,look,w/2,h_*.05,h_*.9);return c;}
-const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
+const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
 let tab='overview',counts={};
 function loginView(msg){
   const em=h('input',{type:'email',placeholder:'Email',autocomplete:'email'}),pw=h('input',{type:'password',placeholder:'Password',autocomplete:'current-password'}),err=h('p',{class:'err-t'},msg||'');
@@ -25,7 +26,7 @@ function shell(){
   const nav=h('nav',null,h('h2',null,'LUKKS'),...ADM_TABS.map(t=>h('button',{'data-t':t[0],class:tab===t[0]?'on':'',onclick:()=>{tab=t[0];shell();}},t[1],counts[t[0]]?h('span',{class:'cnt'},counts[t[0]]):null)),h('span',{class:'sp'}),h('a',{class:'btn ghost',style:{color:'#f4ead9'},href:'./'},'Open Lukks'),h('button',{onclick:async()=>{await Auth.signOut();loginView();}},'Sign out'));
   const main=h('main');app.replaceChildren(h('div',{class:'adm'},nav,main));
   loadCounts().then(()=>{$$('nav button',nav).forEach(b=>{const t=b.dataset.t;let c=b.querySelector('.cnt');const n=({ads:counts.ads,subs:counts.subs,photos:counts.photos,testi:counts.testi,msgs:counts.msgs})[t];if(n){if(!c){c=h('span',{class:'cnt'});b.append(c);}c.textContent=n;}});});
-  ({overview,ads,subs,photos,testi,events,msgs})[tab](main);
+  ({overview,ads,subs,feats,photos,testi,events,msgs})[tab](main);
 }
 const sect=(main,title)=>{main.replaceChildren(h('h1',null,title));const box=h('div',{class:'tbl'});main.append(box);return box;};
 const setStatus=async(table,id,status,note)=>{const r=await sb.rpc('admin_set_status',{p_table:table,p_id:id,p_status:status,p_note:note||null});if(r.error)throw r.error;};
@@ -71,6 +72,23 @@ async function subs(main){
       s.status==='approved'&&h('div',{style:{marginTop:'8px',display:'flex',gap:'8px'}},sel,h('button',{class:'btn',onclick:async e=>guard(e.currentTarget,async()=>{if(!sel.value)throw new Error('Choose a magazine.');const x=await sb.rpc('admin_assign_issue',{p_id:s.id,p_issue:sel.value});if(x.error)throw x.error;toast('Assigned','ok');subs(main);})},'Assign'))),
       h('div',{class:'acts'},s.status==='pending'&&[sel,h('button',{class:'btn primary',onclick:e=>guard(e.currentTarget,async()=>{const n=await askNote('Approve this photo?');if(!n)return;const x=await sb.functions.invoke('admin-approve-submission',{body:{id:s.id,issue_id:sel.value||null,note:n.note}});if(x.error)throw x.error;toast('Approved','ok');subs(main);})},'Approve'),
         h('button',{class:'btn danger',onclick:e=>guard(e.currentTarget,async()=>{const n=await askNote('Reject this photo?');if(!n)return;await setStatus('magazine_submissions',s.id,'rejected',n.note);toast('Rejected');subs(main);})},'Reject')])));
+  });
+}
+/* ---- receipt lukks sent to the magazine ---- */
+async function feats(main){
+  const box=sect(main,'Magazine lukks');box.append(spinner());
+  const r=await sb.from('magazine_features').select('*').order('created_at',{ascending:false}).limit(200);
+  if(r.error){box.replaceChildren(h('p',{class:'err-t'},errMsg(r.error)));return;}
+  const ids=r.data.map(x=>x.look_id);
+  const [lk,it]=ids.length?await Promise.all([sb.from('looks').select('*').in('id',ids),sb.from('look_items').select('*').in('look_id',ids)]):[{data:[]},{data:[]}];
+  box.replaceChildren();if(!r.data.length)box.append(empty('Nothing sent yet'));
+  r.data.forEach(f=>{
+    const look=(lk.data||[]).find(l=>l.id===f.look_id)||{title:'(deleted)'};const items=(it.data||[]).filter(i=>i.look_id===f.look_id);
+    const c=RC.calc(look,items);
+    box.append(h('div',{class:'rowc'},look.photo_path?h('img',{src:publicUrl('looks',look.photo_path),alt:''}):null,h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,look.title),chip(f.status)),
+      h('div',{class:'muted small-t'},timeAgo(f.created_at)+' ago · '+items.length+' items · total '+RC.money(c.total,look.currency)),h('div',{class:'small-t'},items.map(i=>i.name+' '+RC.money(i.price,look.currency)).join(' · ')),f.admin_note&&h('div',{class:'small-t'},'Note: '+f.admin_note),
+      f.status==='pending'&&h('div',{class:'acts'},h('button',{class:'btn primary',onclick:e=>guard(e.currentTarget,async()=>{const x=await sb.from('magazine_features').update({status:'approved'}).eq('id',f.id);if(x.error)throw x.error;toast('Approved','ok');feats(main);})},'Approve'),
+        h('button',{class:'btn danger',onclick:e=>guard(e.currentTarget,async()=>{const x=await sb.from('magazine_features').update({status:'rejected'}).eq('id',f.id);if(x.error)throw x.error;toast('Rejected');feats(main);})},'Reject')))));
   });
 }
 /* ---- photos ---- */

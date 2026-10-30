@@ -17,7 +17,7 @@ mount(el,ctx,live){
     }
     const row=(ic,t,sub,fn)=>h('button',{class:'item',onclick:fn},icon(ic),h('span',{class:'grow'},h('b',null,t),sub&&h('span',null,sub)),h('span',{class:'chev'},icon('chevR')));
     body.append(h('div',{class:'sec-t'},'Personalise'),h('div',{class:'group'},row('image','Wallpapers','Lock screen and home screen',wallpapers),row('speaker','Sound',Sound.kind==='off'?'Off':Sound.KINDS.find(k=>k.id===Sound.kind).label+(Sound.muted?' (muted)':''),soundSheet),row('bell','Notifications','Choose what you hear about',notifPrefs)));
-    if(Auth.user)body.append(h('div',{class:'sec-t'},'Your content'),h('div',{class:'group'},row('image','My photos and submissions','Review status and magazine entries',()=>ctx.open('photos',{tab:'mine'})),row('user','Lukks Profile','Your public style page',()=>ctx.open('profile')),row('shirt','Lukks Receipt','Your outfit archive',()=>ctx.open('receipt')),row('bell','Lukks Ads','Your featured campaigns',()=>ctx.open('ads',{tab:'mine'}))));
+    if(Auth.user)body.append(h('div',{class:'sec-t'},'Your content'),h('div',{class:'group'},row('image','My photos','Your gallery folders',()=>ctx.open('photos')),row('user','Lukks Profile','Your public style page',()=>ctx.open('profile')),row('shirt','Lukks Receipt','Your outfit archive',()=>ctx.open('receipt')),row('bell','Lukks Ads','Your featured campaigns',()=>ctx.open('ads',{tab:'mine'}))));
     const more=h('div',{class:'group'});
     if(typeof PWA!=='undefined'&&PWA.canInstall())more.append(row('download','Install Lukks','Add to your home screen',()=>PWA.install()));
     else if(typeof PWA!=='undefined'&&PWA.isIosSafari&&PWA.isIosSafari()&&!PWA.isStandalone())more.append(row('download','Install Lukks','Share, then Add to Home Screen',()=>PWA.iosHelp()));

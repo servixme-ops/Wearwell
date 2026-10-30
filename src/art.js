@@ -136,6 +136,7 @@ function barcode(g,x,y,w,h,ink){
 
 /* ---- Covers ---- */
 function drawCover(m,W,H){
+  if(m.issue_mag)return drawIssueCover(m,W,H);
   W=W||512;H=H||676;const c=mk(W,H),g=c.getContext('2d');const k=W/512;
   g.fillStyle=m.bg;g.fillRect(0,0,W,H);
   const look=m.looks[0];
@@ -177,6 +178,7 @@ function drawCover(m,W,H){
 
 /* ---- Interior faces. Returns {c, hs:[{x,y,w,h,look}]} ---- */
 function drawFace(m,i,W,H){
+  if(m.issue_mag)return drawIssueFace(m,i,W||640,H||845);
   W=W||640;H=H||845;const c=mk(W,H),g=c.getContext('2d');const k=W/640,hs=[];
   const paper='#f4ecdd',ink='#2a1812';
   const hot=(x,y,w,h,li)=>hs.push({x:x/W,y:y/H,w:w/W,h:h/H,look:m.looks[li]});

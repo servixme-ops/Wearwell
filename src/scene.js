@@ -49,6 +49,7 @@ function texSky(){
   gr.addColorStop(0,'#fff8e6');gr.addColorStop(.6,'#ffeec9');gr.addColorStop(1,'#ffe0a6');g.fillStyle=gr;g.fillRect(0,0,64,256);return c;
 }
 function texBack(m){
+  if(m.issue_mag){const c=mk(256,338),g=c.getContext('2d');g.fillStyle='#cbc5d8';g.fillRect(0,0,256,338);g.fillStyle='#a0e0cf';g.beginPath();g.moveTo(40,190);g.lineTo(216,190);g.lineTo(128,60);g.fill();g.fillStyle='#e8b4c8';g.beginPath();g.arc(128,338,100,Math.PI,0);g.fill();g.fillStyle='#2a1812';g.font=`900 40px ${F.disp}`;g.textAlign='center';g.fillText('LUKKS',128,236);g.font=`italic 500 13px ${F.disp}`;g.fillText('Find your kind of style',128,258);barcode(g,80,272,96,50);return c;}
   const c=mk(256,338),g=c.getContext('2d');g.fillStyle=m.bg;g.fillRect(0,0,256,338);
   g.fillStyle=m.acc;g.beginPath();g.arc(128,150,70,0,7);g.fill();
   g.fillStyle=m.ink;g.font=`900 110px ${F.disp}`;g.textAlign='center';g.fillText('W',128,190);
@@ -309,9 +310,9 @@ function layoutMags(pos){
 /* ---------- Book (opened magazine) ---------- */
 class Book{
   constructor(m){
-    this.m=m;this.NL=5;this.flip=0;this.group=new T.Group();this.leaves=[];this.faces=[];
+    this.m=m;this.NL=7;this.flip=0;this.group=new T.Group();this.leaves=[];this.faces=[];
     const w=MAG.w,h=MAG.h;this.w=w;this.h=h;
-    for(let i=0;i<10;i++)this.faces.push(drawFace(m,i,640,845));
+    for(let i=0;i<14;i++)this.faces.push(drawFace(m,i,640,845));
     const tex=this.faces.map(f=>ctex(f.c));
     this.tex=tex;
     for(let k=0;k<this.NL;k++){

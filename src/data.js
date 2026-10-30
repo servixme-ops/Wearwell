@@ -18,40 +18,12 @@ const COVERBG=[['#1d3a8a','#f4e9d6','#f2b705'],['#c8372d','#fff3e0','#1b1b1b'],[
 const HEADLINES=["LET'S DO IT","WEAR IT LOUD","MADE IN LAGOS","STEP OUT","FULL COLOUR","THE EDIT"];
 const SHOPS=['Lekki Phase 1 · Admiralty Way','Victoria Island · Adeola Odeku','Ikeja City Mall · Obafemi Awolowo Way','Balogun Market · Lagos Island','Yaba · Herbert Macaulay Way','Abuja · Wuse 2'];
 
-const CRATES=[
-  {id:'styles',name:'Fashion Styles',blurb:'Find your kind of style',wood:'#b9854c',label:'#d4351f',
-    mags:[['Creative Models','Full looks, modelled your way',0,'block'],['Baddies','Confidence, dressed up',1,'frame'],['Aesthetic Girlyss','Soft, pretty, put together',4,'split'],['Drip Gang','Street heat and fresh kicks',5,'block'],['Nature Aesthetic','Earth tones and easy layers',3,'frame'],['Monochrome','Black, white and everything between',7,'split'],['Soft Statements','Quiet looks that say a lot',2,'frame']]},
-  {id:'occasions',name:'Occasions',blurb:'Dressed for the moment',wood:'#a8723f',label:'#2f5d4e',
-    mags:[['Beach Fun','Sun, sand and light fabrics',3,'frame'],['Matrimonio','Wedding season, all of it',4,'block'],['Dream Wedding','Gowns, lace and aso ebi',1,'frame'],['The Wedding Guest','What to wear when invited',2,'split'],['School Outfits','Smart, simple, campus ready',5,'block'],['Cozy Style','Soft layers for slow days',6,'frame'],['Everyday Style','Looks for the daily run',0,'split']]},
-  {id:'night',name:'After Dark',blurb:'Evenings, events and glam',wood:'#8f5e34',label:'#14284b',
-    mags:[['After Dark','Night out, dressed to land',5,'split'],['Date Night','Dinner looks with a spark',1,'frame'],['Owambe Glam','Celebration season, glowing',2,'block'],['Club Fits','Dance floor ready',7,'frame'],['Midnight Soft','Evening, but gentle',4,'split'],['Gala Lights','Black tie, Lagos style',6,'block'],['Lounge Hour','Low light, high style',0,'frame']]}
-];
-
+/* One crate, one magazine: Lukks, Issue 01 (built in issue.js) */
+const CRATES=[{id:'lukks',name:'Lukks',blurb:'Issue 01 · Find your kind of style',wood:'#b9854c',label:'#ff5a1f',mags:[]}];
 const LOOKS={};
 const _built={};
 function crateMags(ci){
   if(_built[ci])return _built[ci];
-  const c=CRATES[ci];
-  const mags=c.mags.map((m,mi)=>{
-    const r=rng(ci*131+mi*17+7);
-    const th=COVERBG[m[2]%COVERBG.length];
-    const fab=FABKEYS[(ci*3+mi*2)%FABKEYS.length];
-    const mag={ci,mi,title:m[0],tagline:m[1],variant:m[3],bg:th[0],ink:th[1],acc:th[2],fab,issue:String(mi+1+ci*7).padStart(2,'0'),
-      headline:HEADLINES[(mi+ci)%HEADLINES.length],count:[21,27,18,24,30,16,25][mi%7],looks:[]};
-    const collName=m[0]+' collection';
-    for(let li=0;li<6;li++){
-      const fk=li%2===0?fab:FABKEYS[Math.floor(r()*FABKEYS.length)];
-      const cols=FAB[fk].cols[Math.floor(r()*FAB[fk].cols.length)];
-      const shape=li===0?(mi%2?'gown':'iro'):SHAPES[Math.floor(r()*SHAPES.length)];
-      const look={id:`${ci}-${mi}-${li}`,ci,mi,li,name:LOOKNAMES[Math.floor(r()*LOOKNAMES.length)],
-        designer:DESIGNERS[Math.floor(r()*DESIGNERS.length)],coll:collName,fab:fk,shape,cols,
-        skin:SKIN[Math.floor(r()*SKIN.length)],gele:(shape==='gown'||shape==='iro')&&r()<.7,
-        bg:li%3===0?th[2]:(li%3===1?th[1]:th[0]),
-        price:'₦'+(Math.round((40000+r()*340000)/5000)*5000).toLocaleString('en-NG'),
-        desc:`${FAB[fk].label}, ${DETAILS[Math.floor(r()*DETAILS.length)]}.`};
-      mag.looks.push(look);LOOKS[look.id]=look;
-    }
-    return mag;
-  });
-  _built[ci]=mags;return mags;
+  _built[ci]=ci===0&&typeof buildIssue==='function'?[buildIssue()]:[];
+  return _built[ci];
 }

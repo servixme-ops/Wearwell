@@ -1,38 +1,45 @@
 /* ---------- CAMERA + contribution helpers (community photos, magazine submissions) ---------- */
+/* Local (on-device) gallery for signed-out photos, kept in IndexedDB */
+const LocalGallery={
+  _db:null,
+  open(){return this._db||(this._db=new Promise((res,rej)=>{try{const q=indexedDB.open('lukks-gallery',1);q.onupgradeneeded=()=>q.result.createObjectStore('photos',{keyPath:'id'});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}catch(e){rej(e);}}));},
+  async tx(mode,fn){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction('photos',mode),st=t.objectStore('photos');const r=fn(st);t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});},
+  async list(){try{return (await this.tx('readonly',s=>s.getAll()))||[];}catch(e){return[];}},
+  async add(blob,album,caption){const x={id:uuid(),blob,album,caption:caption||'',t:Date.now()};await this.tx('readwrite',s=>s.put(x));return x;},
+  async del(id){await this.tx('readwrite',s=>s.delete(id));}
+};
 const Contrib={
-  async postCommunity(p,caption){
-    const fd=new FormData();fd.append('file',new File([p.blob],'photo.'+p.ext,{type:p.type}));fd.append('caption',(caption||'').slice(0,200));
-    const headers={apikey:CFG.supabaseKey};
-    try{const s=await sb.auth.getSession();if(s&&s.data&&s.data.session)headers.Authorization='Bearer '+s.data.session.access_token;}catch(e){}
-    const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),45000);
-    let res;try{res=await fetch(CFG.supabaseUrl+'/functions/v1/community-upload',{method:'POST',headers,body:fd,signal:ctl.signal});}catch(e){throw new Error('Could not reach the server. Check your connection and try again.');}finally{clearTimeout(to);}
-    const j=await res.json().catch(()=>({}));
-    if(!res.ok)throw new Error(j.message||'Could not upload the photo.');
+  _albums:null,
+  async albums(){
+    if(this._albums)return this._albums;
+    let a=[];try{const r=await sb.from('gallery_albums').select('*').neq('slug','community').order('sort');if(!r.error)a=r.data||[];}catch(e){}
+    if(!a.some(x=>x.slug==='randoms'))a.push({slug:'randoms',title:'Randoms'});
+    a=a.filter(x=>x.slug!=='community');
+    return this._albums=a;
   },
-  async mySubmissions(){const r=await sb.from('magazine_submissions').select('*').eq('user_id',Auth.user.id).order('created_at',{ascending:false});return r.data||[];},
-  async submitMagazine(p,caption,credit,consent){
-    if(!Auth.user)throw new Error('Sign in first.');
-    if(!consent)throw new Error('Please confirm you own this photo and agree to it being featured.');
-    if(!caption||caption.trim().length<3)throw new Error('Add a short caption.');
-    const mine=(await this.mySubmissions()).filter(s=>s.status!=='rejected');
-    if(mine.length>=CFG.limits.magazinePhotos)throw new Error(`You can submit up to ${CFG.limits.magazinePhotos} photos. Delete a pending one or wait for a decision.`);
-    const hash=await sha256(p.blob);
-    const path=await uploadFile('submissions',p.blob,p.ext,p.type);
-    const r=await sb.from('magazine_submissions').insert({user_id:Auth.user.id,storage_path:path,caption:caption.trim().slice(0,200),credit:(credit||'').trim().slice(0,80)||null,consent:true,content_hash:hash,status:'pending'});
-    if(r.error){removeFile('submissions',path);throw r.error;}
-  },
-  /* shared dialog: what to do with a photo */
-  sendSheet(ctx,blobOrFile){
-    sheet('Share this photo',async(b,close)=>{
+  /* shared dialog: save a photo into the gallery. Signed out: Randoms only, kept on this device. */
+  sendSheet(ctx,blobOrFile,opts){
+    opts=opts||{};
+    sheet('Save photo',async(b,close)=>{
       let prepared;
       try{prepared=await prepareImage(blobOrFile instanceof File?blobOrFile:new File([blobOrFile],'photo.jpg',{type:blobOrFile.type||'image/jpeg'}),{max:1800});}catch(e){b.append(h('p',{class:'err-t'},errMsg(e)));return;}
+      const albums=await this.albums();
       const url=URL.createObjectURL(prepared.blob);
-      const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption'});
-      const note=h('p',{class:'muted small-t'},'Photos are reviewed before they appear. Nothing is public until approved.');
+      const signed=!!Auth.user;
+      const want=signed?(opts.album||'randoms'):'randoms';
+      const sel=h('select',{disabled:!signed},albums.map(a=>h('option',{value:a.slug,selected:a.slug===want},a.title)));
+      const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption (optional)'});
       b.append(h('img',{src:url,alt:'Your photo',style:{width:'100%',maxHeight:'240px',objectFit:'contain',borderRadius:'12px',background:'#000'}}),
+        field('Folder',sel,signed?null:'Signed out, photos go to Randoms and stay on this device.'),
         field('Caption',cap),
-        h('button',{class:'btn block',onclick:e=>guard(e.currentTarget,async()=>{await this.postCommunity(prepared,cap.value);toast('Sent for review','ok');close();})},icon('image'),'Post to Community album'),
-        h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{download(prepared.blob,'lukks-photo.'+prepared.ext);}},icon('download'),'Save to my device'),note);
+        h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
+          if(signed){const path=await uploadFile('gallery',prepared.blob,prepared.ext,prepared.type);
+            const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:sel.value,storage_path:path,caption:cap.value.trim().slice(0,200)||null,status:'private'});
+            if(r.error){removeFile('gallery',path);throw r.error;}}
+          else await LocalGallery.add(prepared.blob,'randoms',cap.value.trim().slice(0,200));
+          toast('Saved to '+(albums.find(a=>a.slug===sel.value)||{title:'Randoms'}).title,'ok');close();opts.done&&opts.done();})},icon('image'),'Save to gallery'),
+        signed?null:h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to choose a folder'),
+        h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{download(prepared.blob,'lukks-photo.'+prepared.ext);}},icon('download'),'Save to my device'));
     });
   }
 };

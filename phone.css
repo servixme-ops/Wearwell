@@ -473,3 +473,5 @@ body[data-mode=phone] .pwa-banner,body:not([data-mode=room]) .pwa-banner{display
 .lx-pthumb .rm{position:absolute;right:5px;top:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center}.lx-pthumb .rm .ic svg{width:13px;height:13px}
 .lx-padd{aspect-ratio:3/4;border-radius:12px;border:2px dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#888;font-size:12px;font-weight:600}
 .lx-pill{background:rgba(255,255,255,.92)}.lx-search-btn{background:rgba(255,255,255,.92)}
+
+.album-img.empty{display:flex;align-items:center;justify-content:center;background:#e6e6ec;color:#a9a9b3}.album-img.empty .ic svg{width:44px;height:44px}.album-img.empty img{position:static}.empty-ic{display:inline-flex;color:#c3c3cb;margin-bottom:8px}.empty-ic .ic svg{width:48px;height:48px}

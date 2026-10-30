@@ -40,6 +40,7 @@ function visHalf(fov){return Math.tan(fov*Math.PI/360);}
 async function boot(){
   const fonts=["700 40px 'Playfair Display'","900 40px 'Playfair Display'","italic 500 20px 'Playfair Display'","italic 600 20px 'Playfair Display'","400 40px 'Bebas Neue'","400 14px 'Instrument Sans'","600 14px 'Instrument Sans'","700 14px 'Instrument Sans'","500 14px 'Instrument Sans'"];
   try{await Promise.race([Promise.all(fonts.map(f=>document.fonts.load(f))),new Promise(r=>setTimeout(r,3000))]);}catch(e){}
+  try{await Promise.race([issuePreload(),new Promise(r=>setTimeout(r,6000))]);}catch(e){}
   initScene($('#stage'));buildPhone3d();
   loadCrateMags(0);layoutMags(0);
   buildCratePicker();buildNav();bindInput();bindFab();resize();
@@ -335,7 +336,7 @@ function back(){
 
 /* ---- crate picker & nav ---- */
 function buildCratePicker(){
-  const w=$('#cratePick');w.innerHTML='';
+  const w=$('#cratePick');w.innerHTML='';if(CRATES.length<2){w.style.display='none';return;}
   CRATES.forEach((c,i)=>{
     const b=document.createElement('button');b.className='crateCard'+(i===S.crate?' on':'');b.dataset.i=i;
     const sp=crateMags(i).slice(0,5).map(m=>`<i style="background:${m.bg}"></i>`).join('');
@@ -378,12 +379,12 @@ function openSheet(kind,arg){
   else if(kind==='wardrobe')renderList(title,body,'My Lukks',wardrobe,'Add lukks to My Lukks to plan outfits.');
   else if(kind==='look')renderLook(title,body,arg);
 }
-function thumb(look,w,h){const c=mk(w,h),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h);g.fillStyle='rgba(255,255,255,.2)';g.beginPath();g.arc(w/2,h*.6,w*.42,0,7);g.fill();drawFigure(g,look,w/2,h*.05,h*.9);return c;}
+function thumb(look,w,h){const c=mk(w,h),g=c.getContext('2d');if(look.photo){coverFit(g,ISSUE_IMG[look.img],0,0,w,h,.2);return c;}g.fillStyle=look.bg;g.fillRect(0,0,w,h);g.fillStyle='rgba(255,255,255,.2)';g.beginPath();g.arc(w/2,h*.6,w*.42,0,7);g.fill();drawFigure(g,look,w/2,h*.05,h*.9);return c;}
 function allLooks(){const a=[];CRATES.forEach((c,ci)=>crateMags(ci).forEach(m=>m.looks.forEach(l=>a.push(l))));return a;}
 function tile(look){
   const b=document.createElement('button');b.className='tile';
   const c=thumb(look,200,266);b.appendChild(c);
-  const s=document.createElement('span');s.innerHTML=`<b>${look.name}</b><em>${look.designer}</em><u>${look.price}</u>`;b.appendChild(s);
+  const s=document.createElement('span');s.innerHTML=`<b>${esc(look.name)}</b><em>${esc(look.designer)}</em><u>${look.price}</u>`;b.appendChild(s);
   b.onclick=()=>openLook(look);return b;
 }
 let exploreFilter='all',exploreN=24;
@@ -414,17 +415,20 @@ function renderLook(title,body,look){
   const c=thumb(look,480,640);c.className='hero';wrap.appendChild(c);
   const info=document.createElement('div');info.className='info';
   const isS=saved.has(look.id),isW=wardrobe.has(look.id);
-  info.innerHTML=`<h3>${look.name}</h3><p class="by">${look.designer}</p><p class="price">${look.price}</p><p class="fab">${FAB[look.fab].label}</p><p class="desc">${look.desc}</p>
-  <div class="acts"><button id="actSave" class="${isS?'on':''}">${isS?'Saved':'Save lukk'}</button><button id="actWard" class="${isW?'on':''}">${isW?'In My Lukks':'Add to My Lukks'}</button><button id="actReal">See real lukks</button></div>`;
+  const rows=RC.calc({wear_count:look.wears},look.items).rows;
+  const rc=`<div class="rcpt"><div class="rb">LUKKS RECEIPT</div><div class="rs">Lukk #${look.no} · Issue 01</div><h4>${esc(look.name)}</h4>`+
+    rows.map(r=>`<div class="rr"><div><b>${esc(r.name)}</b><em>${esc(r.brand||'')}${r.brand?' · ':''}${r.total_wears} wears</em></div><div><b>${RC.money(r.price)}</b><em>${RC.money(r.cpw)} / wear</em></div></div>`).join('')+
+    `<div class="rt"><span>Total spent</span><b>${RC.money(look.total)}</b></div><div class="rt cp"><span>Cost per wear</span><b>${RC.money(look.cpw)}</b></div><p class="rn">Prices are estimates.</p></div>`;
+  info.innerHTML=`<p class="by">${esc(look.designer)} · ${esc(look.kicker)}</p><h3>${esc(look.name)}</h3><p class="desc">${esc(look.story)}</p>${rc}
+  <div class="acts"><button id="actSave" class="${isS?'on':''}">${isS?'Saved':'Save lukk'}</button><button id="actReal">See real lukks</button></div>`;
   wrap.appendChild(info);body.appendChild(wrap);
-  const more=document.createElement('div');more.className='moreFrom';more.innerHTML=`<h4>More from this collection</h4>`;
+  const more=document.createElement('div');more.className='moreFrom';more.innerHTML=`<h4>More from this issue</h4>`;
   const row=document.createElement('div');row.className='row';
   const mag=crateMags(look.ci)[look.mi];
   mag.looks.forEach(l=>{const t=tile(l);if(l.id===look.id)t.classList.add('cur');row.appendChild(t);});
   more.appendChild(row);body.appendChild(more);
   info.querySelector('#actSave').onclick=e=>{toggleSet(saved,'saved',look.id);renderLook(title,body,look);};
-  info.querySelector('#actReal').onclick=()=>{const m=crateMags(look.ci)[look.mi];closeSheet();setTimeout(()=>{Phone.intentAfterUnlock={open:'lukks',intent:{cat:m.title}};enterPhone();},250);};
-  info.querySelector('#actWard').onclick=e=>{toggleSet(wardrobe,'wardrobe',look.id);renderLook(title,body,look);};
+  info.querySelector('#actReal').onclick=()=>{closeSheet();setTimeout(()=>{Phone.intentAfterUnlock={open:'lukks',intent:{cat:look.designer}};enterPhone();},250);};
 }
 function toggleSet(set,key,id){const on=!set.has(id);on?set.add(id):set.delete(id);store.set(key,[...set]);if(typeof pushSaved==='function')pushSaved(set===saved?'saved':'wardrobe',id,on);}
 function goIssue(id){

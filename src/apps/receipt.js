@@ -35,13 +35,13 @@ const RC={
 };
 defApp({id:'receipt',name:'Lukks Receipt',bg:'linear-gradient(#f7efde,#e3d2ae)',glyph:()=>`<svg viewBox="0 0 60 60"><path d="M17 10h26v40l-4.300-3-4.300 3-4.400-3-4.300 3-4.300-3L17 50z" fill="#fff" stroke="#6b1a2b" stroke-width="2.500" stroke-linejoin="round"/><path d="M23 20h14M23 27h14M23 34h8" stroke="#6b1a2b" stroke-width="2.800" stroke-linecap="round"/><path d="M33 34h4" stroke="#d9a441" stroke-width="2.800" stroke-linecap="round"/></svg>`,
 mount(el,ctx,live){
-  let looks=[],items={},cols=[],filter='all';
+  let looks=[],items={},cols=[],filter='all',feat={};
   const root=h('div',{class:'msg-root'});el.append(root);
   async function load(){
     root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Back'}),appBody(spinner()));
     if(!Auth.user){return guest();}
     try{
-      const [l,i,c]=await Promise.all([sb.from('looks').select('*').order('created_at',{ascending:false}),sb.from('look_items').select('*').order('created_at'),sb.from('collections').select('*').order('created_at')]);
+      const [l,i,c,f]=await Promise.all([sb.from('looks').select('*').order('created_at',{ascending:false}),sb.from('look_items').select('*').order('created_at'),sb.from('collections').select('*').order('created_at'),sb.from('magazine_features').select('*')]);feat={};((f&&f.data)||[]).forEach(x=>feat[x.look_id]=x);
       if(l.error)throw l.error;looks=l.data||[];items={};(i.data||[]).forEach(x=>(items[x.look_id]=items[x.look_id]||[]).push(x));cols=c.data||[];
     }catch(e){root.replaceChildren(appBar({title:'Lukks Receipt',onBack:ctx.close,backLabel:'Back'}),appBody(empty('Could not load your lukks',errMsg(e),h('button',{class:'btn',onclick:load},'Try again'))));return;}
     list();
@@ -89,10 +89,25 @@ mount(el,ctx,live){
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{const r=await sb.from('wear_logs').insert({look_id:id,user_id:Auth.user.id,worn_on:isoDay(new Date())});if(r.error)throw r.error;await refreshOne(id);toast('Logged. Cost per wear updated','ok');detail(id);})},icon('check'),'I wore it today'),
       h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>history_(look)},'Wear history'),h('button',{class:'btn',onclick:async e=>guard(e.currentTarget,async()=>{const r=await sb.from('looks').update({favourite:!look.favourite}).eq('id',id);if(r.error)throw r.error;look.favourite=!look.favourite;detail(id);}),'aria-label':'Favourite'},icon('heart'),look.favourite?'Favourited':'Favourite')),
       h('div',{class:'group',style:{margin:0}},h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Show on my Lukks Profile'),h('span',null,Auth.profile&&Auth.profile.is_public?'Visible on your public page':'Your profile is private right now')),toggleEl(look.is_public,async v=>{const r=await sb.from('looks').update({is_public:v}).eq('id',id);if(r.error){toast(errMsg(r.error),'err');}else{look.is_public=v;toast(v?'Shared to your profile':'Removed from your profile');}},'Share on profile'))),
+      featureBox(look,its),
       h('button',{class:'btn block',onclick:e=>guard(e.currentTarget,async()=>{const bl=await RC.image(look,its);download(bl,'lukks-receipt-'+look.look_no+'.png');toast('Saved as image','ok');})},icon('download'),'Save as image'),
       h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>form(look)},icon('edit'),'Edit'),h('button',{class:'btn danger grow',onclick:async()=>{if(!await confirmBox('Delete this lukk?','Its receipt and wear history will be removed.','Delete',true))return;const r=await sb.from('looks').delete().eq('id',id);if(r.error){toast(errMsg(r.error),'err');return;}if(look.photo_path)removeFile('looks',look.photo_path);toast('Deleted');await load();}},icon('trash'),'Delete'))));
     root.replaceChildren(appBar({title:'Receipt',onBack:list,backLabel:'Back'}),body);
   }
+  function featureBox(look,its){
+    const f=feat[look.id],used=Object.values(feat).filter(x=>x.status!=='rejected').length;
+    const st={pending:['Sent for review','Our editors will take a look. Approval is not guaranteed.'],approved:['Featured in the magazine','Approved by our editors.'],rejected:['Not selected this time','This one did not make the issue.']};
+    if(f)return h('div',{class:'group',style:{margin:0}},h('div',{class:'item'},icon('sparkle'),h('span',{class:'grow'},h('b',null,st[f.status][0]),h('span',null,st[f.status][1]))),
+      f.status==='pending'?h('div',{class:'pad'},h('button',{class:'btn small block',onclick:e=>guard(e.currentTarget,async()=>{const r=await sb.from('magazine_features').delete().eq('id',f.id);if(r.error)throw r.error;delete feat[look.id];toast('Withdrawn');detail(look.id);})},'Withdraw')):null);
+    return h('div',{class:'group',style:{margin:0}},h('div',{class:'item'},icon('sparkle'),h('span',{class:'grow'},h('b',null,'Feature in the magazine'),h('span',null,`Send up to two lukks to the Lukks magazine (${used} of 2 sent). Approval is not guaranteed.`))),
+      h('div',{class:'pad'},h('button',{class:'btn block',onclick:async e=>{
+        if(!look.photo_path||!its.length){toast('Add a photo and at least one priced item first.','err');return;}
+        if(used>=2){toast('You have already sent two lukks. Withdraw a pending one or wait for a decision.','err');return;}
+        const ok=await confirmBox('Feature this lukk in the magazine?','Our editors review every lukk, and approval is not guaranteed. You can send up to two lukks in total, and you can withdraw while it is pending.','Send for review');if(!ok)return;
+        guard(e.currentTarget,async()=>{const r=await sb.from('magazine_features').insert({look_id:look.id});if(r.error)throw r.error;feat[look.id]=r.data||{look_id:look.id,status:'pending'};await load0();toast('Sent for review','ok');});
+      }},'Feature this lukk')));
+  }
+  async function load0(){const f=await sb.from('magazine_features').select('*');feat={};((f&&f.data)||[]).forEach(x=>feat[x.look_id]=x);}
   async function refreshOne(id){const r=await sb.from('looks').select('*').eq('id',id).single();if(r.data){const i=looks.findIndex(l=>l.id===id);looks[i]=r.data;}}
   async function history_(look){
     sheet('Wear history',async(b,close)=>{
