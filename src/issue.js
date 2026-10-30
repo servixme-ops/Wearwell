@@ -102,20 +102,20 @@ function dashed(g,x1,x2,y,k){g.save();g.strokeStyle='#b9a98f';g.lineWidth=1*k;g.
 function drawReceiptCard(g,look,x,y,w,h,k){
   g.save();g.shadowColor='rgba(40,20,10,.28)';g.shadowBlur=14*k;g.shadowOffsetY=4*k;g.fillStyle=CREAM;rrect(g,x,y,w,h,6*k);g.fill();g.restore();
   const p=18*k;let yy=y+26*k;
-  g.textAlign='center';g.fillStyle=INK;g.font=`700 ${13*k}px ${F.disp}`;spaced(g,'',2.4*k);g.fillText('LUKKS RECEIPT',x+w/2,yy);spaced(g,'',0);
-  yy+=14*k;g.font=`500 ${9.5*k}px ${F.body}`;g.fillStyle='#7a6858';g.fillText(`Lukk #${look.no} · Issue 01 · ${look.designer}`,x+w/2,yy);
-  yy+=24*k;g.fillStyle=INK;g.font=`700 ${19*k}px ${F.disp}`;g.fillText(look.name,x+w/2,yy);
+  g.textAlign='center';g.fillStyle=INK;g.font=`900 ${13*k}px ${F.disp}`;spaced(g,'',2.4*k);g.fillText('LUKKS RECEIPT',x+w/2,yy);spaced(g,'',0);
+  yy+=14*k;g.font=`700 ${10*k}px ${F.body}`;g.fillStyle='#4a3a2e';g.fillText(`Lukk #${look.no} · Issue 01 · ${look.designer}`,x+w/2,yy);
+  yy+=24*k;g.fillStyle=INK;g.font=`900 ${20*k}px ${F.disp}`;g.fillText(look.name,x+w/2,yy);
   yy+=12*k;dashed(g,x+p,x+w-p,yy,k);yy+=20*k;
   const rows=RC.calc({wear_count:look.wears},look.items).rows;
   rows.forEach(r=>{
-    g.textAlign='left';g.fillStyle=INK;g.font=`600 ${11.5*k}px ${F.body}`;
+    g.textAlign='left';g.fillStyle=INK;g.font=`700 ${12*k}px ${F.body}`;
     let nm=r.name;while(g.measureText(nm).width>w-p*2-86*k&&nm.length>6)nm=nm.slice(0,-2);if(nm!==r.name)nm=nm.trim()+'…';
-    g.fillText(nm,x+p,yy);g.textAlign='right';g.font=`700 ${11.5*k}px ${F.body}`;g.fillText(RC.money(r.price,'NGN'),x+w-p,yy);
-    g.textAlign='left';g.font=`400 ${9.5*k}px ${F.body}`;g.fillStyle='#7a6858';g.fillText((r.brand?r.brand+' · ':'')+r.total_wears+' wears',x+p,yy+12*k);
+    g.fillText(nm,x+p,yy);g.textAlign='right';g.font=`800 ${12*k}px ${F.body}`;g.fillText(RC.money(r.price,'NGN'),x+w-p,yy);
+    g.textAlign='left';g.font=`600 ${10*k}px ${F.body}`;g.fillStyle='#4a3a2e';g.fillText((r.brand?r.brand+' · ':'')+r.total_wears+' wears',x+p,yy+12*k);
     g.textAlign='right';g.fillText(RC.money(r.cpw,'NGN')+' / wear',x+w-p,yy+12*k);yy+=29*k;
   });
   yy-=10*k;dashed(g,x+p,x+w-p,yy,k);yy+=19*k;
-  g.textAlign='left';g.fillStyle=INK;g.font=`700 ${13*k}px ${F.body}`;g.fillText('Total spent',x+p,yy);g.textAlign='right';g.fillText(RC.money(look.total,'NGN'),x+w-p,yy);
+  g.textAlign='left';g.fillStyle=INK;g.font=`800 ${13.5*k}px ${F.body}`;g.fillText('Total spent',x+p,yy);g.textAlign='right';g.fillText(RC.money(look.total,'NGN'),x+w-p,yy);
   yy+=19*k;g.textAlign='left';g.fillStyle=ORG;g.fillText('Cost per wear',x+p,yy);g.textAlign='right';g.fillText(RC.money(look.cpw,'NGN'),x+w-p,yy);
   g.textAlign='left';
 }
@@ -162,7 +162,7 @@ function drawLookFace(m,i,W,H,SC){
     g.fillText(ISSUE_SECTIONS[look.sec].toUpperCase(),side==='r'?26:W-26,35);spaced(g,'',0);g.textAlign='left';
     coverFit(g,im,px,py,pw,ph,.2);hs.push({x:px/W,y:py/H,w:pw/W,h:ph/H,look});
     g.fillStyle=INK;g.font=`400 ${88*k}px ${F.cond}`;g.textAlign='center';g.fillText(String(look.no).padStart(2,'0'),mx(0,140)+70,py+ph+60);g.textAlign='left';
-    g.font=`italic 500 ${14.5*k}px ${F.disp}`;g.fillStyle='#4a3830';wrap(g,look.blurb,px,py+ph+24,pw,19*k);
+    g.font=`italic 700 ${15*k}px ${F.disp}`;g.fillStyle='#1f1410';wrap(g,look.blurb,px,py+ph+24,pw,19*k);
     drawReceiptCard(g,look,px,539,pw,284,k);
   }else{
     const pw=340,ph=440,px=mx(48,pw),py=70;
@@ -170,9 +170,9 @@ function drawLookFace(m,i,W,H,SC){
     g.fillStyle='#fff';g.fillRect(px,py,86,26);g.fillStyle=INK;g.font=`700 ${11*k}px ${F.body}`;g.textAlign='center';g.fillText('LUKK '+String(look.no).padStart(2,'0'),px+43,py+17);g.textAlign='left';
     {const words=ISSUE_SECTIONS[look.sec].toUpperCase().split(' '),mid=Math.ceil(words.length/2),ls=[words.slice(0,mid).join(' '),words.slice(mid).join(' ')].filter(Boolean);
      g.fillStyle=INK;g.font=`400 ${17*k}px ${F.cond}`;g.textAlign='center';spaced(g,'',1);ls.forEach((t,j)=>g.fillText(t,mx(W-125,0),(ls.length>1?136:146)+j*18));spaced(g,'',0);g.textAlign='left';}
-    g.font=`italic 500 ${14.5*k}px ${F.disp}`;g.fillStyle='#31233a';
+    g.font=`italic 700 ${15*k}px ${F.disp}`;g.fillStyle='#1f1530';
     const qx=side==='r'?px+pw+16:16,qw=side==='r'?W-qx-40:px-32;
-    g.fillText(look.kicker+'.',qx,200);g.font=`italic 400 ${13.5*k}px ${F.disp}`;wrap(g,look.blurb,qx,230,qw,19*k);
+    g.fillText(look.kicker+'.',qx,200);g.font=`italic 600 ${14*k}px ${F.disp}`;wrap(g,look.blurb,qx,230,qw,19*k);
     const cw=395,cx=mx(side==='r'?210:36,cw);
     drawReceiptCard(g,look,cx,528,cw,290,k);
   }
@@ -190,14 +190,14 @@ function drawIssueFace(m,i,RW,RH){
     g.fillStyle=PINK;g.beginPath();g.arc(0,H,130,-Math.PI/2,0);g.lineTo(0,H);g.fill();
     g.fillStyle=ORG;g.font=`700 ${12*k}px ${F.body}`;spaced(g,'',2);g.fillText("EDITOR'S NOTE",44,78);spaced(g,'',0);
     g.fillStyle=INK;g.font=`700 ${52*k}px ${F.disp}`;g.fillText('Find your',44,142);g.fillText('kind of style.',44,198);
-    g.font=`400 ${15.5*k}px ${F.disp}`;g.fillStyle='#3a2a22';let y=240;
+    g.font=`600 ${16*k}px ${F.disp}`;g.fillStyle='#1f1410';let y=240;
     ['There is no single way to dress well. There is yours. This first issue of Lukks is eleven real outfits from real wardrobes, from a lilac cape gown to a campus tee, and every one of them comes with a receipt.',
      'We would rather show you the price than hide it. Style is not about spending the most. It is about wearing what you own, again and again, and still looking like you meant it.',
      'Tap any look to see how it is put together, what it cost and what it costs each time it is worn. Then show us yours.'].forEach(p=>{y=wrap(g,p,44,y,W-88,23*k)+8;});
     g.fillStyle=ORG;g.font=`italic 600 ${18*k}px ${F.disp}`;g.fillText('The Editors',44,y+14);
     g.fillStyle=INK;g.font=`700 ${12*k}px ${F.body}`;spaced(g,'',2);g.fillText('INSIDE',44,y+56);spaced(g,'',0);
     const items=[['03','The cover story','Lilac Cloud'],['04','The Wedding Guest','Blush Senator, Cowrie Season'],['06','Soft Statements','Patchwork Sunday'],['07','Drip Gang','Homme Season, Twenty-Three, Stripe Heat'],['10','Everyday Style','Sky Day, Headphones On'],['12','After Dark','Bar Seat Leather, The Reading Room']];
-    let yy=y+80;items.forEach(r=>{g.fillStyle=ORG;g.font=`700 ${13*k}px ${F.body}`;g.fillText(r[0],44,yy);g.fillStyle=INK;g.font=`700 ${13*k}px ${F.body}`;g.fillText(r[1],84,yy);g.font=`400 ${11*k}px ${F.body}`;g.fillStyle='#6a5a50';g.fillText(r[2],84,yy+14);yy+=34;});
+    let yy=y+80;items.forEach(r=>{g.fillStyle=ORG;g.font=`700 ${13*k}px ${F.body}`;g.fillText(r[0],44,yy);g.fillStyle=INK;g.font=`700 ${13*k}px ${F.body}`;g.fillText(r[1],84,yy);g.font=`600 ${11.5*k}px ${F.body}`;g.fillStyle='#3d2f27';g.fillText(r[2],84,yy+14);yy+=34;});
     g.fillStyle='rgba(0,0,0,.45)';g.font=`600 ${11*k}px ${F.body}`;g.fillText('2   LUKKS · ISSUE 01',30*k,H-14*k);
     return {c,hs};
   }
@@ -206,7 +206,7 @@ function drawIssueFace(m,i,RW,RH){
   g.fillStyle=MINT;g.beginPath();g.moveTo(W/2-150,330);g.lineTo(W/2+150,330);g.lineTo(W/2,70);g.closePath();g.fill();
   g.fillStyle=PINK;g.beginPath();g.arc(W/2,H,230,Math.PI,0);g.fill();
   g.textAlign='center';g.fillStyle=INK;g.font=`400 ${64*k}px ${F.cond}`;g.fillText('BE IN THE',W/2,210);g.fillText('NEXT ISSUE',W/2,268);
-  g.font=`500 ${15*k}px ${F.body}`;g.fillStyle='#31233a';
+  g.font=`700 ${15.5*k}px ${F.body}`;g.fillStyle='#1f1530';
   ['Post a lukk with its receipt in the Lukks app,','then choose "Feature in the magazine".','You can send up to two looks.','Approval is not guaranteed.'].forEach((t,j)=>g.fillText(t,W/2,400+j*26));
   g.font=`italic 600 ${20*k}px ${F.disp}`;g.fillStyle=INK;g.fillText('Find your kind of style.',W/2,H-210);
   barcode(g,W/2-70,H-170,140,80);g.font=`600 ${12*k}px ${F.body}`;g.fillStyle=INK;g.fillText('LUKKS',W/2,H-60);
