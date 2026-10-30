@@ -7,7 +7,7 @@ function renderPublicProfile(d,opts){
   const root=h('div',{class:'pv t-'+theme});
   const cover=h('div',{class:'pv-cover',style:p.cover_url?{backgroundImage:`url("${p.cover_url}")`}:null});
   const av=h('div',{class:'pv-av',style:p.avatar_url?{backgroundImage:`url("${p.avatar_url}")`}:null},p.avatar_url?null:(p.display_name||p.username||'L').trim()[0].toUpperCase());
-  root.append(cover,h('div',{class:'pv-head'},av,h('h1',null,p.display_name||'@'+p.username),h('div',{class:'pv-user'},'@'+p.username),h('div',{class:'pv-user'},(p.followers||0)+' lukkers \u00b7 '+(p.following||0)+' lukking')));
+  root.append(cover,h('div',{class:'pv-head'},av,h('h1',null,p.display_name||'@'+p.username),h('div',{class:'pv-user'},'@'+p.username),h('div',{class:'pv-user'},(p.followers||0)+' lukkers \u00b7 '+(p.following||0)+' lukking'),(p.badges&&p.badges.length)?h('div',{class:'pv-badges'},p.badges.map(b=>h('span',{class:'pv-badge'},'\u{1F3C6} Winner \u00b7 '+b.title))):null));
   const sec=(t,node)=>root.append(h('section',{class:'pv-sec'},h('h2',null,t),node));
   const money=(n,cur)=>fmtMoney(n,cur||'NGN');
   if(d.posts&&d.posts.length){
