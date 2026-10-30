@@ -18,6 +18,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 const IC={
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
   bookmark:'<path d="M7 3.5h10v17l-5-4-5 4z"/>',people:'<circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.5 3-5.2 6-5.2s5.400 1.700 6 5.200"/><circle cx="17" cy="9" r="2.600"/><path d="M16.500 14c2.500 0 4.100 1.400 4.500 4"/>',trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.500 20h7"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',sparkle:'<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',dots:'<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',eyeOff:'<path d="M3 3l18 18M10 6.2A9 9 0 0 1 12 6c5 0 8 6 8 6a14 14 0 0 1-3 3.6M6.4 7.6A14 14 0 0 0 4 12s3 6 8 6a8 8 0 0 0 3-.6"/>',
   back:'<path d="M15 5l-7 7 7 7"/>',close:'<path d="M6 6l12 12M18 6L6 18"/>',plus:'<path d="M12 5v14M5 12h14"/>',check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',

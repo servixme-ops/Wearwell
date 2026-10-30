@@ -9,9 +9,11 @@ const Posts={
     draw();
     b.onclick=async e=>{
       e.stopPropagation();if(authed&&!authed())return;if(b._busy)return;b._busy=true;
-      const was=!!x.liked;x.liked=!was;x.like_count=Math.max(0,(x.like_count||0)+(was?-1:1));draw();if(!was){b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),420);Sound&&Sound.tap&&Sound.tap();}
-      const r=was?await sb.from('post_likes').delete().eq('post_id',x.id).eq('user_id',Auth.user.id):await sb.from('post_likes').insert({post_id:x.id,user_id:Auth.user.id});
-      if(r.error&&!(r.error.code==='23505')){x.liked=was;x.like_count=Math.max(0,(x.like_count||0)+(was?1:-1));draw();toast(errMsg(r.error),'err');}
+      const was=!!x.liked;x.liked=!was;x.like_count=Math.max(0,(x.like_count||0)+(was?-1:1));draw();if(!was){b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),420);try{Sound&&Sound.tap&&Sound.tap();}catch(_){}}
+      try{
+        const r=was?await sb.from('post_likes').delete().eq('post_id',x.id).eq('user_id',Auth.user.id):await sb.from('post_likes').insert({post_id:x.id,user_id:Auth.user.id});
+        if(r.error&&!(r.error.code==='23505')){x.liked=was;x.like_count=Math.max(0,(x.like_count||0)+(was?1:-1));draw();toast(errMsg(r.error),'err');}
+      }catch(err){x.liked=was;x.like_count=Math.max(0,(x.like_count||0)+(was?1:-1));draw();toast(errMsg(err),'err');}
       b._busy=false;
     };
     return b;

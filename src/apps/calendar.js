@@ -8,7 +8,12 @@ mount(el,ctx,live){
     loading=true;fail=false;draw();
     try{
       if(!sb)throw new Error('offline');
-      const r=await sb.from('events').select('*').order('starts_at');if(r.error)throw r.error;events=r.data||[];
+      const r=await sb.from('events').select('*').order('starts_at');if(r.error)throw r.error;events=(r.data||[]).filter(x=>x.kind!=='challenge');
+      /* only challenges this person has joined show here (a demo one when signed out) */
+      if(Auth.user){const q=await sb.from('challenge_entries').select('challenge_id,created_at,challenges(id,title,description,ends_at)').eq('user_id',Auth.user.id);
+        (q.data||[]).forEach(en=>{const c=en.challenges;if(!c)return;events.push({id:'ch:'+c.id,title:c.title,description:c.description||'Voting ends today. The most voted entry wins a badge.',kind:'challenge',starts_at:c.ends_at,ends_at:null,location:'Challenge ends · open it to vote',registration_open:false,_challenge:c.id});});}
+      else{const d=new Date(Date.now()+3*864e5);d.setHours(18,0,0,0);events.push({id:'demo:ch',title:'Colour Combo Challenge (demo)',description:'This is how a challenge you join shows up here, on the day voting ends. Sign in and join one to see yours.',kind:'challenge',starts_at:d.toISOString(),ends_at:null,location:'Demo',registration_open:false,_demo:true});}
+      events.sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
       mine=new Set();if(Auth.user){const q=await sb.from('event_registrations').select('event_id,reminder').eq('user_id',Auth.user.id);(q.data||[]).forEach(x=>mine.add(x.event_id));}
     }catch(e){fail=true;}
     loading=false;draw();
@@ -41,6 +46,7 @@ mount(el,ctx,live){
         e.location&&h('p',null,'📍 '+e.location),e.description&&h('p',null,e.description),
         e.capacity&&h('p',{class:'muted small-t'},'Limited to '+e.capacity+' guests.'));
       const acts=h('div',{class:'stack'});b.append(acts);
+      if(e.kind==='challenge'){acts.append(e._demo?h('button',{class:'btn primary block',onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to join challenges'):h('button',{class:'btn primary block',onclick:()=>{close();ctx.open('lukks',{challenge:e._challenge});}},'Open challenge'));return;}
       const ics=h('button',{class:'btn block',onclick:()=>{download(new Blob([toIcs(e)],{type:'text/calendar'}),'lukks-event.ics');toast('Added a calendar file','ok');}},icon('cal'),'Add to my phone calendar');
       if(!e.registration_open||new Date(e.starts_at)<new Date()){acts.append(h('p',{class:'muted small-t'},new Date(e.starts_at)<new Date()?'This event has passed.':'Registration is closed for this event.'),ics);return;}
       if(!Auth.user){acts.append(h('button',{class:'btn primary block',onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to register'),ics);return;}

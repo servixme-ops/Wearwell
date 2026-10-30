@@ -3,7 +3,7 @@ defApp({id:'lukks',name:'Lukks',bg:'#ffffff',glyph:()=>'<img src="icons/logo.png
 mount(el,ctx,live){
   const CATS=[].concat(...Object.values(CFG.categories));
   const ph=Posts.ph;
-  let tab=Local.get('lxTab','home'),cat=Local.get('lxCat',''),feed=null,searchQ='';
+  let tab=Local.get('lxTab','home'),cat=Local.get('lxCat',''),feed=null,searchQ='',seg=Local.get('lxSeg','challenges');
   if(tab!=='home'&&tab!=='community'&&tab!=='search')tab='home';
   let saved=null;
   const stack=[];
@@ -46,7 +46,7 @@ mount(el,ctx,live){
   function setTab(t){tab=t;Local.set('lxTab',t);stack.splice(0).forEach(v=>v.remove());draw();}
   function drawNav(){
     const t=(id,ic,label)=>h('button',{class:tab===id?'on':'','aria-label':label,onclick:()=>setTab(id)},icon(ic),h('span',null,label));
-    pill.replaceChildren(h('div',{class:'lx-pill'},t('home','home','Home'),t('community','trophy','Challenges')),
+    pill.replaceChildren(h('div',{class:'lx-pill'},t('home','home','Home'),t('community','people','Community')),
       h('button',{class:'lx-search-btn'+(tab==='search'?' on':''),'aria-label':'Search',onclick:()=>setTab('search')},icon('search')));
   }
   async function draw(){
@@ -117,6 +117,7 @@ mount(el,ctx,live){
       if(s.error||!s.data){wrap.replaceChildren(bar('Profile'),empty('Profile not found','This person could not be found.'));return false;}
       sum=s.data;posts=Array.isArray(p.data)?p.data:[];
       if(sum.is_me){await loadSaved();}
+      try{const f=await sb.rpc('follow_list',{p_username:username,p_kind:'followers'});sum._fav=(Array.isArray(f.data)?f.data:[]).slice(0,3);}catch(e){sum._fav=[];}
       return true;
     };
     const lists=kind=>sheet(kind==='followers'?'Lukkers':'Lukking',async(b)=>{b.append(spinner());const r=await sb.rpc('follow_list',{p_username:username,p_kind:kind});const ls=r.data||[];b.replaceChildren(ls.length?h('div',{class:'group',style:{margin:'8px 14px'}},ls.map(u=>h('button',{class:'item',onclick:()=>{document.querySelector('.sheet-ov')&&document.querySelector('.sheet-ov').remove();openProfile(u.username);}},avatar(u),h('span',{class:'grow',style:{marginLeft:'10px'}},h('b',null,u.display_name||'@'+u.username),h('span',null,'@'+u.username))))):empty(kind==='followers'?'No lukkers yet':'Not lukking anyone yet'));});
@@ -127,7 +128,7 @@ mount(el,ctx,live){
       const info=h('div',{class:'lx-pinfo'},h('button',{class:'lx-bigav','aria-label':me?'Change photo':'Profile photo',onclick:me?e=>guard(e.currentTarget,async()=>{if(await uploadImg('avatar_url',600)){toast('Photo updated','ok');await Auth.refresh();await load();render();}}):null},avatar(sum)),
         h('div',{class:'lx-pname'},h('b',null,sum.display_name||'@'+sum.username),h('span',null,'@'+sum.username)),
         (sum.badges&&sum.badges.length)?h('div',{class:'lx-badges'},sum.badges.map(bd=>h('span',{class:'lx-badge',title:bd.votes+' votes'},icon('trophy'),'Winner · '+bd.title))):null,
-        h('div',{class:'lx-counts'},h('button',{onclick:()=>lists('followers')},h('b',null,String(sum.followers)),' lukkers'),h('span',null,'·'),h('button',{onclick:()=>lists('following')},h('b',null,String(sum.following)),' lukking')),
+        h('div',{class:'lx-counts'},h('button',{class:'lx-fbtn',onclick:()=>lists('followers')},(sum._fav&&sum._fav.length)?h('span',{class:'lx-stack'},sum._fav.map(u=>avatar(u))):null,h('b',null,String(sum.followers)),' lukkers'),h('span',null,'·'),h('button',{onclick:()=>lists('following')},h('b',null,String(sum.following)),' lukking')),
         h('div',{class:'lx-pbtns'},followBtn,me?h('button',{class:'btn small',onclick:shareSheet},'Share'):null));
       const tabs=h('div',{class:'lx-ptabs'},[['created','Lukks']].concat(me?[['saved','Saved']]:[]).map(t=>h('button',{class:ptab===t[0]?'on':'',onclick:()=>{ptab=t[0];folder=null;render();}},t[1])));
       const body=h('div',{class:'lx-pbody'});
@@ -218,13 +219,119 @@ mount(el,ctx,live){
     h('span',{class:'lx-chpill'+(c.ended?' end':'')},leftTxt(c)),
     h('span',{class:'lx-chtxt'},h('b',null,c.title),h('em',null,'by @'+c.owner+' · '+c.entries+(c.entries==1?' entry':' entries')+' · '+c.votes+(c.votes==1?' vote':' votes'))));
   async function drawCommunity(){
-    const add=h('button',{class:'lx-circ plus','aria-label':'Create a challenge',onclick:()=>createSheet()},icon('plus'));
+    const sg=h('div',{class:'seg lx-seg'},[['challenges','Challenges'],['groups','Groups']].map(t=>h('button',{class:seg===t[0]?'on':'',onclick:()=>{seg=t[0];Local.set('lxSeg',seg);drawCommunity();}},t[1])));
+    const add=h('button',{class:'lx-circ plus','aria-label':seg==='groups'?'Create a group':'Create a challenge',onclick:()=>seg==='groups'?createGroup():createSheet()},icon('plus'));
     const body=h('div',{class:'lx-scroll'},spinner());
-    main.replaceChildren(titleBar('Challenges',add),body);
+    main.replaceChildren(titleBar('Community',add),h('div',{class:'pad',style:{paddingBottom:0}},sg),body);
+    if(seg==='groups')return drawGroups(body);
     const r=await sb.rpc('list_challenges',{});if(r.error){body.replaceChildren(empty('Could not load',errMsg(r.error)));return;}
     const list=r.data||[];
     const spot=h('button',{class:'lx-spot',onclick:openSpotlight},h('span',{class:'lx-spoticon'},icon('trophy')),h('span',{class:'grow'},h('b',null,'Weekly Spotlight'),h('em',null,'Top looks and challenges this week')),h('span',{class:'chev'},icon('chevR')));
     body.replaceChildren(spot,list.length?h('div',{class:'lx-ch'},list.map(chCard)):empty('No challenges yet','Start one, everyone posts a photo, and the most voted wins a badge.',h('button',{class:'btn primary',onclick:()=>createSheet()},'Create a challenge')));
+  }
+  /* ---------- Groups ---------- */
+  let gTab='all',gQ='';
+  async function drawGroups(body){
+    const r=await sb.rpc('list_groups',{});if(r.error){body.replaceChildren(empty('Could not load',errMsg(r.error)));return;}
+    const all=r.data||[];
+    const paint=()=>{
+      const tabs=h('div',{class:'lx-gtabs'},[['mine','My groups'],['all','All groups']].map(t=>h('button',{class:gTab===t[0]?'on':'',onclick:()=>{gTab=t[0];paint();}},t[1])));
+      const q=h('input',{type:'search',class:'lx-gsearch',placeholder:'Search groups',value:gQ,oninput:e=>{gQ=e.target.value;grid();}});
+      const host=h('div',{class:'lx-gwrap'});
+      const grid=()=>{
+        let list=all.filter(g=>(gTab==='all'||g.joined||g.mine)&&(!gQ||(g.name+' '+g.style).toLowerCase().includes(gQ.toLowerCase())));
+        if(!list.length){host.replaceChildren(empty(gTab==='mine'?'You have not joined any groups':'No groups yet',gTab==='mine'?'Join one from All groups, or start your own.':'Start a group for your style crew.',h('button',{class:'btn primary',onclick:()=>createGroup()},'Create a group')));return;}
+        const by={};list.forEach(g=>(by[g.style]=by[g.style]||[]).push(g));
+        host.replaceChildren(...Object.keys(by).map(st=>h('div',{class:'lx-gsec'},h('h3',{class:'lx-h3'},st),h('div',{class:'lx-ggrid'},by[st].map(g=>h('button',{class:'lx-gtile',onclick:()=>openGroup(g.id)},
+          g.cover_path?h('img',{src:ph(g.cover_path),alt:'',loading:'lazy'}):h('span',{class:'lx-gimg ph'},logoEl(36)),h('b',null,g.name),h('em',null,icon('people'),Number(g.members).toLocaleString())))))));
+      };
+      body.replaceChildren(tabs,h('div',{class:'lx-gq'},q),host);grid();
+    };
+    paint();
+  }
+  function createGroup(){
+    if(!authed())return;let cover=null,style='';
+    sheet('Create a group',(b,close)=>{
+      const nm=h('input',{type:'text',maxlength:'60',placeholder:'Group name'}),ds=h('textarea',{maxlength:'500',placeholder:'Who is it for? What do you post?'});
+      const st=h('input',{type:'text',maxlength:'40',placeholder:'Type your own style',list:'lx-gstyles'});
+      const dl=h('datalist',{id:'lx-gstyles'},CATS.map(c=>h('option',{value:c})));
+      const chips=h('div',{class:'lx-chips lx-sugg'},CATS.slice(0,14).map(c=>h('button',{type:'button',onclick:e=>{st.value=c;chips.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===e.currentTarget));}},c)));
+      const pv=h('div',{class:'ad-prev'});
+      b.append(h('div',{class:'stack pad'},field('Name',nm),h('div',{class:'f-label'},'Style (pick a suggestion or add your own)'),chips,st,dl,field('About',ds),h('div',{class:'f-label'},'Cover photo'),pv,
+        h('button',{class:'btn block',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;cover=await prepareImage(f,{max:1200});pv.replaceChildren(h('img',{src:URL.createObjectURL(cover.blob),alt:''}));}catch(e){toast(errMsg(e),'err');}}},icon('image'),'Choose cover'),
+        h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
+          const n=nm.value.trim();if(n.length<2)throw new Error('Add a name.');
+          const sty=Posts.cleanStyle?Posts.cleanStyle(st.value):st.value.trim();if(!sty)throw new Error('Pick or type a style.');
+          let path=null;if(cover)path=await uploadFile('looks',cover.blob,cover.ext,cover.type);
+          const r=await sb.from('groups').insert({owner_id:Auth.user.id,name:n,description:ds.value.trim()||null,cover_path:path,style:sty.slice(0,80)}).select().single();if(r.error){if(path)removeFile('looks',path);throw r.error;}
+          await sb.from('group_members').insert({group_id:r.data.id,user_id:Auth.user.id});
+          toast('Group created','ok');close();seg='groups';Local.set('lxSeg','groups');tab='community';await draw();openGroup(r.data.id);
+        })},'Create group')));
+    });
+  }
+  async function openGroup(id){
+    const v=pushView(h('div',{class:'lx-prof'},bar('Group'),spinner()));const wrap=v.firstChild;let gt='wall';
+    const load=async()=>{
+      const r=await sb.rpc('group_detail',{p_id:id});if(r.error||!r.data){wrap.replaceChildren(bar('Group'),empty('Not found','This group is no longer available.'));return;}
+      const g=r.data;v._reload=load;
+      const jb=h('button',{class:'btn '+(g.joined?'':'primary')+' block',onclick:e=>{if(!authed())return;guard(e.currentTarget,async()=>{const x=g.joined?await sb.from('group_members').delete().eq('group_id',id).eq('user_id',Auth.user.id):await sb.from('group_members').insert({group_id:id,user_id:Auth.user.id});if(x.error)throw x.error;await load();});}},g.joined?'Leave group':'Join group');
+      const members=g.members.length?h('div',{class:'lx-members'},g.members.map(m=>h('button',{onclick:()=>openProfile(m.username)},avatar(m),h('em',null,m.display_name||m.username)))):null;
+      const tx=h('textarea',{maxlength:'800',placeholder:'Write something for the group'});
+      const composer=g.joined?h('div',{class:'lx-composer'},tx,h('button',{class:'btn primary',onclick:e=>guard(e.currentTarget,async()=>{const t=tx.value.trim();if(!t)throw new Error('Write something first.');const x=await sb.from('group_posts').insert({group_id:id,user_id:Auth.user.id,body:t});if(x.error)throw x.error;await load();})},'Post')):h('p',{class:'muted small-t',style:{textAlign:'center'}},'Join the group to post and comment.');
+      const wall=g.wall.length?g.wall.map(p=>wallPost(g,p,load)):[empty('No posts yet',g.joined?'Be the first to post.':'Join to start the conversation.')];
+      const paintBody=async()=>{
+        const host=h('div');
+        if(gt==='wall')host.append(composer,...wall);
+        else{
+          const share=g.joined?h('button',{class:'btn primary block',onclick:()=>shareLukk(g,load)},icon('plus'),'Share a lukk'):null;
+          host.append(share);
+          if(g.lukk_ids.length){host.append(spinner());const q=await sb.rpc('discover_posts',{p_limit:100,p_ids:g.lukk_ids});const ls=Array.isArray(q.data)?q.data:[];host.lastChild.replaceWith(ls.length?masonry(ls,openPost):empty('No lukks yet','Members can share lukks here.'));}
+          else host.append(empty('No lukks yet',g.joined?'Share one of yours.':'Join to share lukks.'));
+        }
+        return host;
+      };
+      const tabs=h('div',{class:'lx-gtabs'},[['wall','Wall'],['lukks','Lukks']].map(t=>h('button',{class:gt===t[0]?'on':'',onclick:async()=>{gt=t[0];tabs.querySelectorAll('button').forEach((x,i)=>x.classList.toggle('on',i===(gt==='wall'?0:1)));cont.replaceChildren(await paintBody());}},t[1])));
+      const cont=h('div',{class:'lx-gbody'});
+      wrap.replaceChildren(bar(g.name,g.mine?h('button',{class:'lx-circ','aria-label':'Delete group',onclick:async()=>{if(!await confirmBox('Delete this group?','Posts and lukks shared here will be removed.','Delete',true))return;const x=await sb.from('groups').delete().eq('id',id);if(x.error){toast(errMsg(x.error),'err');return;}popView();drawCommunity();}},icon('trash')):null),
+        h('div',{class:'lx-scroll'},h('div',{class:'lx-gcover'},g.cover_path?h('img',{src:ph(g.cover_path),alt:''}):h('span',{class:'lx-gimg ph big'},logoEl(54))),
+          h('div',{class:'lx-ginfo'},h('h2',null,g.name),h('p',{class:'lx-gby'},'By ',h('button',{onclick:()=>g.owner&&openProfile(g.owner)},'@'+(g.owner||'lukks'))),
+            h('div',{class:'lx-gstats'},h('span',null,icon('people'),Number(g.member_count).toLocaleString()),h('span',null,'Created '+fmtDate(g.created_at,{month:'short',day:'numeric',year:'numeric'})),g.style?h('span',{class:'lx-gstyle'},g.style):null),
+            jb,g.description?h('p',{class:'lx-gabout'},g.description):null),
+          h('div',{class:'lx-gmem'},h('h3',{class:'lx-h3'},'Members'),members),tabs,cont));
+      cont.replaceChildren(await paintBody());
+    };
+    load();
+  }
+  function wallPost(g,p,reload){
+    const lk=h('button',{class:'lx-like'+(p.liked?' on':''),'aria-label':'Like'});
+    const dr=()=>{lk.classList.toggle('on',!!p.liked);lk.innerHTML=Posts.eyeSvg(p.liked)+`<b>${p.likes||0}</b>`;};dr();
+    lk.onclick=async()=>{if(!authed())return;if(lk._b)return;lk._b=true;const was=!!p.liked;p.liked=!was;p.likes=Math.max(0,(p.likes||0)+(was?-1:1));dr();
+      try{const r=was?await sb.from('group_post_likes').delete().eq('post_id',p.id).eq('user_id',Auth.user.id):await sb.from('group_post_likes').insert({post_id:p.id,user_id:Auth.user.id});if(r.error&&r.error.code!=='23505')throw r.error;}
+      catch(e){p.liked=was;p.likes=Math.max(0,(p.likes||0)+(was?1:-1));dr();toast(errMsg(e),'err');}lk._b=false;};
+    const cm=h('button',{class:'lx-like','aria-label':'Comments',onclick:()=>comments(p,g,reload)},icon('chat'),h('b',null,String(p.comments||0)));
+    return h('div',{class:'lx-post'},h('div',{class:'lx-ph'},h('button',{class:'lx-ph',onclick:()=>openProfile(p.username)},avatar(p),h('b',null,p.display_name||'@'+p.username)),h('span',{class:'muted small-t'},timeAgo(p.created_at)),h('span',{class:'grow'}),
+      (p.mine||g.mine)?h('button',{class:'icon-btn','aria-label':'Delete post',onclick:async()=>{if(!await confirmBox('Delete this post?',null,'Delete',true))return;const x=await sb.from('group_posts').delete().eq('id',p.id);if(x.error)toast(errMsg(x.error),'err');else reload();}},icon('trash')):null),
+      h('p',null,p.body),h('div',{class:'lx-pacts'},lk,cm));
+  }
+  function comments(p,g,reload){
+    sheet('Comments',async(b)=>{
+      const host=h('div');b.append(host);
+      const draw2=async()=>{
+        host.replaceChildren(spinner());const r=await sb.rpc('group_comments',{p_post:p.id});const ls=Array.isArray(r.data)?r.data:[];
+        const inp=h('input',{type:'text',maxlength:'400',placeholder:g.joined?'Add a comment':'Join the group to comment',disabled:!g.joined});
+        const send=h('button',{class:'btn primary small',disabled:!g.joined,onclick:e=>guard(e.currentTarget,async()=>{const t=inp.value.trim();if(!t)return;const x=await sb.from('group_post_comments').insert({post_id:p.id,user_id:Auth.user.id,body:t});if(x.error)throw x.error;p.comments=(p.comments||0)+1;await draw2();})},'Send');
+        host.replaceChildren(ls.length?h('div',{class:'lx-cmts'},ls.map(c=>h('div',{class:'lx-cm'},avatar(c),h('div',{class:'grow'},h('b',null,c.display_name||'@'+c.username),h('p',null,c.body)),c.mine?h('button',{class:'icon-btn','aria-label':'Delete comment',onclick:async()=>{const x=await sb.from('group_post_comments').delete().eq('id',c.id);if(x.error)toast(errMsg(x.error),'err');else{p.comments=Math.max(0,(p.comments||1)-1);draw2();}}},icon('trash')):null))):h('p',{class:'muted',style:{textAlign:'center'}},'No comments yet.'),h('div',{class:'row-flex',style:{marginTop:'10px'}},inp,send));
+      };
+      draw2();
+    },{onClose:reload});
+  }
+  async function shareLukk(g,reload){
+    sheet('Share a lukk',async(b,close)=>{
+      b.append(spinner());
+      const r=await sb.rpc('discover_posts',{p_limit:100,p_user:Auth.profile&&Auth.profile.username});const mine=(Array.isArray(r.data)?r.data:[]).filter(x=>!g.lukk_ids.includes(x.id));
+      const newBtn=h('button',{class:'btn block',onclick:()=>{close();Posts.compose(null,()=>{reload();},customStyles());}},icon('plus'),'Create a new lukk');
+      b.replaceChildren(h('div',{class:'stack pad'},newBtn,mine.length?h('div',{class:'lx-pick'},mine.map(x=>h('button',{class:'lx-pickc',onclick:e=>guard(e.currentTarget,async()=>{const q=await sb.from('group_lukks').insert({group_id:g.id,post_id:x.id,user_id:Auth.user.id});if(q.error)throw q.error;toast('Shared','ok');close();reload();})},h('img',{src:ph(x.photos[0]),alt:x.title}),h('span',null,x.title)))):h('p',{class:'muted',style:{textAlign:'center'}},'You have no more lukks to share. Create one above.')));
+    });
   }
   async function openSpotlight(){
     const v=pushView(h('div',{class:'lx-prof lx-spotpage'},bar('Weekly Spotlight'),spinner()));const wrap=v.firstChild;
@@ -293,6 +400,7 @@ mount(el,ctx,live){
   live(()=>{saved=null;feed=null;if(!stack.length)draw();});
   if(it.me&&Auth.user&&Auth.profile)setTimeout(()=>openProfile(Auth.profile.username),50);
   else if(it.me)authed();
+  else if(it.challenge)setTimeout(()=>openChallenge(it.challenge),80);
   else if(it.post)sb.rpc('discover_posts',{p_ids:[it.post]}).then(r=>{const x=(r.data||[])[0];if(x)openPost(x);});
   draw();
 }});
