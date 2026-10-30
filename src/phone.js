@@ -316,13 +316,14 @@ const Phone={
     const done=()=>{this.layer.hidden=true;this.state='closed';};
     clearTimeout(this._ct);this._ct=setTimeout(done,380);this.state='closing';
     if(typeof phoneClosed==='function')phoneClosed();
-    if(!fromPop&&this._hist){this._hist=false;try{history.back();}catch(e){}}
+    const extra=this._appN||0;this._appN=0;
+    if(!fromPop&&(this._hist||extra)){const k=extra+(this._hist?1:0);try{history.go(-k);}catch(e){}}
     this._hist=false;
   },
   onPop(e){
     if(this.state==='closed'||this.state==='closing')return;
     if(this._skipPop>0){this._skipPop--;return;}
-    if(this.app){if(this.ctx&&typeof this.ctx.onBack==='function'&&this.ctx.onBack()){try{history.pushState({lukks:'app'},'');this._appHist=true;}catch(_){}return;}this.closeApp(true);return;}
+    if(this.app){if(this.ctx&&typeof this.ctx.onBack==='function'&&this.ctx.onBack()){try{history.pushState({lukks:'app'},'');}catch(_){}return;}this.closeApp(true);return;}
     if(this.state==='lock'||this.state==='home'){this.exit(true);return;}
     this.exit(true);
   },
@@ -443,6 +444,7 @@ const Phone={
   /* ---- app host ---- */
   openApp(id,intent,fromEl,opener){
     const a=Apps.get(id);if(!a)return;
+    if(a.redirect){const r=a.redirect;if(r.auth&&!Auth.user)return this.openApp('account',{mode:'signin'},fromEl,opener);return this.openApp(r.id,Object.assign({},r.intent),fromEl,opener);}
     if(this.state==='lock'){this.intentAfterUnlock={open:id,intent};this.unlock();return;}
     const noPush=this._noPush;this._noPush=false;
     if(this.app){if(!opener&&this.app.id&&this.app.id!==id)opener=null;this.closeAppNow();}
@@ -455,7 +457,7 @@ const Phone={
     this.ctx=ctx;
     // The tap that opened the app must not also press whatever is under the finger in the new screen.
     if(!this._instant){el.style.pointerEvents='none';setTimeout(()=>{el.style.pointerEvents='';},420);}
-    if(!noPush){try{history.pushState({lukks:'app',id},'');}catch(e){}}this._appHist=true;
+    if(!noPush){try{history.pushState({lukks:'app',id},'');this._appN=(this._appN||0)+1;}catch(e){}}
     // zoom from icon
     const src=fromEl||this.homeEl.querySelector(`.app-icon[data-id="${id}"] .glyph`)||this.dockEl.querySelector(`.app-icon[data-id="${id}"] .glyph`);
     const sr=this.screen.getBoundingClientRect();
@@ -477,14 +479,14 @@ const Phone={
     a.unmount&&a.unmount();
     this.app=null;this.appEl=null;this.state='home';this.screen.dataset.state='home';this.homeEl.classList.remove('behind');Local.set('lastApp',null);
     const back=this.backTo;this.backTo=null;
-    if(!fromPop&&this._appHist){try{history.back();this._skipPop=(this._skipPop||0)+1;}catch(e){}}
-    this._appHist=false;
+    const n=this._appN||0;
+    if(back&&Apps.get(back)){ if(!fromPop&&n>0){try{history.back();this._skipPop=(this._skipPop||0)+1;}catch(e){}} this._appN=Math.max(0,n-1); }
+    else{ const k=fromPop?n-1:n; if(k>0){try{history.go(-k);this._skipPop=(this._skipPop||0)+1;}catch(e){}} this._appN=0; }
     this.updateBadges();
     if(back&&Apps.get(back)){this._noPush=true;this.openApp(back,undefined,null,null);}
   },
   closeAppNow(){
     if(this.appEl)this.appEl.remove();if(this.app&&this.app.unmount)this.app.unmount();
     this.app=null;this.appEl=null;this.homeEl&&this.homeEl.classList.remove('behind');
-    if(this._appHist){this._appHist=false;}
   }
 };

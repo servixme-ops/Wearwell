@@ -3,9 +3,9 @@ defApp({id:'account',name:'Account',bg:'linear-gradient(#a8a8ae,#6a6a70)',glyph:
 mount(el,ctx,live){
   const wanted=ctx.intent&&ctx.intent.mode;let mode='signin';ctx.intent=null;
   const root=h('div',{class:'msg-root'});el.append(root);
-  let onMain=true;
+  let onMain=true,direct=!!wanted&&!Auth.user;
   const bar=(title,back,right)=>{onMain=false;return appBar({title,onBack:back,backLabel:'Back',right});};
-  ctx.onBack=()=>{if(onMain)return false;main();return true;};
+  ctx.onBack=()=>{if(onMain||direct)return false;main();return true;};
   function main(){
     onMain=true;
     const body=appBody();root.replaceChildren(appBar({title:'Account',onBack:ctx.close,backLabel:'Back'}),body);
@@ -29,7 +29,7 @@ mount(el,ctx,live){
   }
   /* ---- auth forms ---- */
   function auth(m){
-    mode=m;const body=appBody();root.replaceChildren(bar(m==='signup'?'Create account':m==='forgot'?'Reset password':'Sign in',main),body);
+    mode=m;const body=appBody();root.replaceChildren(bar(m==='signup'?'Create account':m==='forgot'?'Reset password':'Sign in',()=>{if(direct)ctx.close();else main();}),body);
     const err=h('p',{class:'err-t',role:'alert'});
     const email=h('input',{type:'email',autocomplete:'email',inputmode:'email',required:true,placeholder:'you@example.com'});
     const pw=h('input',{type:'password',autocomplete:m==='signup'?'new-password':'current-password',minlength:'8',placeholder:m==='signup'?'At least 8 characters':'Password'});
