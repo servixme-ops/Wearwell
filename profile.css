@@ -32,3 +32,4 @@
 .pv-strip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:2px}.pv-strip img{flex:none;width:100%;aspect-ratio:3/4;object-fit:cover;scroll-snap-align:center}.pv-det{margin:4px 0 0;font-size:13px;line-height:1.35}
 
 .pv-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}.pv-badge{background:linear-gradient(135deg,#ff9a3d,#ff2d8a);color:#fff;font-weight:700;font-size:12px;padding:5px 10px;border-radius:99px}
+.pv-look img,.pv-grid img,.pv-strip img{object-position:50% 0}

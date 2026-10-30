@@ -13,11 +13,12 @@ mount(el,ctx,live){
   const main=h('div',{class:'lx-main'});
   const pill=h('nav',{class:'lx-nav'});
   root.append(main,pill);
-  ctx.onBack=()=>{if(stack.length){popView();return true;}return false;};
+  let direct=!!it.me;
+  ctx.onBack=()=>{if(stack.length){if(direct&&stack.length===1)return false;popView();return true;}return false;};
   const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
   const authed=()=>{if(Auth.user)return true;toast('Sign in to do that','err');ctx.open('account',{mode:'signin'});return false;};
   function pushView(node){const v=h('div',{class:'lx-view'},node);root.append(v);stack.push(v);return v;}
-  function popView(){const v=stack.pop();if(v)v.remove();}
+  function popView(){if(direct&&stack.length<=1){ctx.close();return;}const v=stack.pop();if(v)v.remove();}
   const backBtn=cls=>h('button',{class:'lx-circ '+(cls||''),'aria-label':'Back',onclick:popView},icon('back'));
   const bar=(title,right)=>h('div',{class:'lx-bar'},backBtn(),h('b',null,title),h('span',{class:'lx-r'},right));
   const avatar=p=>avatarEl(p,'lx-av');
@@ -43,7 +44,7 @@ mount(el,ctx,live){
   const isSaved=id=>saved&&saved.saves.some(s=>s.look_id===id);
 
   /* ---------- shell ---------- */
-  function setTab(t){tab=t;Local.set('lxTab',t);stack.splice(0).forEach(v=>v.remove());draw();}
+  function setTab(t){direct=false;tab=t;Local.set('lxTab',t);stack.splice(0).forEach(v=>v.remove());draw();}
   function drawNav(){
     const t=(id,ic,label)=>h('button',{class:tab===id?'on':'','aria-label':label,onclick:()=>setTab(id)},icon(ic),h('span',null,label));
     pill.replaceChildren(h('div',{class:'lx-pill'},t('home','home','Home'),t('community','people','Community')),
@@ -120,7 +121,7 @@ mount(el,ctx,live){
       try{const f=await sb.rpc('follow_list',{p_username:username,p_kind:'followers'});sum._fav=(Array.isArray(f.data)?f.data:[]).slice(0,3);}catch(e){sum._fav=[];}
       return true;
     };
-    const lists=kind=>sheet(kind==='followers'?'Lukkers':'Lukking',async(b)=>{b.append(spinner());const r=await sb.rpc('follow_list',{p_username:username,p_kind:kind});const ls=r.data||[];b.replaceChildren(ls.length?h('div',{class:'group',style:{margin:'8px 14px'}},ls.map(u=>h('button',{class:'item',onclick:()=>{document.querySelector('.sheet-ov')&&document.querySelector('.sheet-ov').remove();openProfile(u.username);}},avatar(u),h('span',{class:'grow',style:{marginLeft:'10px'}},h('b',null,u.display_name||'@'+u.username),h('span',null,'@'+u.username))))):empty(kind==='followers'?'No lukkers yet':'Not lukking anyone yet'));});
+    const lists=kind=>sheet(kind==='followers'?'Lukkers':'Lukking',async(b)=>{b.append(spinner());const r=await sb.rpc('follow_list',{p_username:username,p_kind:kind});const ls=r.data||[];b.replaceChildren(ls.length?h('div',{class:'group lx-ulist',style:{margin:'8px 14px'}},ls.map(u=>h('button',{class:'item',onclick:()=>{document.querySelector('.sheet-ov')&&document.querySelector('.sheet-ov').remove();openProfile(u.username);}},avatar(u),h('span',{class:'grow',style:{marginLeft:'10px'}},h('b',null,u.display_name||'@'+u.username),h('span',null,'@'+u.username))))):empty(kind==='followers'?'No lukkers yet':'Not lukking anyone yet'));});
     const render=()=>{
       const me=sum.is_me;
       const followBtn=me?h('button',{class:'btn small',onclick:menuSelf},'Edit profile'):h('button',{class:'btn small '+(sum.is_following?'':'primary'),onclick:e=>{if(!authed())return;guard(e.currentTarget,async()=>{const r=sum.is_following?await sb.from('follows').delete().eq('follower_id',Auth.user.id).eq('followee_id',sum.id):await sb.from('follows').insert({follower_id:Auth.user.id,followee_id:sum.id});if(r.error)throw r.error;sum.is_following=!sum.is_following;sum.followers=Number(sum.followers)+(sum.is_following?1:-1);render();});}},sum.is_following?'Lukking':'Lukk');
@@ -128,7 +129,7 @@ mount(el,ctx,live){
       const info=h('div',{class:'lx-pinfo'},h('button',{class:'lx-bigav','aria-label':me?'Change photo':'Profile photo',onclick:me?e=>guard(e.currentTarget,async()=>{if(await uploadImg('avatar_url',600)){toast('Photo updated','ok');await Auth.refresh();await load();render();}}):null},avatar(sum)),
         h('div',{class:'lx-pname'},h('b',null,sum.display_name||'@'+sum.username),h('span',null,'@'+sum.username)),
         (sum.badges&&sum.badges.length)?h('div',{class:'lx-badges'},sum.badges.map(bd=>h('span',{class:'lx-badge',title:bd.votes+' votes'},icon('trophy'),'Winner · '+bd.title))):null,
-        h('div',{class:'lx-counts'},h('button',{class:'lx-fbtn',onclick:()=>lists('followers')},(sum._fav&&sum._fav.length)?h('span',{class:'lx-stack'},sum._fav.map(u=>avatar(u))):null,h('b',null,String(sum.followers)),' lukkers'),h('span',null,'·'),h('button',{onclick:()=>lists('following')},h('b',null,String(sum.following)),' lukking')),
+        h('div',{class:'lx-counts'},h('button',{class:'lx-fbtn',onclick:()=>lists('followers')},h('b',null,String(sum.followers)),' lukkers'),h('span',null,'·'),h('button',{onclick:()=>lists('following')},h('b',null,String(sum.following)),' lukking')),
         h('div',{class:'lx-pbtns'},followBtn,me?h('button',{class:'btn small',onclick:shareSheet},'Share'):null));
       const tabs=h('div',{class:'lx-ptabs'},[['created','Lukks']].concat(me?[['saved','Saved']]:[]).map(t=>h('button',{class:ptab===t[0]?'on':'',onclick:()=>{ptab=t[0];folder=null;render();}},t[1])));
       const body=h('div',{class:'lx-pbody'});
