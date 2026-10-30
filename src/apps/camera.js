@@ -17,29 +17,54 @@ const Contrib={
     a=a.filter(x=>x.slug!=='community');
     return this._albums=a;
   },
-  /* shared dialog: save a photo into the gallery. Signed out: Randoms only, kept on this device. */
-  sendSheet(ctx,blobOrFile,opts){
+  async newFolder(title){
+    const slug='u-'+Auth.user.id.slice(0,8)+'-'+(String(title).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,24)||'folder')+'-'+Math.random().toString(36).slice(2,6);
+    const r=await sb.from('gallery_albums').insert({slug,title:title.slice(0,40),owner_id:Auth.user.id,sort:100}).select().single();
+    if(r.error)throw r.error;this._albums=null;return r.data;
+  },
+  /* shared dialog: save one or more photos into the gallery. Signed out: Randoms only, kept on this device. */
+  sendSheet(ctx,input,opts){
     opts=opts||{};
-    sheet('Save photo',async(b,close)=>{
-      let prepared;
-      try{prepared=await prepareImage(blobOrFile instanceof File?blobOrFile:new File([blobOrFile],'photo.jpg',{type:blobOrFile.type||'image/jpeg'}),{max:1800});}catch(e){b.append(h('p',{class:'err-t'},errMsg(e)));return;}
-      const albums=await this.albums();
-      const url=URL.createObjectURL(prepared.blob);
-      const signed=!!Auth.user;
-      const want=signed?(opts.album||'randoms'):'randoms';
-      const sel=h('select',{disabled:!signed},albums.map(a=>h('option',{value:a.slug,selected:a.slug===want},a.title)));
+    const files=(Array.isArray(input)?input:[input]).filter(Boolean).map(x=>x instanceof File?x:new File([x],'photo.jpg',{type:x.type||'image/jpeg'}));
+    sheet(files.length>1?'Save photos':'Save photo',async(b,close)=>{
+      const albums=await this.albums();const signed=!!Auth.user;
+      const items=files.map(f=>({file:f,url:URL.createObjectURL(f),pending:true}));
+      const strip=h('div',{class:'lx-sendstrip'});
+      const drawStrip=()=>strip.replaceChildren(...items.map(it=>h('div',{class:'lx-sthumb'},h('img',{src:it.url,alt:''}),it.pending?h('span',{class:'xspin'},spinner()):null,
+        h('button',{class:'rm','aria-label':'Remove photo',onclick:()=>{const k=items.indexOf(it);if(k>=0)items.splice(k,1);drawStrip();}},icon('close')))));
+      drawStrip();
+      (async()=>{for(const it of items.slice()){try{const pr=await prepareImage(it.file,{max:1800});if(!items.includes(it))continue;Object.assign(it,{prepared:pr,pending:false});}catch(e){const k=items.indexOf(it);if(k>=0)items.splice(k,1);toast(errMsg(e),'err');}drawStrip();}})();
+      let want=signed?(opts.album||'randoms'):'randoms';
+      const sel=h('select',{disabled:!signed});
+      const fillSel=()=>{sel.replaceChildren(...albums.map(a=>h('option',{value:a.slug,selected:a.slug===want},a.title)),signed?h('option',{value:'__new'},'+ New folder…'):null);sel.value=want;};fillSel();
+      const nf=h('input',{type:'text',maxlength:'40',placeholder:'Folder name'});const nfBox=h('div',{hidden:true,class:'stack'},field('New folder',nf));
+      sel.onchange=()=>{nfBox.hidden=sel.value!=='__new';if(sel.value!=='__new')want=sel.value;};
       const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption (optional)'});
-      b.append(h('img',{src:url,alt:'Your photo',style:{width:'100%',maxHeight:'240px',objectFit:'contain',borderRadius:'12px',background:'#000'}}),
-        field('Folder',sel,signed?null:'Signed out, photos go to Randoms and stay on this device.'),
-        field('Caption',cap),
-        h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
-          if(signed){const path=await uploadFile('gallery',prepared.blob,prepared.ext,prepared.type);
-            const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:sel.value,storage_path:path,caption:cap.value.trim().slice(0,200)||null,status:'private'});
-            if(r.error){removeFile('gallery',path);throw r.error;}}
-          else await LocalGallery.add(prepared.blob,'randoms',cap.value.trim().slice(0,200));
-          toast('Saved to '+(albums.find(a=>a.slug===sel.value)||{title:'Randoms'}).title,'ok');close();opts.done&&opts.done();})},icon('image'),'Save to gallery'),
+      const cancel={v:false};const cancelB=h('button',{class:'btn block',hidden:true,style:{marginTop:'8px'},onclick:()=>{cancel.v=true;cancelB.textContent='Cancelling…';}},'Cancel');
+      const saveB=h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
+        if(items.some(i=>i.pending))throw new Error('Photos are still loading.');
+        if(!items.length)throw new Error('No photos to save.');
+        let slug=sel.value;
+        if(signed&&slug==='__new'){const nm=nf.value.trim();if(!nm)throw new Error('Name the new folder.');const a=await this.newFolder(nm);albums.push(a);want=a.slug;slug=a.slug;fillSel();nfBox.hidden=true;}
+        cancel.v=false;cancelB.hidden=false;let n=0;
+        try{
+          for(const it of items){
+            if(cancel.v)break;saveB.textContent=`Saving ${n+1} of ${items.length}…`;
+            const pr=it.prepared;
+            if(signed){const path=await uploadFile('gallery',pr.blob,pr.ext,pr.type);
+              if(cancel.v){removeFile('gallery',path);break;}
+              const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:slug,storage_path:path,caption:cap.value.trim().slice(0,200)||null,status:'private'});
+              if(r.error){removeFile('gallery',path);throw r.error;}}
+            else await LocalGallery.add(pr.blob,'randoms',cap.value.trim().slice(0,200));
+            n++;
+          }
+        }finally{cancelB.hidden=true;cancelB.textContent='Cancel';saveB.textContent='Save to gallery';}
+        if(cancel.v&&!n){toast('Cancelled');return;}
+        toast((n>1?n+' photos':'Photo')+' saved to '+(albums.find(a=>a.slug===slug)||{title:'Randoms'}).title+(cancel.v?' (cancelled the rest)':''),'ok');close();opts.done&&opts.done();
+      })},'Save to gallery');
+      b.append(strip,field('Folder',sel,signed?null:'Signed out, photos go to Randoms and stay on this device.'),nfBox,field('Caption',cap),saveB,cancelB,
         signed?null:h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to choose a folder'),
-        h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{download(prepared.blob,'lukks-photo.'+prepared.ext);}},icon('download'),'Save to my device'));
+        h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{const ok=items.filter(i=>i.prepared);ok.forEach(i=>download(i.prepared.blob,'lukks-photo.'+i.prepared.ext));}},icon('download'),'Save to my device'));
     });
   }
 };
@@ -54,7 +79,7 @@ mount(el,ctx){
   const flash=h('div',{class:'cam-flash'});
   const shutter=h('button',{class:'shutter','aria-label':'Take photo',onclick:capture});
   const flip=h('button',{class:'cam-side','aria-label':'Switch camera',onclick:()=>{facing=facing==='environment'?'user':'environment';start();}},icon('flip'));
-  const pick=h('button',{class:'cam-side','aria-label':'Choose a photo',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(f)Contrib.sendSheet(ctx,f);}},icon('image'));
+  const pick=h('button',{class:'cam-side','aria-label':'Choose a photo',onclick:async()=>{const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length)Contrib.sendSheet(ctx,fs);}},icon('image'));
   const stage=h('div',{class:'cam-stage'},video,msg,flash);
   el.append(appBar({title:'Camera',onBack:ctx.close,backLabel:'Back'}),stage,h('div',{class:'cam-bar'},pick,shutter,flip));
   async function start(){

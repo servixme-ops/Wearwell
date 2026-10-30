@@ -11,7 +11,7 @@ const RC={
     const c=RC.calc(look,items),cur=look.currency||'NGN',W=760,pad=48;
     const lines=c.rows.length;const cv=document.createElement('canvas');
     let photo=null;if(look.photo_path){try{photo=await imgFromSrc(publicUrl('looks',look.photo_path));}catch(e){}}
-    const phH=photo?Math.round((W-pad*2)*Math.min(1.1,photo.height/photo.width)):0;
+    const phH=photo?Math.round((W-pad*2)*(photo.height/photo.width)):0;
     const H=pad*2+150+phH+(photo?24:0)+lines*70+240;cv.width=W;cv.height=H;
     const g=cv.getContext('2d');g.fillStyle='#2a1710';g.fillRect(0,0,W,H);
     const x0=22;g.fillStyle='#fbf6ea';g.beginPath();g.moveTo(x0,14);
@@ -88,7 +88,6 @@ mount(el,ctx,live){
     const body=appBody(h('div',{class:'pad stack'},receiptCard(look,its),
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{const r=await sb.from('wear_logs').insert({look_id:id,user_id:Auth.user.id,worn_on:isoDay(new Date())});if(r.error)throw r.error;await refreshOne(id);toast('Logged. Cost per wear updated','ok');detail(id);})},icon('check'),'I wore it today'),
       h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>history_(look)},'Wear history'),h('button',{class:'btn',onclick:async e=>guard(e.currentTarget,async()=>{const r=await sb.from('looks').update({favourite:!look.favourite}).eq('id',id);if(r.error)throw r.error;look.favourite=!look.favourite;detail(id);}),'aria-label':'Favourite'},icon('heart'),look.favourite?'Favourited':'Favourite')),
-      h('div',{class:'group',style:{margin:0}},h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Show on my Lukks Profile'),h('span',null,Auth.profile&&Auth.profile.is_public?'Visible on your public page':'Your profile is private right now')),toggleEl(look.is_public,async v=>{const r=await sb.from('looks').update({is_public:v}).eq('id',id);if(r.error){toast(errMsg(r.error),'err');}else{look.is_public=v;toast(v?'Shared to your profile':'Removed from your profile');}},'Share on profile'))),
       featureBox(look,its),
       h('button',{class:'btn block',onclick:e=>guard(e.currentTarget,async()=>{const bl=await RC.image(look,its);download(bl,'lukks-receipt-'+look.look_no+'.png');toast('Saved as image','ok');})},icon('download'),'Save as image'),
       h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>form(look)},icon('edit'),'Edit'),h('button',{class:'btn danger grow',onclick:async()=>{if(!await confirmBox('Delete this lukk?','Its receipt and wear history will be removed.','Delete',true))return;const r=await sb.from('looks').delete().eq('id',id);if(r.error){toast(errMsg(r.error),'err');return;}if(look.photo_path)removeFile('looks',look.photo_path);toast('Deleted');await load();}},icon('trash'),'Delete'))));
@@ -135,7 +134,7 @@ mount(el,ctx,live){
     const wardrobeBtn=!editing&&wardrobe.size?h('button',{class:'btn block',onclick:()=>fromWardrobe(l=>{title.value=l.name;const pr=parseInt(String(l.price).replace(/[^\d]/g,''))||'';rows=[{name:l.name,brand:l.designer,category:'Dress',price:pr,prior_wears:0}];drawRows();})},icon('shirt'),'Start from My Lukks (crate)'):null;
     root.replaceChildren(appBar({title:editing?'Edit lukk':'New lukk',onBack:()=>editing?detail(look.id):list(),backLabel:'Back'}),appBody(h('div',{class:'pad stack'},wardrobeBtn,
       h('div',{class:'f-label'},'Photo (optional)'),pv,h('button',{class:'btn block',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;photo=await prepareImage(f,{max:1400});pv.replaceChildren(h('img',{src:URL.createObjectURL(photo.blob),alt:''}));}catch(e){toast(errMsg(e),'err');}}},icon('image'),photo||pv.firstChild?'Change photo':'Add photo'),
-      field('Lukk name',title),field('Style',cat,'Where should people find this lukk?'),field('Link to see more (optional)',link,'Shop or post link shown with your lukk'),h('label',{class:'check'},pub,h('span',null,'Share this lukk on Discover and my profile')),field('Currency',cur),field('Collection',col),h('div',{class:'f-label'},'Items'),box,field('Notes',notes),err,
+      field('Lukk name',title),field('Style',cat,'Where should people find this lukk?'),field('Link to see more (optional)',link,'Shop or post link shown with your lukk'),field('Currency',cur),field('Collection',col),h('div',{class:'f-label'},'Items'),box,field('Notes',notes),err,
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         err.textContent='';try{
           if(!title.value.trim())throw new Error('Give this lukk a name.');
@@ -143,7 +142,7 @@ mount(el,ctx,live){
           if(!clean.length)throw new Error('Add at least one item with a price.');
           let path=look&&look.photo_path||null;
           if(photo){const np=await uploadFile('looks',photo.blob,photo.ext,photo.type);if(path)removeFile('looks',path);path=np;}
-          const row={title:title.value.trim(),notes:notes.value.trim()||null,currency:cur.value,collection_id:col.value||null,photo_path:path,category:cat.value||null,external_url:(()=>{const v=link.value.trim();if(!v)return null;const u=safeUrl(v);if(!u)throw new Error('The link is not a valid web address.');return u;})(),is_public:pub.checked};
+          const row={title:title.value.trim(),notes:notes.value.trim()||null,currency:cur.value,collection_id:col.value||null,photo_path:path,category:cat.value||null,external_url:(()=>{const v=link.value.trim();if(!v)return null;const u=safeUrl(v);if(!u)throw new Error('The link is not a valid web address.');return u;})(),is_public:false};
           let id;
           if(editing){const r=await sb.from('looks').update(row).eq('id',look.id);if(r.error)throw r.error;id=look.id;const d=await sb.from('look_items').delete().eq('look_id',id);if(d.error)throw d.error;}
           else{const r=await sb.from('looks').insert(Object.assign({user_id:Auth.user.id},row)).select().single();if(r.error)throw r.error;id=r.data.id;}

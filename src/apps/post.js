@@ -39,25 +39,37 @@ const Posts={
         cat=h('input',{type:'text',maxlength:'30',list:'lxStyles',placeholder:'Pick a style or type your own',value:existing&&existing.category||''}),dl=h('datalist',{id:'lxStyles'},[].concat(...Object.values(CFG.categories)).concat(extraStyles||[]).map(c=>h('option',{value:c}))),
         rec=h('select',null,h('option',{value:''},'No receipt'),recs.map(r=>h('option',{value:r.id,selected:existing&&existing.receipt_id===r.id},r.title)));
       det.value=existing&&existing.details||'';
-      const draw=()=>{grid.replaceChildren(...items.map((it,i)=>h('div',{class:'lx-pthumb'+(i===0?' cover':'')},h('img',{src:it.url||Posts.ph(it.path),alt:''}),i===0?h('em',null,'Cover'):h('button',{class:'mk','aria-label':'Make cover',onclick:()=>{items.unshift(items.splice(i,1)[0]);draw();}},'Cover'),h('button',{class:'rm','aria-label':'Remove photo',onclick:()=>{items.splice(i,1);draw();}},icon('close')))).concat([
-        items.length<8?h('button',{class:'lx-padd',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;const pr=await prepareImage(f,{max:1600,maxMB:12});items.push({blob:pr.blob,ext:pr.ext,type:pr.type,url:URL.createObjectURL(pr.blob)});draw();}catch(e){toast(errMsg(e),'err');}}},icon('plus'),h('span',null,items.length?'Add more':'Add photo')):null]).filter(Boolean));};
+      const draw=()=>{grid.replaceChildren(...items.map((it,i)=>h('div',{class:'lx-pthumb'+(i===0?' cover':'')},h('img',{src:it.url||Posts.ph(it.path),alt:''}),it.pending?h('span',{class:'xspin'},spinner()):null,(i===0&&!it.pending)?h('em',null,'Cover'):(it.pending?null:h('button',{class:'mk','aria-label':'Make cover',onclick:()=>{items.unshift(items.splice(i,1)[0]);draw();}},'Cover')),h('button',{class:'rm','aria-label':it.pending?'Cancel this photo':'Remove photo',onclick:()=>{items.splice(i,1);draw();}},icon('close')))).concat([
+        items.length<8?h('button',{class:'lx-padd',onclick:async()=>{const fs=await pickFiles('image/jpeg,image/png,image/webp');if(!fs.length)return;
+          const room=8-items.length;if(fs.length>room)toast('Only '+room+' more photo'+(room==1?'':'s')+' fit. The rest were skipped.');
+          const added=fs.slice(0,room).map(f=>({file:f,pending:true,url:URL.createObjectURL(f)}));items.push(...added);draw();
+          for(const it of added){
+            try{const pr=await prepareImage(it.file,{max:1600,maxMB:12});if(!items.includes(it))continue;Object.assign(it,{blob:pr.blob,ext:pr.ext,type:pr.type,url:URL.createObjectURL(pr.blob),pending:false});delete it.file;}
+            catch(e){const k=items.indexOf(it);if(k>=0)items.splice(k,1);toast(errMsg(e),'err');}
+            draw();
+          }
+        }},icon('plus'),h('span',null,items.length?'Add more':'Add photo')):null]).filter(Boolean));};
       draw();
       const err=h('p',{class:'err-t',role:'alert'});
+      const st={cancel:false};const cancelB=h('button',{class:'btn block',hidden:true,onclick:()=>{st.cancel=true;cancelB.textContent='Cancelling…';}},'Cancel upload');
       b.append(h('div',{class:'stack pad'},h('div',{class:'f-label'},'Photos (the first one is the cover)'),grid,field('Title',title),field('Details',det),field('Link',link),field('Style',cat,'Type your own style if it is not listed. Styles with plenty of lukks appear on the home screen.'),dl,field('Tag a receipt',rec,'Show the pieces and cost per wear on this lukk'),err,
         h('p',{class:'muted small-t',style:{margin:0}},'Lukks are public. Anyone can see them.'),
+        cancelB,
         h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
-          err.textContent='';try{
+          err.textContent='';st.cancel=false;cancelB.hidden=false;let newId=null;const up=[];try{
             const t=title.value.trim();if(!t)throw new Error('Add a title.');if(!items.length)throw new Error('Add at least one photo.');
             let u=link.value.trim();if(u){u=safeUrl(u);if(!u)throw new Error('The link is not a valid web address.');}
             const row={title:t,details:det.value.trim()||null,category:Posts.cleanStyle(cat.value),external_url:u||null,receipt_id:rec.value||null};
             let id;
             if(existing){const r=await sb.from('posts').update(row).eq('id',existing.id);if(r.error)throw r.error;id=existing.id;}
-            else{const r=await sb.from('posts').insert(Object.assign({user_id:Auth.user.id},row)).select().single();if(r.error)throw r.error;id=r.data.id;}
-            const paths=[];for(const it of items){paths.push(it.path||await uploadFile('looks',it.blob,it.ext,it.type));}
+            else{const r=await sb.from('posts').insert(Object.assign({user_id:Auth.user.id},row)).select().single();if(r.error)throw r.error;id=r.data.id;newId=id;}
+            const paths=[];for(const it of items){if(st.cancel)throw new Error('Upload cancelled.');if(it.pending)throw new Error('Photos are still loading.');if(it.path)paths.push(it.path);else{const pth=await uploadFile('looks',it.blob,it.ext,it.type);up.push(pth);paths.push(pth);}}
+            if(st.cancel)throw new Error('Upload cancelled.');
             if(existing){const d=await sb.from('post_photos').delete().eq('post_id',id);if(d.error)throw d.error;existing.photos.filter(p=>!paths.includes(p)).forEach(p=>removeFile('looks',p));}
             const ins=await sb.from('post_photos').insert(paths.map((p,i)=>({post_id:id,path:p,sort:i})));if(ins.error)throw ins.error;
             toast(existing?'Saved':'Posted','ok');close();onDone&&onDone(id);
-          }catch(ex){err.textContent=errMsg(ex);}
+          }catch(ex){err.textContent=errMsg(ex);up.forEach(x=>removeFile('looks',x));if(newId)sb.from('posts').delete().eq('id',newId);}
+          finally{cancelB.hidden=true;cancelB.textContent='Cancel upload';}
         })},existing?'Save changes':'Post lukk')));
     });
   }

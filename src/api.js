@@ -154,6 +154,15 @@ async function signedUrl(bucket,path,secs=3600){
   const r=await sb.storage.from(bucket).createSignedUrl(path,secs);
   if(r.error||!r.data)return null;_signed[k]={url:r.data.signedUrl,exp:Date.now()+secs*900};return r.data.signedUrl;
 }
+function pickFiles(accept){
+  return new Promise(res=>{
+    const i=h('input',{type:'file',accept,multiple:true,style:{display:'none'}});
+    window.__picking=true;const done=()=>{setTimeout(()=>{window.__picking=false;},1500);};const guardT=setTimeout(()=>{window.__picking=false;},180000);
+    i.addEventListener('change',()=>{clearTimeout(guardT);done();res(Array.from(i.files||[]));i.remove();});
+    i.addEventListener('cancel',()=>{clearTimeout(guardT);done();res([]);i.remove();});
+    document.body.appendChild(i);i.click();
+  });
+}
 function pickFile(accept,capture){
   return new Promise(res=>{
     const i=h('input',{type:'file',accept,capture:capture||null,style:{display:'none'}});

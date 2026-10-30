@@ -43,7 +43,10 @@ mount(el,ctx,live){
       cons=h('input',{type:'checkbox'});
       form.append(field('Name',name),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),user,hint));
     }
-    form.append(field('Email',email),field('Password',pw));
+    const eyeB=h('button',{type:'button',class:'pw-eye','aria-label':'Show password','aria-pressed':'false'},icon('eye'));
+    eyeB.onclick=()=>{const show=pw.type==='password';pw.type=show?'text':'password';eyeB.replaceChildren(icon(show?'eyeOff':'eye'));eyeB.setAttribute('aria-pressed',String(show));eyeB.setAttribute('aria-label',show?'Hide password':'Show password');};
+    const pwBox=h('div',{class:'pw-wrap'},pw,eyeB);
+    form.append(field('Email',email),field('Password',pwBox));
     if(m==='signup')form.append(h('label',{class:'check'},cons,h('span',null,'I agree to the Lukks terms and privacy notice.')));
     if(m==='forgot'){form.replaceChildren(h('p',{class:'muted'},'Enter your email and we will send you a link to choose a new password.'),field('Email',email));}
     const go=h('button',{class:'btn primary block',type:'submit'},m==='signup'?'Create account':m==='forgot'?'Send reset link':'Sign in');

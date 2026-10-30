@@ -40,7 +40,7 @@ mount(el,ctx,live){
     body.append(g);
   }
   async function addPhoto(a){
-    const f=await pickFile('image/jpeg,image/png,image/webp');if(f)Contrib.sendSheet(ctx,f,{album:a&&a.slug,done:()=>{if(view.t==='album')openAlbum(view.a);else loadAlbums();}});
+    const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length)Contrib.sendSheet(ctx,fs,{album:a&&a.slug,done:()=>{if(view.t==='album')openAlbum(view.a);else loadAlbums();}});
   }
   function viewer(a,list,i){
     const p=list[i];
