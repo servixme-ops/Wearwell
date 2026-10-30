@@ -103,16 +103,16 @@ function drawReceiptCard(g,look,x,y,w,h,k){
   g.save();g.shadowColor='rgba(40,20,10,.28)';g.shadowBlur=14*k;g.shadowOffsetY=4*k;g.fillStyle=CREAM;rrect(g,x,y,w,h,6*k);g.fill();g.restore();
   const p=18*k;let yy=y+26*k;
   g.textAlign='center';g.fillStyle=INK;g.font=`900 ${13*k}px ${F.disp}`;spaced(g,'',2.4*k);g.fillText('LUKKS RECEIPT',x+w/2,yy);spaced(g,'',0);
-  yy+=14*k;g.font=`700 ${10*k}px ${F.body}`;g.fillStyle='#4a3a2e';g.fillText(`Lukk #${look.no} · Issue 01 · ${look.designer}`,x+w/2,yy);
-  yy+=24*k;g.fillStyle=INK;g.font=`900 ${20*k}px ${F.disp}`;g.fillText(look.name,x+w/2,yy);
+  yy+=14*k;g.font=`700 ${12*k}px ${F.body}`;g.fillStyle='#2a1c14';g.fillText(`Lukk #${look.no}  ·  Issue 01  ·  ${look.designer}`,x+w/2,yy);
+  yy+=26*k;g.fillStyle=INK;g.font=`900 ${21*k}px ${F.disp}`;g.fillText(look.name,x+w/2,yy);
   yy+=12*k;dashed(g,x+p,x+w-p,yy,k);yy+=20*k;
   const rows=RC.calc({wear_count:look.wears},look.items).rows;
   rows.forEach(r=>{
     g.textAlign='left';g.fillStyle=INK;g.font=`700 ${12*k}px ${F.body}`;
     let nm=r.name;while(g.measureText(nm).width>w-p*2-86*k&&nm.length>6)nm=nm.slice(0,-2);if(nm!==r.name)nm=nm.trim()+'…';
     g.fillText(nm,x+p,yy);g.textAlign='right';g.font=`800 ${12*k}px ${F.body}`;g.fillText(RC.money(r.price,'NGN'),x+w-p,yy);
-    g.textAlign='left';g.font=`600 ${10*k}px ${F.body}`;g.fillStyle='#4a3a2e';g.fillText((r.brand?r.brand+' · ':'')+r.total_wears+' wears',x+p,yy+12*k);
-    g.textAlign='right';g.fillText(RC.money(r.cpw,'NGN')+' / wear',x+w-p,yy+12*k);yy+=29*k;
+    g.textAlign='left';g.font=`700 ${12*k}px ${F.body}`;g.fillStyle='#2a1c14';g.fillText((r.brand?r.brand+' · ':'')+r.total_wears+' wears',x+p,yy+14*k);
+    g.textAlign='right';g.fillText(RC.money(r.cpw,'NGN')+' / wear',x+w-p,yy+14*k);yy+=34*k;
   });
   yy-=10*k;dashed(g,x+p,x+w-p,yy,k);yy+=19*k;
   g.textAlign='left';g.fillStyle=INK;g.font=`800 ${13.5*k}px ${F.body}`;g.fillText('Total spent',x+p,yy);g.textAlign='right';g.fillText(RC.money(look.total,'NGN'),x+w-p,yy);
@@ -155,7 +155,7 @@ function drawLookFace(m,i,W,H,SC){
   const folio=()=>{g.fillStyle='rgba(0,0,0,.45)';g.font=`600 ${11*k}px ${F.body}`;g.textAlign=side==='l'?'left':'right';
     g.fillText(`${i+1}   LUKKS · ISSUE 01`,side==='l'?30*k:W-30*k,H-14*k);g.textAlign='left';};
   if(style==='A'){
-    const px=mx(150,450),py=62,pw=450,ph=390;
+    const px=mx(150,450),py=62,pw=450,ph=370;
     // label block
     g.fillStyle=PINK;const lw=300;g.fillRect(mx(0,lw),0,lw,50);
     g.fillStyle=INK;g.font=`400 ${27*k}px ${F.cond}`;spaced(g,'',1.5);g.textAlign=side==='r'?'left':'right';
@@ -163,7 +163,7 @@ function drawLookFace(m,i,W,H,SC){
     coverFit(g,im,px,py,pw,ph,.2);hs.push({x:px/W,y:py/H,w:pw/W,h:ph/H,look});
     g.fillStyle=INK;g.font=`400 ${88*k}px ${F.cond}`;g.textAlign='center';g.fillText(String(look.no).padStart(2,'0'),mx(0,140)+70,py+ph+60);g.textAlign='left';
     g.font=`italic 700 ${15*k}px ${F.disp}`;g.fillStyle='#1f1410';wrap(g,look.blurb,px,py+ph+24,pw,19*k);
-    drawReceiptCard(g,look,px,539,pw,284,k);
+    drawReceiptCard(g,look,px,512,pw,318,k);
   }else{
     const pw=340,ph=440,px=mx(48,pw),py=70;
     coverFit(g,im,px,py,pw,ph,.2);hs.push({x:px/W,y:py/H,w:pw/W,h:ph/H,look});
@@ -174,7 +174,7 @@ function drawLookFace(m,i,W,H,SC){
     const qx=side==='r'?px+pw+16:16,qw=side==='r'?W-qx-40:px-32;
     g.fillText(look.kicker+'.',qx,200);g.font=`italic 600 ${14*k}px ${F.disp}`;wrap(g,look.blurb,qx,230,qw,19*k);
     const cw=395,cx=mx(side==='r'?210:36,cw);
-    drawReceiptCard(g,look,cx,528,cw,290,k);
+    drawReceiptCard(g,look,cx,510,cw,316,k);
   }
   folio();
   return {c,hs};

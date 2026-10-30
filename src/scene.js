@@ -312,14 +312,14 @@ class Book{
   constructor(m){
     this.m=m;this.NL=7;this.flip=0;this.group=new T.Group();this.leaves=[];this.faces=[];
     const w=MAG.w,h=MAG.h;this.w=w;this.h=h;
-    const FW=m.issue_mag?896:640,FH=m.issue_mag?1183:845;for(let i=0;i<14;i++)this.faces.push(drawFace(m,i,FW,FH));
-    const tex=this.faces.map(f=>{const t=ctex(f.c);try{t.anisotropy=renderer.capabilities.getMaxAnisotropy();}catch(e){}return t;});
+    const FW=m.issue_mag?1152:640,FH=m.issue_mag?1521:845;for(let i=0;i<14;i++)this.faces.push(drawFace(m,i,FW,FH));
+    const tex=this.faces.map(f=>{const t=ctex(f.c);if(m.issue_mag){t.generateMipmaps=false;t.minFilter=T.LinearFilter;t.magFilter=T.LinearFilter;}return t;});
     this.tex=tex;
     for(let k=0;k<this.NL;k++){
       const geo=new T.PlaneGeometry(w,h,20,1);
-      const fm=new T.MeshStandardMaterial({map:tex[2*k],roughness:.6,color:m.issue_mag?'#444444':'#ffffff',emissive:new T.Color('#ffffff'),emissiveMap:tex[2*k],emissiveIntensity:m.issue_mag?.92:.42,toneMapped:!m.issue_mag,side:T.FrontSide});
       const bt=tex[2*k+1].clone();bt.needsUpdate=true;bt.wrapS=T.RepeatWrapping;bt.repeat.x=-1;bt.offset.x=1;
-      const bm=new T.MeshStandardMaterial({map:bt,roughness:.6,color:m.issue_mag?'#444444':'#ffffff',emissive:new T.Color('#ffffff'),emissiveMap:bt,emissiveIntensity:m.issue_mag?.92:.42,toneMapped:!m.issue_mag,side:T.BackSide});
+      const fm=m.issue_mag?new T.MeshBasicMaterial({map:tex[2*k],toneMapped:false,side:T.FrontSide}):new T.MeshStandardMaterial({map:tex[2*k],roughness:.6,emissive:new T.Color('#ffffff'),emissiveMap:tex[2*k],emissiveIntensity:.42,side:T.FrontSide});
+      const bm=m.issue_mag?new T.MeshBasicMaterial({map:bt,toneMapped:false,side:T.BackSide}):new T.MeshStandardMaterial({map:bt,roughness:.6,emissive:new T.Color('#ffffff'),emissiveMap:bt,emissiveIntensity:.42,side:T.BackSide});
       const fMesh=new T.Mesh(geo,fm),bMesh=new T.Mesh(geo,bm);
       fMesh.castShadow=bMesh.castShadow=true;fMesh.receiveShadow=bMesh.receiveShadow=true;
       fMesh.userData={leaf:k,side:'f'};bMesh.userData={leaf:k,side:'b'};
