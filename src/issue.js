@@ -142,8 +142,8 @@ function pastelShapes(g,side,W,H,k,style){
     g.restore();
   }
 }
-function drawLookFace(m,i,W,H){
-  const c=mk(W,H),g=c.getContext('2d');const k=W/640;
+function drawLookFace(m,i,W,H,SC){
+  const c=mk(W*SC,H*SC),g=c.getContext('2d');g.scale(SC,SC);const k=1;
   const li=i-2,look=m.looks[li],side=(i%2===0)?'r':'l';
   const spread=Math.floor((i-1)/2),style=spread%2===0?'A':'B';
   const mx=(x,w)=>side==='r'?x:W-x-w;
@@ -179,10 +179,11 @@ function drawLookFace(m,i,W,H){
   folio();
   return {c,hs};
 }
-function drawIssueFace(m,i,W,H){
-  if(i===0)return {c:drawIssueCover(m,W,H),hs:[]};
-  if(i>=2&&i<=12)return drawLookFace(m,i,W,H);
-  const c=mk(W,H),g=c.getContext('2d');const k=W/640,hs=[];g.textBaseline='alphabetic';g.textAlign='left';
+function drawIssueFace(m,i,RW,RH){
+  if(i===0)return {c:drawIssueCover(m,RW,RH),hs:[]};
+  const SC=RW/640,W=640,H=845;
+  if(i>=2&&i<=12)return drawLookFace(m,i,W,H,SC);
+  const c=mk(RW,RH),g=c.getContext('2d');g.scale(SC,SC);const k=1,hs=[];g.textBaseline='alphabetic';g.textAlign='left';
   if(i===1){
     g.fillStyle=CREAM;g.fillRect(0,0,W,H);
     g.fillStyle=MINT;g.beginPath();g.moveTo(W-230,0);g.lineTo(W,0);g.lineTo(W,170);g.closePath();g.fill();

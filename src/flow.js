@@ -185,7 +185,7 @@ function returnToCrate(fromBook){
 function openBook(){
   if(S.mode!=='pulled')return;
   const g=S.pulled,m=g.userData.m;
-  setMode('reading');S.flipNow=0;S.flipT=0;S.zoom=0;S.closing=false;
+  setMode('reading');S.flipNow=0;S.flipT=0;S.zoom=1;S.closing=false;try{$('#zoomBtn').classList.add('on');}catch(e){}
   const b=new Book(m);S.book=b;scene.add(b.group);
   // start exactly over the pulled magazine
   const P=pulledPose();
@@ -197,12 +197,12 @@ function openBook(){
 }
 function readTarget(){
   const f=frameBasis(),a=aspect(),t=visHalf(G.fov),w=MAG.w;
-  const fl=S.flipNow;
+  const fl=S.flipNow,NLb=S.book?S.book.NL:5;
   let cx,fit;
   if(fl<1){cx=w/2*(1-fl);fit=w*(1.2+.94*fl);}
-  else if(fl<=4){cx=0;fit=w*2.14;}
-  else{cx=-w/2*(fl-4);fit=w*(2.14-.94*(fl-4));}
-  if(S.zoom){fit=w*1.12;cx=S.zoom*w/2;if(fl<=.5)cx=w/2;if(fl>=4.5)cx=-w/2;}
+  else if(fl<=NLb-1){cx=0;fit=w*2.14;}
+  else{cx=-w/2*(fl-(NLb-1));fit=w*(2.14-.94*(fl-(NLb-1)));}
+  if(S.zoom){fit=w*1.12;cx=S.zoom*w/2;if(fl<=.5)cx=w/2;if(fl>=NLb-.5)cx=-w/2;}
   const d=.46;
   const visW=2*t*a*d,visH=2*t*d;
   const sc=Math.min(visW/fit,visH*.7/MAG.h);
@@ -218,14 +218,21 @@ let lastHud='';
 function updatePageHud(){
   const f=Math.round(S.flipT),n=S.book?S.book.NL:5;
   let txt;
-  if(f===0)txt='Cover';else if(f>=n)txt='Back cover';else txt=`Pages ${2*f}–${2*f+1} of ${2*n}`;
+  if(f===0)txt='Cover';else if(f>=n)txt='Back cover';else if(S.zoom)txt=`Page ${S.zoom<0?2*f:2*f+1} of ${2*n}`;else txt=`Pages ${2*f}–${2*f+1} of ${2*n}`;
   if(txt!==lastHud){lastHud=txt;$('#rPage').textContent=txt;}
   $('#rPrev').disabled=f<=0;$('#rNext').disabled=f>=n;
   const bar=$('#rBar');bar.style.width=(S.flipT/n*100)+'%';
 }
 function turn(dir){
   if(S.mode!=='reading'||!S.book)return;
-  const n=S.book.NL;S.flipT=Math.max(0,Math.min(n,Math.round(S.flipT)+dir));
+  const n=S.book.NL,f=Math.round(S.flipT);
+  if(S.zoom){
+    // page by page: left page, right page, then the next spread
+    if(dir>0){if(f===0){S.flipT=1;S.zoom=-1;}else if(f>=n)return;else if(S.zoom<0)S.zoom=1;else{S.flipT=f+1;S.zoom=f+1>=n?-1:-1;}}
+    else{if(f>=n){S.flipT=n-1;S.zoom=1;}else if(f===0)return;else if(S.zoom>0)S.zoom=-1;else{S.flipT=f-1;S.zoom=f-1===0?1:1;}}
+    return;
+  }
+  S.flipT=Math.max(0,Math.min(n,f+dir));
 }
 function toggleZoom(){
   if(S.mode!=='reading')return;
@@ -326,7 +333,6 @@ function tapBrowse(x,y){
 function tapBook(x,y){
   const b=S.book;const hit=pick(x,y,b.meshes()).filter(h=>{const u=h.object.userData;return u.side==='f'?u.flat:u.flat;});
   if(hit.length){const look=b.hotspot(hit[0]);if(look){openLook(look);return;}}
-  if(S.zoom){toggleZoom();return;}
   turn(x>innerWidth/2?1:-1);
 }
 function back(){

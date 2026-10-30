@@ -277,11 +277,11 @@ function edgeTexs(){
 function buildMag(m){
   edgeTexs();
   const g=new T.Group();
-  const cover=ctex(drawCover(m,512,676));
+  const cover=ctex(drawCover(m,m.issue_mag?1024:512,m.issue_mag?1352:676));
   const back=ctex(texBack(m));
   const eM=(t)=>mat('#ffffff',.9,0,{map:t});
   const mats=[eM(_edgeV),mat(m.bg,.8),eM(_edgeH),eM(_edgeH),
-    new T.MeshStandardMaterial({map:cover,roughness:.75,metalness:0,emissive:new T.Color('#ffffff'),emissiveMap:cover,emissiveIntensity:.18}),
+    new T.MeshStandardMaterial({map:cover,roughness:.75,metalness:0,emissive:new T.Color('#ffffff'),emissiveMap:cover,emissiveIntensity:m.issue_mag?.85:.18,toneMapped:!m.issue_mag}),
     new T.MeshStandardMaterial({map:back,roughness:.5})];
   const mesh=new T.Mesh(new T.BoxGeometry(MAG.w,MAG.h,MAG.t),mats);
   mesh.position.y=MAG.h/2;mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);
@@ -312,14 +312,14 @@ class Book{
   constructor(m){
     this.m=m;this.NL=7;this.flip=0;this.group=new T.Group();this.leaves=[];this.faces=[];
     const w=MAG.w,h=MAG.h;this.w=w;this.h=h;
-    for(let i=0;i<14;i++)this.faces.push(drawFace(m,i,640,845));
-    const tex=this.faces.map(f=>ctex(f.c));
+    const FW=m.issue_mag?896:640,FH=m.issue_mag?1183:845;for(let i=0;i<14;i++)this.faces.push(drawFace(m,i,FW,FH));
+    const tex=this.faces.map(f=>{const t=ctex(f.c);try{t.anisotropy=renderer.capabilities.getMaxAnisotropy();}catch(e){}return t;});
     this.tex=tex;
     for(let k=0;k<this.NL;k++){
       const geo=new T.PlaneGeometry(w,h,20,1);
-      const fm=new T.MeshStandardMaterial({map:tex[2*k],roughness:.6,emissive:new T.Color('#ffffff'),emissiveMap:tex[2*k],emissiveIntensity:.42,side:T.FrontSide});
+      const fm=new T.MeshStandardMaterial({map:tex[2*k],roughness:.6,color:m.issue_mag?'#444444':'#ffffff',emissive:new T.Color('#ffffff'),emissiveMap:tex[2*k],emissiveIntensity:m.issue_mag?.92:.42,toneMapped:!m.issue_mag,side:T.FrontSide});
       const bt=tex[2*k+1].clone();bt.needsUpdate=true;bt.wrapS=T.RepeatWrapping;bt.repeat.x=-1;bt.offset.x=1;
-      const bm=new T.MeshStandardMaterial({map:bt,roughness:.6,emissive:new T.Color('#ffffff'),emissiveMap:bt,emissiveIntensity:.42,side:T.BackSide});
+      const bm=new T.MeshStandardMaterial({map:bt,roughness:.6,color:m.issue_mag?'#444444':'#ffffff',emissive:new T.Color('#ffffff'),emissiveMap:bt,emissiveIntensity:m.issue_mag?.92:.42,toneMapped:!m.issue_mag,side:T.BackSide});
       const fMesh=new T.Mesh(geo,fm),bMesh=new T.Mesh(geo,bm);
       fMesh.castShadow=bMesh.castShadow=true;fMesh.receiveShadow=bMesh.receiveShadow=true;
       fMesh.userData={leaf:k,side:'f'};bMesh.userData={leaf:k,side:'b'};
