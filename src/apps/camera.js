@@ -88,7 +88,7 @@ mount(el,ctx){
     try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920}},audio:false});video.srcObject=stream;video.classList.toggle('mirror',facing==='user');await video.play().catch(()=>{});}
     catch(e){fallback(e&&e.name==='NotAllowedError'?'Camera access was blocked. Allow it in your browser settings, or choose a photo instead.':'No camera found. Choose a photo from your device instead.');}
   }
-  function fallback(t){msg.innerHTML='';msg.append(h('p',null,t),h('button',{class:'btn primary',onclick:async()=>{const f=await pickFile('image/*','environment');if(f)Contrib.sendSheet(ctx,f);}},'Choose or take a photo'));flip.hidden=true;shutter.disabled=true;}
+  function fallback(t){msg.innerHTML='';msg.append(h('p',null,t),h('button',{class:'btn primary',onclick:async()=>{const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length)Contrib.sendSheet(ctx,fs);}},'Choose photos'),h('button',{class:'btn',style:{marginTop:'8px'},onclick:async()=>{const f=await pickFile('image/*','environment');if(f)Contrib.sendSheet(ctx,f);}},'Take a photo'));flip.hidden=true;shutter.disabled=true;}
   function stop(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
   async function capture(){
     if(!video.videoWidth)return;
