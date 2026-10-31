@@ -21,7 +21,7 @@ mount(el,ctx,live){
     const g=h('div',{class:'album-grid'});
     albums.forEach(a=>{const ab=h('button',{class:'album'+(sel&&sel.has(a.slug)?' picked':'')+(sel&&!mineF(a)?' dim':''),onclick:()=>{if(!sel)return openAlbum(a);if(!mineF(a))return toast(a.slug==='randoms'?'Randoms can’t be deleted':'Only folders you made can be deleted');if(sel.has(a.slug))sel.delete(a.slug);else sel.add(a.slug);drawAlbums();}},
       h('span',{class:'album-img empty'},covers[a.slug]?h('img',{src:covers[a.slug],alt:'',loading:'lazy'}):icon('image')),
-      h('b',null,a.title),h('em',null,counts[a.slug]?counts[a.slug]+(counts[a.slug]===1?' photo':' photos'):'Empty')));
+      h('b',null,a.title),h('em',null,counts[a.slug]?counts[a.slug]+(counts[a.slug]===1?' photo':' photos'):'Empty'));
       if(!sel&&mineF(a))hold(ab,()=>{sel=new Set([a.slug]);drawAlbums();});g.append(ab);});
     body.append(g);
     if(sel)body.append(selBar(sel.size,()=>{if(!sel.size)return;delFolders(albums.filter(a=>sel.has(a.slug)),drawAlbums0);}));
