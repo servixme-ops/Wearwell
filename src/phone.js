@@ -7,8 +7,10 @@ const Wall={
   _def:{},_urls:{},
   def(kind){
     if(this._def[kind])return this._def[kind];
+    if(kind==='home')return this._def.home='icons/wp-ash.jpg';
     const W=780,H=1688,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
-    if(kind==='lock'){
+    if(kind==='lock'&&typeof WaterWall!=='undefined'){WaterWall.draw(g,W,H,2,0,0);}
+    else if(kind==='lock'){
       const gr=g.createLinearGradient(0,0,W*.4,H);gr.addColorStop(0,'#7d1f33');gr.addColorStop(.55,'#4a1020');gr.addColorStop(1,'#1f0a0f');g.fillStyle=gr;g.fillRect(0,0,W,H);
       g.globalAlpha=.16;g.fillStyle=fabricFill(g,'asooke',['#8a2a3a','#e9c46a','#f6e7cb'],2.4);g.fillRect(0,H*.52,W,H*.48);g.globalAlpha=1;
       const rg=g.createRadialGradient(W*.75,H*.82,10,W*.75,H*.82,W*.7);rg.addColorStop(0,'rgba(233,196,106,.55)');rg.addColorStop(1,'rgba(233,196,106,0)');g.fillStyle=rg;g.fillRect(0,0,W,H);
@@ -252,6 +254,7 @@ const Phone={
   async applyWallpapers(){
     const [l,hm]=await Promise.all([Wall.url('lock'),Wall.url('home')]);
     this.lockBg.style.backgroundImage=`url("${l}")`;this.homeBg.style.backgroundImage=`url("${hm}")`;
+    if(typeof WaterWall!=='undefined'){if(!Wall.isCustom('lock'))WaterWall.attach(this.lockBg);else WaterWall.detach();}
     this.appHost.dataset.wp='1';
   },
   /* ---- lock / unlock ---- */
