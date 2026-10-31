@@ -114,6 +114,26 @@ const friendlyError=e=>{
 
 /* ---------- Images ---------- */
 const IMG_TYPES=['image/jpeg','image/png','image/webp'];
+/* ---------- Photo safety: nudity check that runs on the phone before anything is uploaded ---------- */
+const Safe={
+  _p:null,
+  _js(u){return new Promise((res,rej)=>{const e=document.createElement('script');e.src=u;e.onload=res;e.onerror=()=>rej(new Error('load '+u));document.head.appendChild(e);});},
+  load(){
+    if(this._p)return this._p;
+    this._p=(typeof tf!=='undefined'?Promise.resolve():this._js('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js'))
+      .then(()=>typeof nsfwjs!=='undefined'?0:this._js('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/nsfwjs.min.js'))
+      .then(()=>nsfwjs.load()).catch(e=>{this._p=null;throw e;});
+    return this._p;
+  },
+  /* true when the picture looks explicit. If the checker cannot load (offline), the upload is allowed. */
+  async blocked(canvas){
+    try{
+      const m=await Promise.race([this.load(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),30000))]);
+      const r=await m.classify(canvas);const p={};r.forEach(x=>{p[x.className]=x.probability;});
+      return (p.Porn||0)>=.5||(p.Hentai||0)>=.75||((p.Porn||0)>=.3&&(p.Porn||0)+(p.Sexy||0)>=.9);
+    }catch(e){console.warn('photo check unavailable',e&&e.message);return false;}
+  }
+};
 async function prepareImage(file,{max=1600,quality=.85,allowGif=false,maxMB=CFG.limits.imageMB,gifMB=CFG.limits.gifMB}={}){
   if(!file)throw new Error('No file selected.');
   const isGif=file.type==='image/gif';
@@ -125,6 +145,7 @@ async function prepareImage(file,{max=1600,quality=.85,allowGif=false,maxMB=CFG.
   const w=Math.max(1,Math.round(bmp.width*r)),hh=Math.max(1,Math.round(bmp.height*r));
   const c=document.createElement('canvas');c.width=w;c.height=hh;
   const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,hh);g.drawImage(bmp,0,0,w,hh);
+  if(await Safe.blocked(c))throw new Error('This photo can’t be uploaded. Nudity isn’t allowed on Lukks.');
   const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',quality));
   if(!blob)throw new Error('Could not process that image.');
   return{blob,type:'image/jpeg',ext:'jpg',width:w,height:hh};
@@ -155,6 +176,7 @@ async function signedUrl(bucket,path,secs=3600){
   if(r.error||!r.data)return null;_signed[k]={url:r.data.signedUrl,exp:Date.now()+secs*900};return r.data.signedUrl;
 }
 function pickFiles(accept){
+  Safe.load().catch(()=>{});
   return new Promise(res=>{
     const i=h('input',{type:'file',accept,multiple:!!(window.Auth&&Auth.user),style:{display:'none'}});
     window.__picking=true;const done=()=>{setTimeout(()=>{window.__picking=false;},1500);};const guardT=setTimeout(()=>{window.__picking=false;},180000);
@@ -164,6 +186,7 @@ function pickFiles(accept){
   });
 }
 function pickFile(accept,capture){
+  Safe.load().catch(()=>{});
   return new Promise(res=>{
     const i=h('input',{type:'file',accept,capture:capture||null,style:{display:'none'}});
     window.__picking=true;const done=()=>{setTimeout(()=>{window.__picking=false;},1500);};const guardT=setTimeout(()=>{window.__picking=false;},180000);
