@@ -520,3 +520,4 @@ body[data-mode=phone] .pwa-banner,body:not([data-mode=room]) .pwa-banner{display
 .photo-grid .ph.picked img{opacity:.55}.ph-tick{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.35);display:grid;place-items:center;color:#fff}.ph-tick .ic svg{width:14px;height:14px}.ph.picked .ph-tick{background:var(--ios-blue,#0a84ff)}
 .ph-selbar{position:sticky;bottom:0;display:flex;gap:8px;justify-content:center;padding:12px;background:rgba(242,242,247,.92);backdrop-filter:blur(10px)}
 .album.dim{opacity:.45}.album.picked .album-img{outline:3px solid var(--ios-blue,#0a84ff)}
+.photo-grid .ph,.album{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.photo-grid .ph img{pointer-events:none;-webkit-user-drag:none}
