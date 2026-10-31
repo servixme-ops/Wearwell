@@ -105,8 +105,8 @@ const Notifs={
     }
     if(Auth.user&&sb){
       try{
-        const r=await sb.from('notifications').select('*').eq('read',false).order('created_at',{ascending:false}).limit(6);
-        (r.data||[]).forEach(x=>add({id:'db:'+x.id,dbId:x.id,app:x.app||'account',cat:'campaigns',title:x.title,body:x.body||'',intent:{},t:new Date(x.created_at).getTime()}));
+        const r=await sb.from('notifications').select('*').eq('read',false).order('created_at',{ascending:false}).limit(30);
+        (r.data||[]).forEach(x=>add({id:'db:'+x.id,dbId:x.id,app:x.app||'account',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()}));
         const [ph,sub,ad]=await Promise.all([
           sb.from('photos').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id).eq('status','pending'),
           sb.from('magazine_submissions').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id).eq('status','pending'),
@@ -125,7 +125,7 @@ const Notifs={
     if(this._ch&&sb){try{sb.removeChannel(this._ch);}catch(e){}this._ch=null;}
     if(!Auth.user||!sb)return;
     this._ch=sb.channel('notifs-'+Auth.user.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'user_id=eq.'+Auth.user.id},p=>{
-      const x=p.new;const n={id:'db:'+x.id,dbId:x.id,app:x.app||'account',cat:'campaigns',title:x.title,body:x.body||'',intent:{},t:Date.now()};
+      const x=p.new;const n={id:'db:'+x.id,dbId:x.id,app:x.app||'account',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:Date.now()};
       this.items.unshift(n);Phone.renderNotifs();Phone.banner(n);
       if('Notification' in window&&Notification.permission==='granted'&&document.hidden){try{new Notification(x.title,{body:x.body||'',icon:'icons/icon-192.png'});}catch(e){}}
     }).subscribe();

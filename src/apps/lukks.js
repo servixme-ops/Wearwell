@@ -104,7 +104,7 @@ mount(el,ctx,live){
         ext?h('button',{class:'btn block lx-visit',onclick:()=>openExternal(ext)},icon('link'),'Visit link'):null,
         x.category&&h('span',{class:'lx-tag'},x.category),
         receiptCard,
-        more.length?h('h3',{class:'lx-h3'},'More ideas'):null,more.length?masonry(more.slice(0,16),y=>{popView();openPost(y);}):null)));
+        more.length?h('h3',{class:'lx-h3'},'More lukks'):null,more.length?masonry(more.slice(0,16),y=>{popView();openPost(y);}):null)));
     v.classList.add('full');
   }
 
@@ -190,7 +190,7 @@ mount(el,ctx,live){
       if(s){out.append(spinner());const r=await sb.rpc('discover_posts',{p_limit:60,p_q:s});if(searchQ.trim()!==s)return;out.replaceChildren(r.error?empty('Search failed',errMsg(r.error)):(masonry(Array.isArray(r.data)?r.data:[],openPost)||empty('Nothing found','Try another style, piece or name.')));return;}
       const counts=styles().map(c=>({c,n:feed.filter(x=>x.category===c).length,cover:(feed.find(x=>x.category===c)||{photos:[]}).photos[0]}));
       const go=c=>{cat=c;Local.set('lxCat',c);setTab('home');};
-      out.append(h('h3',{class:'lx-h3'},'Ideas for You'),h('div',{class:'lx-tiles'},counts.slice(0,8).map(o=>h('button',{class:'lx-tile',onclick:()=>go(o.c)},o.cover?h('img',{src:ph(o.cover),alt:''}):h('div',{class:'lx-tilebg'},logoEl(40)),h('span',null,o.c)))),
+      out.append(h('h3',{class:'lx-h3'},'Lukks for You'),h('div',{class:'lx-tiles'},counts.slice(0,8).map(o=>h('button',{class:'lx-tile',onclick:()=>go(o.c)},o.cover?h('img',{src:ph(o.cover),alt:''}):h('div',{class:'lx-tilebg'},logoEl(40)),h('span',null,o.c)))),
         h('h3',{class:'lx-h3'},'Trending'),h('div',{class:'group',style:{margin:'0 0 90px'}},counts.slice().sort((a,b)=>b.n-a.n).slice(0,6).map(o=>h('button',{class:'item',onclick:()=>go(o.c)},icon('search'),h('span',{class:'grow'},h('b',null,o.c.toLowerCase())),h('span',{class:'muted'},o.n+' lukks')))));
     };
     qi.oninput=()=>{searchQ=qi.value;clearTimeout(t);t=setTimeout(run,300);};
@@ -402,6 +402,8 @@ mount(el,ctx,live){
   if(it.me&&Auth.user&&Auth.profile)setTimeout(()=>openProfile(Auth.profile.username),50);
   else if(it.me)authed();
   else if(it.challenge)setTimeout(()=>openChallenge(it.challenge),80);
+  else if(it.group)setTimeout(()=>openGroup(it.group),80);
+  else if(it.profile)setTimeout(()=>openProfile(it.profile),80);
   else if(it.post)sb.rpc('discover_posts',{p_ids:[it.post]}).then(r=>{const x=(r.data||[])[0];if(x)openPost(x);});
   draw();
 }});

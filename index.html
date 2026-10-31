@@ -258,6 +258,14 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
 <g transform="translate(84 112) rotate(-18)"><ellipse rx="23" ry="27" fill="#fff6ee"/><g class="lk-pup lk-p1"><ellipse cx="4" cy="-1" rx="14" ry="19" fill="#12061a"/><path d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4Z" transform="translate(4 -1) scale(.9)" fill="#fff"/></g></g>
 <g transform="translate(130 88) rotate(-12)"><ellipse rx="21" ry="26" fill="#fff6ee"/><g class="lk-pup lk-p2"><ellipse cx="3" cy="-1" rx="13" ry="18" fill="#12061a"/><path d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4Z" transform="translate(3 -1) scale(.85)" fill="#fff"/></g></g></svg></span><b>LUKKS</b><span>Find your kind of style</span></div></div>
 
+<script>
+/* If the page loaded without internet (black designs), reload the moment the connection is back. */
+(function(){var bad=!navigator.onLine;
+addEventListener('error',function(e){var t=e.target;if(t&&t.tagName&&/^(SCRIPT|IMG|LINK)$/.test(t.tagName))bad=true;},true);
+addEventListener('offline',function(){bad=true;});
+addEventListener('online',function(){if(!bad)return;if(window.__picking){var iv=setInterval(function(){if(!window.__picking){clearInterval(iv);location.reload();}},1000);return;}bad=false;location.reload();});
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="src/data.js"></script>
