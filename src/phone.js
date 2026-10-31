@@ -75,7 +75,24 @@ function removeWallpaperFile(url){const m=/\/wallpapers\/(.+)$/.exec(url||'');if
 
 /* ---------- Notifications ---------- */
 const Notifs={
-  items:[],_ch:null,
+  items:[],_ch:null,_seen:new Set(),_primed:false,_iv:null,_rows:[],
+  _mk(x){return{id:'db:'+x.id,dbId:x.id,app:x.app||'lukks',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()};},
+  /* checks for new activity every few seconds, so banners arrive like on an iPhone even if realtime is slow */
+  async poll(){
+    if(!Auth.user||!sb){this._rows=[];this.paintBadges();return;}
+    let rows=[];try{const r=await sb.from('notifications').select('*').eq('read',false).order('created_at',{ascending:false}).limit(40);if(r.error)return;rows=r.data||[];}catch(e){return;}
+    const dis=this.dismissed();
+    rows.slice().reverse().forEach(x=>{const id='db:'+x.id;if(this._seen.has(id))return;this._seen.add(id);
+      if(!this._primed||dis[id]||this.items.some(i=>i.id===id))return;
+      const n=this._mk(x);this.items.unshift(n);Phone.banner(n);try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}
+      if(typeof Sound!=='undefined'&&Sound.ping)try{Sound.ping();}catch(e){}});
+    this._primed=true;this._rows=rows;
+    Phone.renderNotifs();this.paintBadges();
+  },
+  paintBadges(){
+    const c={};(this._rows||[]).forEach(x=>{const a=x.app||'lukks';c[a]=(c[a]||0)+1;});
+    document.querySelectorAll('.app-icon .badge').forEach(b=>{const ic=b.closest('.app-icon');const id=ic&&ic.dataset.id;if(!id||id==='messages')return;const n=c[id]||0;b.hidden=!n;b.textContent=n>9?'9+':String(n);});
+  },
   prefs(){const d={events:true,community:true,features:true,testimonials:true,campaigns:true};return Object.assign(d,Auth.settings?Auth.settings.notif_prefs:Local.get('notifprefs',{}));},
   async savePrefs(p){if(Auth.user){const r=await Auth.saveSettings({notif_prefs:p});return r;}Local.set('notifprefs',p);return{};},
   dismissed(){const d=Local.get('dismissed',{});const now=Date.now();let ch=false;for(const k in d)if(now-d[k]>7*864e5){delete d[k];ch=true;}if(ch)Local.set('dismissed',d);return d;},
@@ -83,6 +100,7 @@ const Notifs={
     const d=this.dismissed();d[n.id]=Date.now();Local.set('dismissed',d);
     this.items=this.items.filter(x=>x.id!==n.id);
     if(n.dbId&&sb&&Auth.user)sb.from('notifications').update({read:true}).eq('id',n.dbId).then(()=>{});
+    this._rows=this._rows.filter(x=>'db:'+x.id!==n.id);this.paintBadges();
     Phone.renderNotifs();
   },
   async build(){
@@ -108,7 +126,7 @@ const Notifs={
     if(Auth.user&&sb){
       try{
         const r=await sb.from('notifications').select('*').eq('read',false).order('created_at',{ascending:false}).limit(30);
-        (r.data||[]).forEach(x=>add({id:'db:'+x.id,dbId:x.id,app:x.app||'account',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()}));
+        (r.data||[]).forEach(x=>{this._seen.add('db:'+x.id);add({id:'db:'+x.id,dbId:x.id,app:x.app||'lukks',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()})});
         const [ph,sub,ad]=await Promise.all([
           sb.from('photos').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id).eq('status','pending'),
           sb.from('magazine_submissions').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id).eq('status','pending'),
@@ -124,10 +142,11 @@ const Notifs={
     out.sort((a,b)=>b.t-a.t);this.items=out;Phone.renderNotifs();
   },
   subscribe(){
+    clearInterval(this._iv);this._iv=setInterval(()=>{if(Phone.state!=='closed'&&!document.hidden)Notifs.poll();},12000);this.poll();
     if(this._ch&&sb){try{sb.removeChannel(this._ch);}catch(e){}this._ch=null;}
     if(!Auth.user||!sb)return;
     this._ch=sb.channel('notifs-'+Auth.user.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'user_id=eq.'+Auth.user.id},p=>{
-      const x=p.new;const n={id:'db:'+x.id,dbId:x.id,app:x.app||'account',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:Date.now()};
+      const x=p.new;if(this._seen.has('db:'+x.id))return;this._seen.add('db:'+x.id);const n={id:'db:'+x.id,dbId:x.id,app:x.app||'lukks',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:Date.now()};this._rows.unshift(x);
       this.items.unshift(n);Phone.renderNotifs();Phone.banner(n);
       if('Notification' in window&&Notification.permission==='granted'&&document.hidden){try{new Notification(x.title,{body:x.body||'',icon:'icons/icon-192.png'});}catch(e){}}
     }).subscribe();
@@ -196,7 +215,7 @@ const Phone={
     this.toasts=h('div',{id:'toasts',class:'toasts'});this.bannerBox=h('div',{class:'banner-box'});
     scr.append(this.homeEl,this.appHost,this.lockEl,this.status,this.roomBtn,this.bannerBox,this.toasts,this.indicator);
     this.shell=h('div',{class:'phone-shell'},h('span',{class:'side-btn b1'}),h('span',{class:'side-btn b2'}),h('span',{class:'side-btn b3'}),h('span',{class:'side-btn pw'}),scr);
-    L.appendChild(this.shell);document.body.appendChild(L);
+    L.appendChild(this.shell);document.body.appendChild(L);this.bindCenter();
     this.updateSoundBtn();this.setBatt(null);
   },
   fit(){
@@ -333,6 +352,33 @@ const Phone={
   goHome(){
     if(this.app){this.backTo=null;this.closeApp();}else if(this.state==='home'){this.homeScroll.scrollTo({left:0,behavior:'smooth'});this.setEditing(false);}
   },
+  /* ---- notification centre: pull down from the top of the screen (or tap the clock) ---- */
+  openCenter(){
+    if(this.state==='closed'||this.state==='lock'||this._nc)return;
+    const list=h('div',{class:'nc-list'});
+    const draw=()=>{list.replaceChildren();
+      if(!Notifs.items.length){list.append(h('div',{class:'nc-empty'},'No new notifications'));return;}
+      Notifs.items.forEach(n=>{const app=Apps.get(n.app)||{};
+        const card=h('div',{class:'notif nc-card',role:'button',tabindex:'0',onclick:()=>{this.closeCenter();Notifs.dismiss(n);setTimeout(()=>this.openApp(n.app,n.intent),260);}},
+          h('span',{class:'n-ic',html:app.glyph?app.glyph():''}),
+          h('div',{class:'n-txt'},h('div',{class:'n-title'},n.title),h('div',{class:'n-body'},n.body)),
+          h('span',{class:'n-time'},timeAgo(n.t)),
+          h('button',{class:'n-x','aria-label':'Dismiss',style:{opacity:1},onclick:e=>{e.stopPropagation();Notifs.dismiss(n);draw();}},icon('close')));
+        list.append(card);});};
+    draw();
+    const box=this._nc=h('div',{class:'nc'},h('div',{class:'nc-head'},h('b',null,'Notifications'),h('span',{class:'grow'}),
+      h('button',{class:'nc-clear',onclick:()=>{[...Notifs.items].forEach(n=>Notifs.dismiss(n));draw();}},'Clear all'),
+      h('button',{class:'nc-close','aria-label':'Close',onclick:()=>this.closeCenter()},icon('close'))),list);
+    this.screen.insertBefore(box,this.bannerBox);requestAnimationFrame(()=>box.classList.add('in'));
+    Notifs.poll();
+  },
+  closeCenter(){const b=this._nc;if(!b)return;this._nc=null;b.classList.remove('in');setTimeout(()=>b.remove(),260);},
+  bindCenter(){
+    const scr=this.screen;let st=null;
+    scr.addEventListener('pointerdown',e=>{const r=scr.getBoundingClientRect();const sc=r.height/scr.offsetHeight||1;if((e.clientY-r.top)/sc<42&&!e.target.closest('.sb-btn,.room-btn'))st={y:e.clientY,x:e.clientX,t:performance.now()};else st=null;});
+    scr.addEventListener('pointermove',e=>{if(!st)return;if(e.clientY-st.y>38&&Math.abs(e.clientX-st.x)<90){st=null;this.openCenter();}});
+    ['pointerup','pointercancel'].forEach(n=>scr.addEventListener(n,()=>{st=null;}));
+  },
   /* ---- notifications on lock screen ---- */
   renderNotifs(){
     if(!this.notifBox)return;
@@ -361,7 +407,7 @@ const Phone={
   banner(n){
     if(this.state==='closed')return;
     const app=Apps.get(n.app)||{};
-    const b=h('div',{class:'banner',role:'alert',onclick:()=>{b.remove();if(this.state==='lock'){this.intentAfterUnlock={open:n.app,intent:n.intent};this.unlock();}else this.openApp(n.app,n.intent);}},
+    const b=h('div',{class:'banner',role:'alert',onclick:()=>{b.remove();Notifs.dismiss(n);if(this.state==='lock'){this.intentAfterUnlock={open:n.app,intent:n.intent};this.unlock();}else this.openApp(n.app,n.intent);}},
       h('span',{class:'n-ic',html:app.glyph?app.glyph():''}),h('div',{class:'n-txt'},h('div',{class:'n-title'},n.title),h('div',{class:'n-body'},n.body)));
     this.bannerBox.appendChild(b);setTimeout(()=>b.classList.add('out'),4200);setTimeout(()=>b.remove(),4600);
   },
@@ -427,7 +473,7 @@ const Phone={
     page1.appendChild(grid);this.homeScroll.append(page1,page2);
     if(!this._dotBound){this._dotBound=true;this.homeScroll.addEventListener('scroll',()=>{const i=Math.round(this.homeScroll.scrollLeft/Math.max(1,this.homeScroll.clientWidth));[...this.dotsEl.children].forEach((d,j)=>d.classList.toggle('on',j===i));},{passive:true});}
     Apps.list.filter(a=>a.dock).forEach(a=>this.dockEl.appendChild(this.iconEl(a)));
-    this.renderCalIcon();this.updateBadges();
+    this.renderCalIcon();this.updateBadges();Notifs.paintBadges();
   },
   async loadWidgetEvent(){
     if(!sb||!this.wToday)return;
