@@ -156,7 +156,7 @@ async function signedUrl(bucket,path,secs=3600){
 }
 function pickFiles(accept){
   return new Promise(res=>{
-    const i=h('input',{type:'file',accept,multiple:true,style:{display:'none'}});
+    const i=h('input',{type:'file',accept,multiple:!!(window.Auth&&Auth.user),style:{display:'none'}});
     window.__picking=true;const done=()=>{setTimeout(()=>{window.__picking=false;},1500);};const guardT=setTimeout(()=>{window.__picking=false;},180000);
     i.addEventListener('change',()=>{clearTimeout(guardT);done();res(Array.from(i.files||[]));i.remove();});
     i.addEventListener('cancel',()=>{clearTimeout(guardT);done();res([]);i.remove();});

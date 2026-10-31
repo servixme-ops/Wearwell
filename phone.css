@@ -517,3 +517,6 @@ body[data-mode=phone] .pwa-banner,body:not([data-mode=room]) .pwa-banner{display
 .lx-ulist .item b{display:block;font-size:15px}.lx-ulist .item span span{font-size:13px;color:#8e8e93}
 /* long photos: always keep the head in view when a picture is cropped */
 .photo-grid img,.ph img,.album-img img,.thumb,.rc-card img,.lx-card img,.lx-mosaic img,.lx-tile img,.lx-chcard img,.lx-cover,.lx-pthumb img,.lx-sthumb img,.lx-gtile img,.lx-pickc img,.lx-simhead img{object-position:50% 0}
+.photo-grid .ph.picked img{opacity:.55}.ph-tick{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.35);display:grid;place-items:center;color:#fff}.ph-tick .ic svg{width:14px;height:14px}.ph.picked .ph-tick{background:var(--ios-blue,#0a84ff)}
+.ph-selbar{position:sticky;bottom:0;display:flex;gap:8px;justify-content:center;padding:12px;background:rgba(242,242,247,.92);backdrop-filter:blur(10px)}
+.album.dim{opacity:.45}.album.picked .album-img{outline:3px solid var(--ios-blue,#0a84ff)}

@@ -25,7 +25,7 @@ const Contrib={
   /* shared dialog: save one or more photos into the gallery. Signed out: Randoms only, kept on this device. */
   sendSheet(ctx,input,opts){
     opts=opts||{};
-    const files=(Array.isArray(input)?input:[input]).filter(Boolean).map(x=>x instanceof File?x:new File([x],'photo.jpg',{type:x.type||'image/jpeg'}));
+    const files=(Array.isArray(input)?input:[input]).filter(Boolean).slice(0,Auth.user?50:1).map(x=>x instanceof File?x:new File([x],'photo.jpg',{type:x.type||'image/jpeg'}));
     sheet(files.length>1?'Save photos':'Save photo',async(b,close)=>{
       const albums=await this.albums();const signed=!!Auth.user;
       const items=files.map(f=>({file:f,url:URL.createObjectURL(f),pending:true}));
@@ -62,9 +62,9 @@ const Contrib={
         if(cancel.v&&!n){toast('Cancelled');return;}
         toast((n>1?n+' photos':'Photo')+' saved to '+(albums.find(a=>a.slug===slug)||{title:'Randoms'}).title+(cancel.v?' (cancelled the rest)':''),'ok');close();opts.done&&opts.done();
       })},'Save to gallery');
-      b.append(strip,field('Folder',sel,signed?null:'Signed out, photos go to Randoms and stay on this device.'),nfBox,field('Caption',cap),saveB,cancelB,
+      b.append(...[strip,field('Folder',sel,signed?undefined:'Signed out: one photo at a time, saved to Randoms on this device. Sign in to add many and pick folders.'),nfBox,field('Caption',cap),saveB,cancelB,
         signed?null:h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to choose a folder'),
-        h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{const ok=items.filter(i=>i.prepared);ok.forEach(i=>download(i.prepared.blob,'lukks-photo.'+i.prepared.ext));}},icon('download'),'Save to my device'));
+        h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{const ok=items.filter(i=>i.prepared);ok.forEach(i=>download(i.prepared.blob,'lukks-photo.'+i.prepared.ext));}},icon('download'),'Save to my device')].filter(Boolean));
     });
   }
 };
@@ -79,7 +79,7 @@ mount(el,ctx){
   const flash=h('div',{class:'cam-flash'});
   const shutter=h('button',{class:'shutter','aria-label':'Take photo',onclick:capture});
   const flip=h('button',{class:'cam-side','aria-label':'Switch camera',onclick:()=>{facing=facing==='environment'?'user':'environment';start();}},icon('flip'));
-  const pick=h('button',{class:'cam-side','aria-label':'Choose a photo',onclick:async()=>{const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length)Contrib.sendSheet(ctx,fs);}},icon('image'));
+  const pick=h('button',{class:'cam-side','aria-label':'Choose a photo',onclick:async()=>{const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length){if(!Auth.user&&fs.length>1)toast('Sign in to add more than one photo');Contrib.sendSheet(ctx,fs);}}},icon('image'));
   const stage=h('div',{class:'cam-stage'},video,msg,flash);
   el.append(appBar({title:'Camera',onBack:ctx.close,backLabel:'Back'}),stage,h('div',{class:'cam-bar'},pick,shutter,flip));
   async function start(){
