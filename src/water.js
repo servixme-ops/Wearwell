@@ -9,11 +9,6 @@ const WaterWall={
     let gr=g.createLinearGradient(0,0,0,y0+H*.05);gr.addColorStop(0,'#7fcbe8');gr.addColorStop(.7,'#c8ecf5');gr.addColorStop(1,'#eaf8fb');g.fillStyle=gr;g.fillRect(0,0,W,H);
     let rg=g.createRadialGradient(W*.5,H*.05,2,W*.5,H*.05,W*.7);rg.addColorStop(0,'rgba(255,255,255,.95)');rg.addColorStop(.25,'rgba(255,255,240,.55)');rg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=rg;g.fillRect(0,0,W,y0+H*.1);
     g.fillStyle='rgba(255,255,255,.55)';[[.22,.2,.2,.02],[.78,.16,.17,.018],[.6,.26,.22,.015]].forEach(c=>{g.beginPath();g.ellipse(W*c[0]+Math.sin(t*.1+c[0]*9)*6,H*c[1],W*c[2],H*c[3],0,0,7);g.fill();});
-    /* palms */
-    const palm=(px,py,dir,s)=>{g.save();g.translate(px,py);g.scale(dir*s,s);g.strokeStyle='#1f5a34';g.lineCap='round';
-      for(let i=0;i<7;i++){const a=-0.3+i*0.42,sw=Math.sin(t*.8+i)*0.04;for(const [lw,col] of [[10,'#1f5a34'],[4,'#3f8a52']]){g.strokeStyle=col;g.lineWidth=lw;g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(Math.cos(a+sw)*70,Math.sin(a+sw)*70-40,Math.cos(a+sw)*130,Math.sin(a+sw)*130+10);g.stroke();}}
-      g.restore();};
-    
     /* water body */
     g.save();g.beginPath();g.moveTo(-5,H+5);g.lineTo(-5,surf(-5));for(let x=0;x<=W+8;x+=8)g.lineTo(x,surf(x));g.lineTo(W+5,H+5);g.closePath();g.clip();
     gr=g.createLinearGradient(0,y0-H*.12,0,H);gr.addColorStop(0,'#4fd0de');gr.addColorStop(.25,'#1e9cb8');gr.addColorStop(.6,'#0f7896');gr.addColorStop(1,'#0a5a74');g.fillStyle=gr;g.fillRect(0,0,W,H);

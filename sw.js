@@ -1,5 +1,5 @@
 /* Lukks service worker: offline shell, never caches API or payment traffic. */
-const VER='lukks-v22';
+const VER='lukks-v23';
 const SHELL=['./','index.html','phone.css','profile.css','manifest.webmanifest','src/data.js','src/art.js','src/issue.js','src/config.js','src/logo.js','src/ui.js','src/scene.js','src/api.js','src/sound.js','src/water.js','icons/wp-ash.jpg','src/phone.js','src/profileview.js','src/pwa.js','src/phone3d.js','src/flow.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'].concat(['01','02','03','04','05','06','07','08','09','10','11'].map(n=>'mag/p'+n+'.jpg')).concat(['common','calendar','camera','photos','messages','safari','notes','profile','receipt','post','lukks','ads','account'].map(n=>'src/apps/'+n+'.js'));
 const STATIC_HOSTS=['cdnjs.cloudflare.com','cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));});
@@ -10,7 +10,7 @@ self.addEventListener('fetch',e=>{
   if(u.origin===location.origin){
     if(/admin\.html|profile\.html/.test(u.pathname)&&r.mode==='navigate')return;
     // network first so updates arrive, fall back to cache offline
-    e.respondWith(fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(VER).then(c=>c.put(r,cp));}return res;}).catch(()=>caches.match(r).then(m=>m||caches.match('index.html'))));
+    e.respondWith(fetch(r,{cache:'reload'}).then(res=>{if(res.ok){const cp=res.clone();caches.open(VER).then(c=>c.put(r,cp));}return res;}).catch(()=>caches.match(r).then(m=>m||caches.match('index.html'))));
     return;
   }
   if(STATIC_HOSTS.includes(u.host)){
