@@ -41,6 +41,7 @@ const Contrib={
       sel.onchange=()=>{nfBox.hidden=sel.value!=='__new';if(sel.value!=='__new')want=sel.value;};
       const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption (optional)'});
       const cancel={v:false};const cancelB=h('button',{class:'btn block',hidden:true,style:{marginTop:'8px'},onclick:()=>{cancel.v=true;cancelB.textContent='Cancelling…';}},'Cancel');
+      const saveLbl=signed?'Save to gallery':'Save to Randoms';
       const saveB=h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         if(items.some(i=>i.pending))throw new Error('Photos are still loading.');
         if(!items.length)throw new Error('No photos to save.');
@@ -58,10 +59,10 @@ const Contrib={
             else await LocalGallery.add(pr.blob,'randoms',cap.value.trim().slice(0,200));
             n++;
           }
-        }finally{cancelB.hidden=true;cancelB.textContent='Cancel';saveB.textContent='Save to gallery';}
+        }finally{cancelB.hidden=true;cancelB.textContent='Cancel';saveB.textContent=saveLbl;}
         if(cancel.v&&!n){toast('Cancelled');return;}
         toast((n>1?n+' photos':'Photo')+' saved to '+(albums.find(a=>a.slug===slug)||{title:'Randoms'}).title+(cancel.v?' (cancelled the rest)':''),'ok');close();opts.done&&opts.done();
-      })},'Save to gallery');
+      })},saveLbl);
       b.append(...[strip,field('Folder',sel,signed?undefined:'Signed out: one photo at a time, saved to Randoms on this device. Sign in to add many and pick folders.'),nfBox,field('Caption',cap),saveB,cancelB,
         signed?null:h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to choose a folder'),
         h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{const ok=items.filter(i=>i.prepared);ok.forEach(i=>download(i.prepared.blob,'lukks-photo.'+i.prepared.ext));}},icon('download'),'Save to my device')].filter(Boolean));
