@@ -521,3 +521,4 @@ body[data-mode=phone] .pwa-banner,body:not([data-mode=room]) .pwa-banner{display
 .ph-selbar{position:sticky;bottom:0;display:flex;gap:8px;justify-content:center;padding:12px;background:rgba(242,242,247,.92);backdrop-filter:blur(10px)}
 .album.dim{opacity:.45}.album.picked .album-img{outline:3px solid var(--ios-blue,#0a84ff)}
 .photo-grid .ph,.album{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.photo-grid .ph img{pointer-events:none;-webkit-user-drag:none}
+.app[data-app=photos]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
