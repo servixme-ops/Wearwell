@@ -13,7 +13,7 @@ const WaterWall={
     const palm=(px,py,dir,s)=>{g.save();g.translate(px,py);g.scale(dir*s,s);g.strokeStyle='#1f5a34';g.lineCap='round';
       for(let i=0;i<7;i++){const a=-0.3+i*0.42,sw=Math.sin(t*.8+i)*0.04;for(const [lw,col] of [[10,'#1f5a34'],[4,'#3f8a52']]){g.strokeStyle=col;g.lineWidth=lw;g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(Math.cos(a+sw)*70,Math.sin(a+sw)*70-40,Math.cos(a+sw)*130,Math.sin(a+sw)*130+10);g.stroke();}}
       g.restore();};
-    palm(W*.04,H*.02,1,W/380);palm(W*.97,H*.05,-1,W/420);
+    
     /* water body */
     g.save();g.beginPath();g.moveTo(-5,H+5);g.lineTo(-5,surf(-5));for(let x=0;x<=W+8;x+=8)g.lineTo(x,surf(x));g.lineTo(W+5,H+5);g.closePath();g.clip();
     gr=g.createLinearGradient(0,y0-H*.12,0,H);gr.addColorStop(0,'#4fd0de');gr.addColorStop(.25,'#1e9cb8');gr.addColorStop(.6,'#0f7896');gr.addColorStop(1,'#0a5a74');g.fillStyle=gr;g.fillRect(0,0,W,H);
