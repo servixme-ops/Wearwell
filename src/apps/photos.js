@@ -33,7 +33,17 @@ mount(el,ctx,live){
     return out.sort((x,y)=>String(y.t).localeCompare(String(x.t)));
   }
   let sel=null; // Set of selected ids while in select mode
-  const selBar=(n,onDel,extra)=>h('div',{class:'ph-selbar'},h('button',{class:'btn small danger',disabled:!n,onclick:onDel},icon('trash'),n?'Delete ('+n+')':'Delete'),extra||null,h('button',{class:'btn small',onclick:()=>{sel=null;view.t==='album'?openAlbum(view.a):drawAlbums();}},'Done'));
+  const selBar=(n,onDel,extra)=>h('div',{class:'ph-selbar'},h('button',{class:'btn small danger',disabled:!n,onclick:onDel},icon('trash'),n?'Delete ('+n+')':'Delete'),...[].concat(extra||[]).filter(Boolean),h('button',{class:'btn small',onclick:()=>{sel=null;view.t==='album'?openAlbum(view.a):drawAlbums();}},'Done'));
+  function movePhotos(a,items){
+    const cloud=items.filter(p=>p.kind==='cloud'),local=items.length-cloud.length;
+    if(!cloud.length)return toast('Photos saved on this device can’t be moved. Sign in to save to folders.','err');
+    sheet('Move to…',(b,close)=>{
+      const dests=albums.filter(x=>x.slug!==a.slug);
+      b.append(h('div',{class:'group',style:{margin:'8px 14px'}},dests.map(d=>h('button',{class:'item',onclick:async e=>{
+        try{const r=await sb.from('photos').update({album_slug:d.slug}).in('id',cloud.map(p=>p.id));if(r.error)throw r.error;
+          close();toast('Moved '+cloud.length+(cloud.length===1?' photo':' photos')+' to '+d.title+(local?' ('+local+' on-device skipped)':''),'ok');sel=null;openAlbum(a);}catch(er){toast(errMsg(er),'err');}}},h('span',{class:'grow'},h('b',null,d.title))))));
+    });
+  }
   async function delPhotos(a,items){
     for(const p of items){if(p.kind==='local')await LocalGallery.del(p.id);else{const r=await sb.from('photos').delete().eq('id',p.id);if(r.error)throw r.error;removeFile('gallery',p.path);}}
   }
@@ -50,7 +60,9 @@ mount(el,ctx,live){
     list.forEach((p,i)=>{const b=h('button',{class:'ph'+(sel&&sel.has(p.id)?' picked':''),'aria-label':p.caption||'Photo',onclick:()=>{if(!sel)return viewer(a,list,i);if(sel.has(p.id))sel.delete(p.id);else sel.add(p.id);openAlbum(a);}},h('img',{src:p.src,alt:p.caption||'',loading:'lazy'}),sel?h('span',{class:'ph-tick'},sel.has(p.id)?icon('check'):null):null);g.append(b);});
     body.append(g);
     if(sel)body.append(selBar(sel.size,async()=>{if(!sel.size)return;if(!await confirmBox('Delete '+sel.size+(sel.size===1?' photo?':' photos?'),'This cannot be undone.','Delete',true))return;try{await delPhotos(a,list.filter(p=>sel.has(p.id)));toast('Deleted','ok');}catch(e){toast(errMsg(e),'err');}sel=null;openAlbum(a);},
-      own?h('button',{class:'btn small danger',onclick:()=>delFolders([a],()=>drawAlbums0())},'Delete folder'):null));
+      [h('button',{class:'btn small',disabled:!sel.size,onclick:()=>movePhotos(a,list.filter(p=>sel.has(p.id)))},'Move'),
+       h('button',{class:'btn small',onclick:()=>{if(sel.size===list.length)sel.clear();else list.forEach(p=>sel.add(p.id));openAlbum(a);}},sel.size===list.length?'Clear':'All'),
+       own?h('button',{class:'btn small danger',onclick:()=>delFolders([a],()=>drawAlbums0())},'Delete folder'):null]));
   }
   const drawAlbums0=()=>{Contrib._albums=null;sel=null;loadAlbums();};
   async function delFolders(fs,after){
