@@ -109,6 +109,7 @@ button:focus-visible{outline:2px solid var(--maroon);outline-offset:2px}
 #readBot .ctl button:disabled{opacity:.4}
 #readBot .ctl svg{width:22px;height:22px}
 #readBot #zoomBtn.on{background:var(--ochre)}
+#readBot #saveRead.on{background:#ff4a6a;color:#fff}#readBot #saveRead.on svg{fill:#fff}
 .bar{flex:1;height:4px;background:rgba(255,243,223,.3);border-radius:4px;overflow:hidden}
 #rBar{height:100%;background:#fff3df;width:0}
 #readHint{font-size:12.5px;color:#fff3df;text-shadow:0 1px 8px rgba(0,0,0,.8)}
@@ -241,6 +242,7 @@ body[data-mode=browse] #fab{bottom:calc(var(--nav-h) + 205px + env(safe-area-ins
     <button id="rPrev" aria-label="Previous page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg></button>
     <div class="bar"><div id="rBar"></div></div>
     <button id="zoomBtn" aria-label="Zoom page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5M11 8v6M8 11h6"/></svg></button>
+    <button id="saveRead" aria-label="Save this lukk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 20.5C5 15.5 3 12 3 9a4.8 4.8 0 0 1 9-2.3A4.8 4.8 0 0 1 21 9c0 3-2 6.500-9 11.500z"/></svg></button>
     <button id="rNext" aria-label="Next page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"/></svg></button>
   </div>
 </div>

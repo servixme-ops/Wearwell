@@ -48,7 +48,16 @@ mount(el,ctx,live){
       const pickBtn=(k,label,box)=>h('button',{class:'btn block',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;const p=await prepareImage(f,{max:1600});files[k]=p;box.replaceChildren(h('img',{src:URL.createObjectURL(p.blob),alt:label+' preview'}));}catch(e){toast(errMsg(e),'err');}}},icon('image'),label);
       const info=h('p',{class:'muted small-t'});const upd=()=>{if(start.value){const e=new Date(start.value+'T12:00:00');e.setDate(e.getDate()+pkg.days-1);info.textContent=`Runs ${fmtDate(start.value+'T12:00:00',{day:'numeric',month:'short'})} to ${fmtDate(e,{day:'numeric',month:'short',year:'numeric'})}`;}};start.addEventListener('input',upd);upd();
       const err=h('p',{class:'err-t',role:'alert'});
-      b.append(field('Magazine',issue),field('Start date',start,'Campaigns start tomorrow or later.'),info,field('Brand name',brand),field('Description',desc),field('Link readers will visit',dest,'Must start with https://'),field('Contact email',mail),field('Contact phone',tel),
+      const DETAILS={
+        cover:['Your brand on the front cover of the magazine for 7 days','Your logo and cover image are the first thing readers see','A tap on your cover opens your website and social links','Placed in the crate, top of the stack'],
+        page:['A dedicated full page inside the magazine for 7 days','Your logo, creative and short description laid out for you','Readers tap your page to open your website and social links','Sits between lukks, so it is read, not skipped']};
+      const det=h('div',{class:'ad-det'},h('b',null,pkg.id==='cover'?'Front cover feature, what you get':'Inside magazine page, what you get'),h('ul',null,(pkg.id==='cover'?DETAILS.cover:DETAILS.page).map(t=>h('li',null,t))));
+      const SOC=[['Instagram link','https://instagram.com/yourbrand'],['TikTok link','https://tiktok.com/@yourbrand'],['Linktree or other link','https://linktr.ee/yourbrand'],['Another social link (optional)','https://']];
+      const socIn=SOC.map(x=>h('input',{type:'url',inputmode:'url',maxlength:'300',placeholder:x[1],autocapitalize:'off'}));
+      const socTags=h('div',{class:'lk-detect-row'});
+      const refreshSoc=()=>socTags.replaceChildren(...socIn.map(i=>identifyLink(i.value)).filter(Boolean).map(i=>linkChip(i)));
+      socIn.forEach(i=>i.addEventListener('input',refreshSoc));
+      b.append(det,field('Magazine',issue),field('Start date',start,'Campaigns start tomorrow or later.'),info,field('Brand name',brand),field('Description',desc),field('Website link',dest,'Where readers go when they tap your ad. Must start with https://'),h('div',{class:'f-label',style:{margin:'10px 0 4px'}},'Social links (add any you have)'),h('div',{class:'stack'},SOC.map((x,k)=>field(x[0],socIn[k]))),socTags,field('Contact email',mail),field('Contact phone',tel),
         h('div',{class:'f-label',style:{margin:'4px 0'}},'Logo (required)'),lp,pickBtn('logo','Choose logo',lp),
         h('div',{class:'f-label',style:{margin:'12px 0 4px'}},pkg.id==='cover'?'Cover image (required)':'Page creative (required)'),cp,pickBtn('cover',pkg.id==='cover'?'Choose cover image':'Choose page image',cp),
         err,h('div',{class:'row-flex',style:{marginTop:'10px'}},h('b',{class:'grow'},'Total'),h('b',{style:{fontSize:'20px'}},fmtKobo(pkg.price_kobo))),
@@ -57,12 +66,13 @@ mount(el,ctx,live){
           try{
             if(!brand.value.trim())throw new Error('Add your brand name.');if(desc.value.trim().length<10)throw new Error('Add a short description.');
             const u=safeUrl(dest.value.trim());if(!u||!/^https:/.test(u))throw new Error('Enter a link starting with https://');
+            const socials=[];for(const i of socIn){if(!i.value.trim())continue;const k=identifyLink(i.value);if(!k||!/^https:/.test(k.url))throw new Error('Check your social link: '+i.value.trim().slice(0,40));socials.push({key:k.key,name:k.name,url:k.url});}
             if(!/^\S+@\S+\.\S+$/.test(mail.value.trim()))throw new Error('Enter a valid contact email.');
             if(!files.logo)throw new Error('Please add your logo.');if(!files.cover)throw new Error('Please add your '+(pkg.id==='cover'?'cover image.':'page creative.'));
             if(!start.value)throw new Error('Choose a start date.');
             const lg=await uploadFile('ad-creatives',files.logo.blob,files.logo.ext,files.logo.type),cv=await uploadFile('ad-creatives',files.cover.blob,files.cover.ext,files.cover.type);
             const s=new Date(start.value+'T12:00:00'),en=new Date(s);en.setDate(en.getDate()+pkg.days-1);
-            const r=await sb.from('ad_bookings').insert({user_id:Auth.user.id,package_id:pkg.id,issue_id:issue.value,brand_name:brand.value.trim(),description:desc.value.trim(),destination_url:u,contact_email:mail.value.trim(),contact_phone:tel.value.trim()||null,logo_path:lg,cover_image_path:cv,creatives:[cv],start_date:start.value,end_date:isoDay(en)}).select().single();
+            const r=await sb.from('ad_bookings').insert({user_id:Auth.user.id,package_id:pkg.id,issue_id:issue.value,brand_name:brand.value.trim(),description:desc.value.trim(),destination_url:u,social_links:socials,contact_email:mail.value.trim(),contact_phone:tel.value.trim()||null,logo_path:lg,cover_image_path:cv,creatives:[cv],start_date:start.value,end_date:isoDay(en)}).select().single();
             if(r.error){removeFile('ad-creatives',lg);removeFile('ad-creatives',cv);throw r.error;}
             close();await startPay(r.data);
           }catch(ex){err.textContent=errMsg(ex);}

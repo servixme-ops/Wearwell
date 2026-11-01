@@ -214,8 +214,16 @@ function followBook(dt){
   b.group.position.lerp(T1.pos,k);b.group.quaternion.slerp(T1.q,k);b.group.scale.setScalar(b.group.scale.x+(T1.sc-b.group.scale.x)*k);
   updatePageHud();
 }
+/* the lukk on the page you are reading (right page first, then left) */
+function readingLook(){
+  if(!S.book||!S.book.faces)return null;const n=S.book.NL,f=Math.round(S.flipT);if(f<=0||f>=n+0&&f>n)return null;
+  const faces=S.zoom?[S.zoom<0?2*f-1:2*f]:[2*f,2*f-1];
+  for(const i of faces){const fc=S.book.faces[i];if(fc&&fc.hs&&fc.hs.length)return fc.hs[0].look;}
+  return null;
+}
 let lastHud='';
 function updatePageHud(){
+  try{const sv=$('#saveRead'),lk=readingLook();if(sv){sv.disabled=!lk;sv.classList.toggle('on',!!(lk&&saved.has(lk.id)));}}catch(e){}
   const f=Math.round(S.flipT),n=S.book?S.book.NL:5;
   let txt;
   if(f===0)txt='Cover';else if(f>=n)txt='Back cover';else if(S.zoom)txt=`Page ${S.zoom<0?2*f:2*f+1} of ${2*n}`;else txt=`Pages ${2*f}–${2*f+1} of ${2*n}`;
@@ -518,6 +526,7 @@ function bindFab(){
   $('#rClose').onclick=()=>returnToCrate();
   $('#rPrev').onclick=()=>turn(-1);$('#rNext').onclick=()=>turn(1);
   $('#zoomBtn').onclick=toggleZoom;
+  $('#saveRead').onclick=()=>{const lk=readingLook();if(!lk)return;toggleSet(saved,'saved',lk.id);updatePageHud();toast(saved.has(lk.id)?'Saved. Find it under the heart.':'Removed from saved','ok');};
   $('#sheetClose').onclick=closeSheet;
   $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet();});
   $('#tagBtn').onclick=goBrowse;
