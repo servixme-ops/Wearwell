@@ -59,7 +59,11 @@ mount(el,ctx,live){
       else{await loadFeed();drawSearch();}
     }catch(e){main.replaceChildren(titleBar('Lukks'),empty('Could not load',errMsg(e),h('button',{class:'btn',onclick:()=>{feed=null;draw();}},'Try again')));}
   }
-  const meBtn=()=>h('button',{class:'lx-me','aria-label':'My profile',onclick:()=>{if(authed())openProfile(Auth.profile&&Auth.profile.username);}},Auth.user?avatar(Auth.profile):icon('user'));
+  const unreadN=()=>Auth.user&&typeof Notifs!=='undefined'?(Notifs._rows||[]).length:0;
+  const bellBtn=()=>{const b=h('i',{class:'lx-bell-b',hidden:!unreadN()},String(unreadN()>9?'9+':unreadN()));
+    return h('button',{class:'lx-me lx-bell','aria-label':'Notifications',onclick:()=>{if(authed())ctx.open('activity');}},icon('bell'),b);};
+  setInterval(function tick(){if(!root.isConnected)return;document.querySelectorAll('.lx-bell-b').forEach(b=>{const n=unreadN();b.hidden=!n;b.textContent=n>9?'9+':String(n);});},4000);
+  const meBtn=()=>[bellBtn(),h('button',{class:'lx-me','aria-label':'My profile',onclick:()=>{if(authed())openProfile(Auth.profile&&Auth.profile.username);}},Auth.user?avatar(Auth.profile):icon('user'))];
   function titleBar(t,right){
     return h('div',{class:'lx-title'},h('button',{class:'lx-circ','aria-label':'Back',onclick:ctx.close},icon('back')),h('h1',null,t),h('span',{class:'grow'}),right,meBtn());
   }
