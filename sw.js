@@ -1,6 +1,6 @@
 /* Lukks service worker: offline shell, never caches API or payment traffic. */
-const VER='lukks-v39';
-const SHELL=['./','index.html','phone.css','profile.css','manifest.webmanifest','src/data.js','src/art.js','src/issue.js','src/config.js','src/logo.js','src/ui.js','src/scene.js','src/api.js','src/sound.js','src/water.js','icons/wp-ash.jpg','src/phone.js','src/apps/activity.js','src/profileview.js','src/pwa.js','src/phone3d.js','src/flow.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'].concat(['01','02','03','04','05','06','07','08','09','10','11'].map(n=>'mag/p'+n+'.jpg')).concat(['common','calendar','camera','photos','messages','safari','notes','profile','receipt','post','lukks','ads','account'].map(n=>'src/apps/'+n+'.js'));
+const VER='lukks-v41';
+const SHELL=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','phone.css','profile.css','manifest.webmanifest','src/data.js','src/art.js','src/issue.js','src/config.js','src/logo.js','src/ui.js','src/scene.js','src/api.js','src/sound.js','src/water.js','icons/wp-ash.jpg','src/phone.js','src/apps/activity.js','src/profileview.js','src/pwa.js','src/phone3d.js','src/flow.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'].concat(['01','02','03','04','05','06','07','08','09','10','11'].map(n=>'mag/p'+n+'.jpg')).concat(['common','calendar','camera','photos','messages','safari','notes','profile','receipt','post','lukks','ads','account'].map(n=>'src/apps/'+n+'.js'));
 const STATIC_HOSTS=['cdnjs.cloudflare.com','cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
@@ -9,8 +9,15 @@ self.addEventListener('fetch',e=>{
   const u=new URL(r.url);
   if(u.origin===location.origin){
     if(/admin\.html|profile\.html/.test(u.pathname)&&r.mode==='navigate')return;
-    // network first so updates arrive, fall back to cache offline
-    e.respondWith(fetch(r,{cache:'reload'}).then(res=>{if(res.ok){const cp=res.clone();caches.open(VER).then(c=>c.put(r,cp));}return res;}).catch(()=>caches.match(r).then(m=>m||caches.match('index.html'))));
+    // fresh copy when the network answers quickly, otherwise the saved copy right away (no waiting on a bad connection)
+    e.respondWith((async()=>{
+      const cache=await caches.open(VER);
+      const net=fetch(r,{cache:'reload'}).then(res=>{if(res.ok)cache.put(r,res.clone());return res;});
+      const hit=await cache.match(r)||await caches.match(r);
+      if(!hit)return net.catch(()=>caches.match('index.html'));
+      net.catch(()=>{});
+      return Promise.race([net.catch(()=>hit),new Promise(res=>setTimeout(()=>res(hit),1500))]);
+    })());
     return;
   }
   if(STATIC_HOSTS.includes(u.host)){

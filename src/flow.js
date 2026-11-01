@@ -51,7 +51,7 @@ async function boot(){
   try{if(Local.get('inPhone',false)){S.auto=false;setMode('phone');Phone.enter();}}catch(e){}
   $('#loading').classList.add('gone');
   last=performance.now();requestAnimationFrame(frame);
-  window.__ready=true;
+  window.__ready=true;try{sessionStorage.removeItem('lk_try');}catch(e){}
   if(location.hash==='#night'){S.day=false;setDaylight(false);}
   try{const sv=Local.get('sound',null);if(sv)Sound.load(sv.kind,true);}catch(e){}
   Auth.init().then(()=>{Phone.afterAuth();});
