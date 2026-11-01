@@ -1,5 +1,5 @@
 /* ---------- NOTIFICATIONS app: every like, comment, follow, group and challenge update, with quick actions ---------- */
-defApp({id:'activity',name:'Notifications',bg:'linear-gradient(#ff5a5f,#ff2d55)',glyph:()=>`<svg viewBox="0 0 60 60"><path d="M30 14c-8 0-13 6-13 14v7l-4 6h34l-4-6v-7c0-8-5-14-13-14z" fill="#fff"/><path d="M25 46a5 5 0 0 0 10 0z" fill="#fff"/></svg>`,
+defApp({id:'activity',name:'Notifications',hidden:true,bg:'linear-gradient(#ff5a5f,#ff2d55)',glyph:()=>`<svg viewBox="0 0 60 60"><path d="M30 14c-8 0-13 6-13 14v7l-4 6h34l-4-6v-7c0-8-5-14-13-14z" fill="#fff"/><path d="M25 46a5 5 0 0 0 10 0z" fill="#fff"/></svg>`,
 mount(el,ctx,live){
   const root=h('div',{class:'msg-root act-root'});el.append(root);
   let rows=[],tab='all',busy=false;

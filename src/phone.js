@@ -90,7 +90,7 @@ const Notifs={
     Phone.renderNotifs();this.paintBadges();
   },
   paintBadges(){
-    const c={activity:(this._rows||[]).length};
+    const c={lukks:(this._rows||[]).length};
     document.querySelectorAll('.app-icon .badge').forEach(b=>{const ic=b.closest('.app-icon');const id=ic&&ic.dataset.id;if(!id||id==='messages')return;const n=c[id]||0;b.hidden=!n;b.textContent=n>9?'9+':String(n);});
   },
   prefs(){const d={events:true,community:true,features:true,testimonials:true,campaigns:true};return Object.assign(d,Auth.settings?Auth.settings.notif_prefs:Local.get('notifprefs',{}));},
@@ -413,7 +413,7 @@ const Phone={
   },
   /* ---- home screen ---- */
   order(){
-    const all=Apps.list.filter(a=>!a.dock).map(a=>a.id);
+    const all=Apps.list.filter(a=>!a.dock&&!a.hidden).map(a=>a.id);
     const saved=(Auth.settings&&Auth.settings.icon_order&&Auth.settings.icon_order.length)?Auth.settings.icon_order:Local.get('iconorder',[]);
     const out=saved.filter(id=>all.includes(id));all.forEach(id=>{if(!out.includes(id))out.push(id);});return out;
   },
