@@ -81,16 +81,16 @@ const Notifs={
   async poll(){
     if(!Auth.user||!sb){this._rows=[];this.paintBadges();return;}
     let rows=[];try{const r=await sb.from('notifications').select('*').eq('read',false).order('created_at',{ascending:false}).limit(40);if(r.error)return;rows=r.data||[];}catch(e){return;}
-    const dis=this.dismissed();
+    const dis=this.dismissed();let fresh=false;
     rows.slice().reverse().forEach(x=>{const id='db:'+x.id;if(this._seen.has(id))return;this._seen.add(id);
       if(!this._primed||dis[id]||this.items.some(i=>i.id===id))return;
-      const n=this._mk(x);this.items.unshift(n);Phone.banner(n);try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}
+      fresh=true;const n=this._mk(x);this.items.unshift(n);Phone.banner(n);try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}
       if(typeof Sound!=='undefined'&&Sound.ping)try{Sound.ping();}catch(e){}});
-    this._primed=true;this._rows=rows;
+    this._primed=true;this._rows=rows;if(fresh&&this.onChange)try{this.onChange();}catch(e){}
     Phone.renderNotifs();this.paintBadges();
   },
   paintBadges(){
-    const c={};(this._rows||[]).forEach(x=>{const a=x.app||'lukks';c[a]=(c[a]||0)+1;});
+    const c={activity:(this._rows||[]).length};
     document.querySelectorAll('.app-icon .badge').forEach(b=>{const ic=b.closest('.app-icon');const id=ic&&ic.dataset.id;if(!id||id==='messages')return;const n=c[id]||0;b.hidden=!n;b.textContent=n>9?'9+':String(n);});
   },
   prefs(){const d={events:true,community:true,features:true,testimonials:true,campaigns:true};return Object.assign(d,Auth.settings?Auth.settings.notif_prefs:Local.get('notifprefs',{}));},
