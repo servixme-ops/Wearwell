@@ -536,3 +536,7 @@ body[data-mode=phone] .pwa-banner,body:not([data-mode=room]) .pwa-banner{display
 .act-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.act-dot{position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:#ff3b30}
 .act-root .app-body{padding:0 14px 90px}.act-tabs{margin:0 -14px 6px;padding:0 14px}.act-root .icon-btn{white-space:nowrap}
 .lx-bell{position:relative;overflow:visible;margin-right:8px}.lx-bell .ic svg{width:20px;height:20px}.lx-bell-b{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#ff3b30;color:#fff;font:700 11px/17px system-ui;font-style:normal;text-align:center}.lx-bell-b[hidden]{display:none}
+.lk-chip{display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12.5px;line-height:1;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 4px rgba(0,0,0,.25)}.lk-chip.small{font-size:10.5px;padding:3px 8px}
+.lk-detect{display:flex;align-items:center;gap:8px;margin:-6px 0 10px;font-size:13px;color:#6e6e73}.lk-detect[hidden]{display:none}.lk-bad{color:#ff3b30}
+.lk-open{display:flex;align-items:center;justify-content:center;gap:10px}
+.ph-link{position:absolute;left:6px;bottom:6px;z-index:2}

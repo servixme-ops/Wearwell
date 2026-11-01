@@ -173,6 +173,38 @@ function pickFile(accept,capture){
   });
 }
 
+/* ---------- Link identification: which site is this link from? ---------- */
+const LINK_SITES=[
+  ['instagram','Instagram',/(^|\.)(instagram\.com|instagr\.am)$/,'linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)'],
+  ['tiktok','TikTok',/(^|\.)tiktok\.com$/,'linear-gradient(135deg,#111,#25f4ee 140%,#fe2c55)'],
+  ['linktree','Linktree',/(^|\.)(linktr\.ee|linktree\.com)$/,'#43e660'],
+  ['x','X',/(^|\.)(x\.com|twitter\.com)$/,'#111'],
+  ['youtube','YouTube',/(^|\.)(youtube\.com|youtu\.be)$/,'#ff0033'],
+  ['facebook','Facebook',/(^|\.)(facebook\.com|fb\.com|fb\.me|fb\.watch)$/,'#1877f2'],
+  ['snapchat','Snapchat',/(^|\.)snapchat\.com$/,'#fffc00'],
+  ['pinterest','Pinterest',/(^|\.)(pinterest\.[a-z.]+|pin\.it)$/,'#e60023'],
+  ['threads','Threads',/(^|\.)threads\.(net|com)$/,'#111'],
+  ['whatsapp','WhatsApp',/(^|\.)(whatsapp\.com|wa\.me)$/,'#25d366'],
+  ['telegram','Telegram',/(^|\.)(t\.me|telegram\.me)$/,'#2aabee'],
+  ['linkedin','LinkedIn',/(^|\.)linkedin\.com$/,'#0a66c2'],
+  ['spotify','Spotify',/(^|\.)spotify\.com$/,'#1db954'],
+  ['behance','Behance',/(^|\.)behance\.net$/,'#0057ff'],
+  ['etsy','Etsy',/(^|\.)etsy\.com$/,'#f1641e'],
+  ['shopify','Shop',/(^|\.)(myshopify\.com|shopify\.com)$/,'#5a863e']
+];
+function identifyLink(raw){
+  let t=String(raw||'').trim();if(!t)return null;
+  if(!/^https?:\/\//i.test(t)){if(/\s/.test(t)||!/\./.test(t))return null;t='https://'+t;}
+  const url=(typeof safeUrl==='function'?safeUrl(t):t);if(!url)return null;
+  let host='';try{host=new URL(url).hostname.replace(/^www\./,'').toLowerCase();}catch(e){return null;}
+  const m=LINK_SITES.find(x=>x[2].test(host));
+  return m?{url,host,key:m[0],name:m[1],bg:m[3],dark:m[0]==='snapchat'}:{url,host,key:'link',name:host,bg:'#6e6e73',dark:false};
+}
+/* small round "site" badge: a coloured chip with the site name, no external images */
+function linkChip(info,opts){
+  opts=opts||{};if(!info)return null;
+  return h('span',{class:'lk-chip'+(opts.small?' small':''),style:{background:info.bg,color:info.dark?'#111':'#fff'},title:info.url},info.name);
+}
 /* ---------- Generated fashion art (placeholder photography) ---------- */
 let _looksReady=false;
 function ensureLooks(){if(_looksReady)return;[0,1,2].forEach(crateMags);_looksReady=true;}

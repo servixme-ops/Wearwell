@@ -5,7 +5,7 @@ const LocalGallery={
   open(){return this._db||(this._db=new Promise((res,rej)=>{try{const q=indexedDB.open('lukks-gallery',1);q.onupgradeneeded=()=>q.result.createObjectStore('photos',{keyPath:'id'});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}catch(e){rej(e);}}));},
   async tx(mode,fn){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction('photos',mode),st=t.objectStore('photos');const r=fn(st);t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});},
   async list(){try{return (await this.tx('readonly',s=>s.getAll()))||[];}catch(e){return[];}},
-  async add(blob,album,caption){const x={id:uuid(),blob,album,caption:caption||'',t:Date.now()};await this.tx('readwrite',s=>s.put(x));return x;},
+  async add(blob,album,caption,link){const x={id:uuid(),blob,album,caption:caption||'',link:link||'',t:Date.now()};await this.tx('readwrite',s=>s.put(x));return x;},
   async del(id){await this.tx('readwrite',s=>s.delete(id));}
 };
 const Contrib={
@@ -40,11 +40,15 @@ const Contrib={
       const nf=h('input',{type:'text',maxlength:'40',placeholder:'Folder name'});const nfBox=h('div',{hidden:true,class:'stack'},field('New folder',nf));
       sel.onchange=()=>{nfBox.hidden=sel.value!=='__new';if(sel.value!=='__new')want=sel.value;};
       const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption (optional)'});
+      const lnk=h('input',{type:'url',inputmode:'url',maxlength:'300',placeholder:'Paste a link: Instagram, TikTok, Linktree…',autocapitalize:'off',autocomplete:'off'});
+      const lnkTag=h('div',{class:'lk-detect',hidden:true});
+      lnk.oninput=()=>{const i=identifyLink(lnk.value);lnkTag.hidden=!i&&!lnk.value.trim();lnkTag.replaceChildren(...(i?[linkChip(i),h('span',null,i.key==='link'?'Website link':'Detected '+i.name)]:[h('span',{class:'lk-bad'},'That doesn’t look like a link yet')]));};
       const cancel={v:false};const cancelB=h('button',{class:'btn block',hidden:true,style:{marginTop:'8px'},onclick:()=>{cancel.v=true;cancelB.textContent='Cancelling…';}},'Cancel');
       const saveLbl=signed?'Save to gallery':'Save to Randoms';
       const saveB=h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         if(items.some(i=>i.pending))throw new Error('Photos are still loading.');
         if(!items.length)throw new Error('No photos to save.');
+        if(lnk.value.trim()&&!identifyLink(lnk.value))throw new Error('That link doesn’t look right. Check it or clear it.');
         let slug=sel.value;
         if(signed&&slug==='__new'){const nm=nf.value.trim();if(!nm)throw new Error('Name the new folder.');const a=await this.newFolder(nm);albums.push(a);want=a.slug;slug=a.slug;fillSel();nfBox.hidden=true;}
         cancel.v=false;cancelB.hidden=false;let n=0;
@@ -54,16 +58,16 @@ const Contrib={
             const pr=it.prepared;
             if(signed){const path=await uploadFile('gallery',pr.blob,pr.ext,pr.type);
               if(cancel.v){removeFile('gallery',path);break;}
-              const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:slug,storage_path:path,caption:cap.value.trim().slice(0,200)||null,status:'private'});
+              const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:slug,storage_path:path,caption:cap.value.trim().slice(0,200)||null,link:(identifyLink(lnk.value)||{}).url||null,status:'private'});
               if(r.error){removeFile('gallery',path);throw r.error;}}
-            else await LocalGallery.add(pr.blob,'randoms',cap.value.trim().slice(0,200));
+            else await LocalGallery.add(pr.blob,'randoms',cap.value.trim().slice(0,200),(identifyLink(lnk.value)||{}).url);
             n++;
           }
         }finally{cancelB.hidden=true;cancelB.textContent='Cancel';saveB.textContent=saveLbl;}
         if(cancel.v&&!n){toast('Cancelled');return;}
         toast((n>1?n+' photos':'Photo')+' saved to '+(albums.find(a=>a.slug===slug)||{title:'Randoms'}).title+(cancel.v?' (cancelled the rest)':''),'ok');close();opts.done&&opts.done();
       })},saveLbl);
-      b.append(...[strip,field('Folder',sel,signed?undefined:'Signed out: one photo at a time, saved to Randoms on this device. Sign in to add many and pick folders.'),nfBox,field('Caption',cap),saveB,cancelB,
+      b.append(...[strip,field('Folder',sel,signed?undefined:'Signed out: one photo at a time, saved to Randoms on this device. Sign in to add many and pick folders.'),nfBox,field('Caption',cap),field('Link (optional)',lnk),lnkTag,saveB,cancelB,
         signed?null:h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to choose a folder'),
         h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{const ok=items.filter(i=>i.prepared);ok.forEach(i=>download(i.prepared.blob,'lukks-photo.'+i.prepared.ext));}},icon('download'),'Save to my device')].filter(Boolean));
     });

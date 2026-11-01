@@ -29,8 +29,8 @@ mount(el,ctx,live){
   }
   async function listAlbum(a){
     const out=[];
-    if(Auth.user&&sb){const r=await sb.from('photos').select('*').eq('user_id',Auth.user.id).eq('album_slug',a.slug).order('created_at',{ascending:false}).limit(300);if(r.error)throw r.error;(r.data||[]).forEach(x=>out.push({kind:'cloud',id:x.id,path:x.storage_path,src:publicUrl('gallery',x.storage_path),caption:x.caption,t:x.created_at}));}
-    const l=await LocalGallery.list();l.filter(x=>x.album===a.slug).forEach(x=>out.push({kind:'local',id:x.id,src:objUrl(x.blob),blob:x.blob,caption:x.caption,t:new Date(x.t).toISOString()}));
+    if(Auth.user&&sb){const r=await sb.from('photos').select('*').eq('user_id',Auth.user.id).eq('album_slug',a.slug).order('created_at',{ascending:false}).limit(300);if(r.error)throw r.error;(r.data||[]).forEach(x=>out.push({kind:'cloud',id:x.id,path:x.storage_path,src:publicUrl('gallery',x.storage_path),caption:x.caption,link:x.link,t:x.created_at}));}
+    const l=await LocalGallery.list();l.filter(x=>x.album===a.slug).forEach(x=>out.push({kind:'local',id:x.id,src:objUrl(x.blob),blob:x.blob,caption:x.caption,link:x.link,t:new Date(x.t).toISOString()}));
     return out.sort((x,y)=>String(y.t).localeCompare(String(x.t)));
   }
   /* press and hold to start selecting (signed in only) */
@@ -73,7 +73,7 @@ mount(el,ctx,live){
     if(!list.length){sel=null;body.append(h('div',{class:'empty-state'},h('span',{class:'empty-ic'},icon('image')),h('h4',null,'No photos yet'),h('p',null,'Photos you add to '+a.title+' will show up here.'),h('button',{class:'btn primary',onclick:()=>addPhoto(a)},'Add a photo')));
       if(own)body.append(h('div',{class:'ph-selbar'},h('button',{class:'btn small danger',onclick:()=>delFolders([a],()=>drawAlbums0())},icon('trash'),'Delete folder')));return;}
     const g=h('div',{class:'photo-grid'});
-    list.forEach((p,i)=>{const b=h('button',{class:'ph'+(sel&&sel.has(p.id)?' picked':''),'aria-label':p.caption||'Photo',onclick:()=>{if(!sel)return viewer(a,list,i);if(sel.has(p.id))sel.delete(p.id);else sel.add(p.id);showAlbum(a,list);}},h('img',{src:p.src,alt:p.caption||'',loading:'lazy'}),sel?h('span',{class:'ph-tick'},sel.has(p.id)?icon('check'):null):null);if(!sel)hold(b,()=>{sel=new Set([p.id]);showAlbum(a,list);});g.append(b);});
+    list.forEach((p,i)=>{const b=h('button',{class:'ph'+(sel&&sel.has(p.id)?' picked':''),'aria-label':p.caption||'Photo',onclick:()=>{if(!sel)return viewer(a,list,i);if(sel.has(p.id))sel.delete(p.id);else sel.add(p.id);showAlbum(a,list);}},h('img',{src:p.src,alt:p.caption||'',loading:'lazy'}),(!sel&&p.link)?linkBadge(p):null,sel?h('span',{class:'ph-tick'},sel.has(p.id)?icon('check'):null):null);if(!sel)hold(b,()=>{sel=new Set([p.id]);showAlbum(a,list);});g.append(b);});
     body.append(g);
     if(sel)body.append(selBar(sel.size,async()=>{if(!sel.size)return;if(!await confirmBox('Delete '+sel.size+(sel.size===1?' photo?':' photos?'),'This cannot be undone.','Delete',true))return;try{await delPhotos(a,list.filter(p=>sel.has(p.id)));toast('Deleted','ok');}catch(e){toast(errMsg(e),'err');}sel=null;openAlbum(a);},
       [h('button',{class:'btn small',disabled:!sel.size,onclick:()=>movePhotos(a,list.filter(p=>sel.has(p.id)))},'Move'),
@@ -89,10 +89,12 @@ mount(el,ctx,live){
   async function addPhoto(a){
     const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length)Contrib.sendSheet(ctx,fs,{album:a&&a.slug,done:()=>{if(view.t==='album')openAlbum(view.a);else loadAlbums();}});
   }
+  const linkBadge=p=>{const i=identifyLink(p.link);return i?h('span',{class:'ph-link',role:'link','aria-label':'Open '+i.name,onclick:e=>{e.stopPropagation();e.preventDefault();openExternal(i.url);}},linkChip(i,{small:true})):null;};
   function viewer(a,list,i){
     const p=list[i];
     sheet(p.caption||'Photo',(b,close)=>{
-      b.append(h('img',{src:p.src,alt:p.caption||'',style:{width:'100%',borderRadius:'14px',display:'block'}}),
+      const li=identifyLink(p.link);
+      b.append(h('img',{src:p.src,alt:p.caption||'',style:{width:'100%',borderRadius:'14px',display:'block'}}),li?h('button',{class:'btn block lk-open',style:{marginTop:'10px'},onclick:()=>openExternal(li.url)},linkChip(li),h('span',null,li.key==='link'?li.host:'Open on '+li.name)):null,
         h('div',{class:'row-flex',style:{marginTop:'12px',flexWrap:'wrap'}},
           h('button',{class:'btn small',onclick:async()=>{try{const bl=p.blob||await (await fetch(p.src)).blob();download(bl,'lukks-photo.jpg');}catch(e){toast('Could not save that photo','err');}}},icon('download'),'Save to device'),
           h('button',{class:'btn small danger',onclick:async()=>{if(!await confirmBox('Delete this photo?',null,'Delete',true))return;
