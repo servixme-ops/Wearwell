@@ -41,7 +41,6 @@ async function boot(){
   const fonts=["700 40px 'Playfair Display'","900 40px 'Playfair Display'","italic 500 20px 'Playfair Display'","italic 600 20px 'Playfair Display'","400 40px 'Bebas Neue'","400 14px 'Instrument Sans'","600 14px 'Instrument Sans'","700 14px 'Instrument Sans'","500 14px 'Instrument Sans'"];
   try{await Promise.race([Promise.all(fonts.map(f=>document.fonts.load(f))),new Promise(r=>setTimeout(r,3000))]);}catch(e){}
   try{await Promise.race([issuePreload(),new Promise(r=>setTimeout(r,6000))]);}catch(e){}
-  try{adsPreload();}catch(e){}
   initScene($('#stage'));buildPhone3d();hideRoom();
   loadCrateMags(0);layoutMags(0);
   buildCratePicker();buildNav();bindInput();bindFab();resize();
@@ -59,7 +58,9 @@ async function boot(){
   try{const sv=Local.get('sound',null);if(sv)Sound.load(sv.kind,true);}catch(e){}
   Auth.init().then(()=>{Phone.afterAuth();});
   if(typeof PWA!=='undefined')PWA.init();
-  const q=new URLSearchParams(location.search),ref=q.get('reference')||q.get('trxref');
+  const q=new URLSearchParams(location.search),magId=q.get('mag');
+  if(magId&&/^[0-9a-f-]{36}$/i.test(magId)){try{history.replaceState({},'',location.pathname);}catch(e){}setTimeout(()=>{if(Phone.state==='lock')Phone.unlock({open:'mags',intent:{mag:magId}});else Phone.openApp('mags',{mag:magId});},500);}
+  const ref=q.get('reference')||q.get('trxref');
   if(ref&&q.get('pay')){try{history.replaceState({},'',location.pathname);}catch(e){}setTimeout(()=>{Phone.intentAfterUnlock={open:'ads',intent:{verify:ref}};enterPhone();},1400);}
 }
 function resize(){

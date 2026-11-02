@@ -153,7 +153,6 @@ function drawIssueCover(m,W,H){
   g.font=`600 ${12*k}px ${F.body}`;g.fillText('11 real outfits, every price on the receipt',24*k,H-46*k);
   g.fillStyle='#ffd9b8';g.font=`700 ${10.5*k}px ${F.body}`;spaced(g,'',1*k);g.fillText('DRIP GANG · THE WEDDING GUEST · AFTER DARK',24*k,H-24*k);spaced(g,'',0);
   g.restore();
-  if(ISSUE_ADS.cover)drawCoverSticker(g,W,H,k,ISSUE_ADS.cover);
   return c;
 }
 function rrect(g,x,y,w,h,r){g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,r);else g.rect(x,y,w,h);}
@@ -239,8 +238,7 @@ function drawLookFace(m,i,W,H,SC){
   return {c,hs};
 }
 function drawIssueFace(m,i,RW,RH){
-  if(i===0){const cv=drawIssueCover(m,RW,RH);return {c:cv,hs:ISSUE_ADS.cover?[{x:.64,y:.2,w:.36,h:.24,look:{ad:ISSUE_ADS.cover}}]:[]};}
-  if(i===13||i===14)return drawAdFace(m,i-13,RW,RH);
+  if(i===0){const cv=drawIssueCover(m,RW,RH);return {c:cv,hs:[]};}
   const SC=RW/640,W=640,H=845;
   if(i>=2&&i<=12)return drawLookFace(m,i,W,H,SC);
   const c=mk(RW,RH),g=c.getContext('2d');g.scale(SC,SC);const k=1,hs=[];g.textBaseline='alphabetic';g.textAlign='left';
