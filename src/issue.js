@@ -68,6 +68,64 @@ function buildIssue(){
   });
   return m;
 }
+/* ---------- live ads: a front-cover feature and two inside pages (house ads when nothing is booked) ---------- */
+const ISSUE_ADS={cover:null,pages:[]};
+async function adsPreload(){
+  try{
+    if(typeof sb==='undefined'||!sb)return;
+    const r=await sb.rpc('active_ads');if(r.error||!Array.isArray(r.data))return;
+    const load=async path=>{if(!path)return null;try{const u=await signedUrl('ad-creatives',path);if(!u)return null;return await new Promise(res=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>res(im);im.onerror=()=>res(null);im.src=u;});}catch(e){return null;}};
+    const list=[];
+    for(const a of r.data){const [lg,cv]=await Promise.all([load(a.logo_path),load(a.cover_image_path)]);list.push(Object.assign({},a,{_logo:lg,_cover:cv,social_links:Array.isArray(a.social_links)?a.social_links:[]}));}
+    ISSUE_ADS.cover=list.find(a=>a.package_id==='cover')||null;ISSUE_ADS.pages=list.filter(a=>a.package_id!=='cover').slice(0,2);
+  }catch(e){console.warn('ads',e);}
+}
+function drawCoverSticker(g,W,H,k,a){
+  const cx=W*.82,cy=H*.35,r=W*.115;
+  g.save();g.shadowColor='rgba(0,0,0,.4)';g.shadowBlur=12*k;g.fillStyle='#fff';g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.restore();
+  g.save();g.beginPath();g.arc(cx,cy,r-5*k,0,7);g.clip();
+  if(a._logo){const s=Math.min((2*r-10*k)/a._logo.width,(2*r-10*k)/a._logo.height);g.fillStyle='#fff';g.fillRect(cx-r,cy-r,2*r,2*r);g.drawImage(a._logo,cx-a._logo.width*s/2,cy-a._logo.height*s/2,a._logo.width*s,a._logo.height*s);}
+  else{g.fillStyle='#ff7a3d';g.fillRect(cx-r,cy-r,2*r,2*r);g.fillStyle='#fff';g.font=`900 ${r*.9}px ${F.disp}`;g.textAlign='center';g.fillText((a.brand_name||'?')[0].toUpperCase(),cx,cy+r*.3);}
+  g.restore();
+  g.strokeStyle='#ff7a3d';g.lineWidth=3*k;g.beginPath();g.arc(cx,cy,r,0,7);g.stroke();
+  const pw=r*2.5,ph=22*k,py=cy+r+6*k;g.fillStyle='#ff2d8a';rrect(g,cx-pw/2,py,pw,ph,ph/2);g.fill();
+  g.fillStyle='#fff';g.textAlign='center';g.textBaseline='alphabetic';g.font=`700 ${10*k}px ${F.body}`;spaced(g,'',1*k);g.fillText('FEATURED',cx,py+15*k);spaced(g,'',0);
+}
+function drawAdFace(m,slot,RW,RH){
+  const SC=RW/640,W=640,H=845,c=mk(RW,RH),g=c.getContext('2d');g.scale(SC,SC);g.textBaseline='alphabetic';g.textAlign='left';
+  const a=ISSUE_ADS.pages[slot],hs=[];
+  g.fillStyle=CREAM;g.fillRect(0,0,W,H);
+  if(!a){ // house ad
+    g.fillStyle=LAV;g.fillRect(0,0,W,H);g.fillStyle=MINT;g.beginPath();g.moveTo(W-260,0);g.lineTo(W,0);g.lineTo(W,200);g.closePath();g.fill();g.fillStyle=PINK;g.beginPath();g.arc(0,H,180,-Math.PI/2,0);g.lineTo(0,H);g.fill();
+    g.textAlign='center';g.fillStyle=INK;g.font=`700 12px ${F.body}`;spaced(g,'',2);g.fillText('ADVERTISEMENT',W/2,70);spaced(g,'',0);
+    g.font=`400 76px ${F.cond}`;g.fillText('YOUR BRAND',W/2,300);g.fillText('GOES HERE',W/2,372);
+    g.font=`700 17px ${F.body}`;g.fillStyle='#1f1530';['A full page in Lukks, read by people who love fashion.','Add your website and social links so readers can find you.'].forEach((t,j)=>g.fillText(t,W/2,440+j*28));
+    g.fillStyle='#ff2d8a';rrect(g,W/2-130,540,260,52,26);g.fill();g.fillStyle='#fff';g.font=`700 18px ${F.body}`;g.fillText('Book this page',W/2,573);
+    g.fillStyle='rgba(0,0,0,.45)';g.font=`600 11px ${F.body}`;g.textAlign='left';g.fillText((13+slot)+'   LUKKS · ISSUE 01',30,H-14);
+    hs.push({x:0,y:0,w:1,h:1,look:{house:true}});return {c,hs};
+  }
+  g.fillStyle=INK;g.font=`700 11px ${F.body}`;spaced(g,'',2);g.fillText('ADVERTISEMENT',44,50);spaced(g,'',0);
+  // creative
+  g.save();rrect(g,36,64,568,430,18);g.clip();
+  if(a._cover)coverFit(g,a._cover,36,64,568,430,.3);else{const gr=g.createLinearGradient(36,64,604,494);gr.addColorStop(0,'#ff9a3d');gr.addColorStop(1,'#ff2d8a');g.fillStyle=gr;g.fillRect(36,64,568,430);}
+  g.restore();
+  // logo
+  g.save();g.shadowColor='rgba(0,0,0,.3)';g.shadowBlur=10;g.fillStyle='#fff';g.beginPath();g.arc(104,494,48,0,7);g.fill();g.restore();
+  g.save();g.beginPath();g.arc(104,494,42,0,7);g.clip();
+  if(a._logo){const s=Math.min(84/a._logo.width,84/a._logo.height);g.drawImage(a._logo,104-a._logo.width*s/2,494-a._logo.height*s/2,a._logo.width*s,a._logo.height*s);}
+  else{g.fillStyle='#ff7a3d';g.fillRect(56,446,96,96);g.fillStyle='#fff';g.font=`900 40px ${F.disp}`;g.textAlign='center';g.fillText((a.brand_name||'?')[0].toUpperCase(),104,508);g.textAlign='left';}
+  g.restore();
+  g.fillStyle=INK;{const fs=fitText(g,a.brand_name||'',440,800,F.disp,44);g.font=`800 ${fs}px ${F.disp}`;g.fillText(a.brand_name||'',170,540);}
+  g.fillStyle='#1f1410';g.font=`600 17px ${F.disp}`;wrap(g,String(a.description||'').slice(0,260),44,598,W-88,24);
+  // link chips
+  const chips=[];if(a.destination_url)chips.push('Website');(a.social_links||[]).slice(0,4).forEach(x=>chips.push(x.name||x.key));
+  let cx=44;const cy=738;g.font=`700 14px ${F.body}`;
+  chips.slice(0,5).forEach((t,j)=>{const w=g.measureText(t).width+28;if(cx+w>W-30)return;g.fillStyle=j===0?'#ff7a3d':'#2a1d33';rrect(g,cx,cy,w,34,17);g.fill();g.fillStyle='#fff';g.fillText(t,cx+14,cy+22);cx+=w+8;});
+  g.fillStyle='rgba(0,0,0,.5)';g.font=`600 11px ${F.body}`;g.fillText('Tap this page for links',44,cy+60);
+  g.fillText((13+slot)+'   LUKKS · ISSUE 01',30,H-14);
+  hs.push({x:0,y:0,w:1,h:1,look:{ad:a}});
+  return {c,hs};
+}
 /* ---------- drawing ---------- */
 const PINK='#e8b4c8',MINT='#a0e0cf',LAV='#cbc5d8',CREAM='#fbf6ea',INK='#2a1812',ORG='#f0501b';
 function coverFit(g,im,x,y,w,h,fy){
@@ -95,6 +153,7 @@ function drawIssueCover(m,W,H){
   g.font=`600 ${12*k}px ${F.body}`;g.fillText('11 real outfits, every price on the receipt',24*k,H-46*k);
   g.fillStyle='#ffd9b8';g.font=`700 ${10.5*k}px ${F.body}`;spaced(g,'',1*k);g.fillText('DRIP GANG · THE WEDDING GUEST · AFTER DARK',24*k,H-24*k);spaced(g,'',0);
   g.restore();
+  if(ISSUE_ADS.cover)drawCoverSticker(g,W,H,k,ISSUE_ADS.cover);
   return c;
 }
 function rrect(g,x,y,w,h,r){g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,r);else g.rect(x,y,w,h);}
@@ -180,7 +239,8 @@ function drawLookFace(m,i,W,H,SC){
   return {c,hs};
 }
 function drawIssueFace(m,i,RW,RH){
-  if(i===0)return {c:drawIssueCover(m,RW,RH),hs:[]};
+  if(i===0){const cv=drawIssueCover(m,RW,RH);return {c:cv,hs:ISSUE_ADS.cover?[{x:.64,y:.2,w:.36,h:.24,look:{ad:ISSUE_ADS.cover}}]:[]};}
+  if(i===13||i===14)return drawAdFace(m,i-13,RW,RH);
   const SC=RW/640,W=640,H=845;
   if(i>=2&&i<=12)return drawLookFace(m,i,W,H,SC);
   const c=mk(RW,RH),g=c.getContext('2d');g.scale(SC,SC);const k=1,hs=[];g.textBaseline='alphabetic';g.textAlign='left';

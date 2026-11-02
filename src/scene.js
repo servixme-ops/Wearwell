@@ -310,9 +310,9 @@ function layoutMags(pos){
 /* ---------- Book (opened magazine) ---------- */
 class Book{
   constructor(m){
-    this.m=m;this.NL=7;this.flip=0;this.group=new T.Group();this.leaves=[];this.faces=[];
+    this.m=m;this.NL=m.issue_mag?8:7;this.flip=0;this.group=new T.Group();this.leaves=[];this.faces=[];
     const w=MAG.w,h=MAG.h;this.w=w;this.h=h;
-    const FW=m.issue_mag?1152:640,FH=m.issue_mag?1521:845;for(let i=0;i<14;i++)this.faces.push(drawFace(m,i,FW,FH));
+    const FW=m.issue_mag?1152:640,FH=m.issue_mag?1521:845;for(let i=0;i<this.NL*2;i++)this.faces.push(drawFace(m,i,FW,FH));
     const tex=this.faces.map(f=>{const t=ctex(f.c);if(m.issue_mag){t.generateMipmaps=false;t.minFilter=T.LinearFilter;t.magFilter=T.LinearFilter;}return t;});
     this.tex=tex;
     for(let k=0;k<this.NL;k++){

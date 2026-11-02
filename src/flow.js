@@ -41,6 +41,7 @@ async function boot(){
   const fonts=["700 40px 'Playfair Display'","900 40px 'Playfair Display'","italic 500 20px 'Playfair Display'","italic 600 20px 'Playfair Display'","400 40px 'Bebas Neue'","400 14px 'Instrument Sans'","600 14px 'Instrument Sans'","700 14px 'Instrument Sans'","500 14px 'Instrument Sans'"];
   try{await Promise.race([Promise.all(fonts.map(f=>document.fonts.load(f))),new Promise(r=>setTimeout(r,3000))]);}catch(e){}
   try{await Promise.race([issuePreload(),new Promise(r=>setTimeout(r,6000))]);}catch(e){}
+  try{adsPreload();}catch(e){}
   initScene($('#stage'));buildPhone3d();
   loadCrateMags(0);layoutMags(0);
   buildCratePicker();buildNav();bindInput();bindFab();resize();
@@ -392,6 +393,7 @@ function openSheet(kind,arg){
   else if(kind==='saved')renderList(title,body,'Saved lukks',saved,'Tap the heart on any lukk to keep it here.');
   else if(kind==='wardrobe')renderList(title,body,'My Lukks',wardrobe,'Add lukks to My Lukks to plan outfits.');
   else if(kind==='look')renderLook(title,body,arg);
+  else if(kind==='ad')renderAd(title,body,arg);
 }
 function thumb(look,w,h){const c=mk(w,h),g=c.getContext('2d');if(look.photo){coverFit(g,ISSUE_IMG[look.img],0,0,w,h,.2);return c;}g.fillStyle=look.bg;g.fillRect(0,0,w,h);g.fillStyle='rgba(255,255,255,.2)';g.beginPath();g.arc(w/2,h*.6,w*.42,0,7);g.fill();drawFigure(g,look,w/2,h*.05,h*.9);return c;}
 function allLooks(){const a=[];CRATES.forEach((c,ci)=>crateMags(ci).forEach(m=>m.looks.forEach(l=>a.push(l))));return a;}
@@ -421,7 +423,27 @@ function renderList(title,body,t,set,empty){
   const grid=document.createElement('div');grid.className='grid';list.forEach(l=>grid.appendChild(tile(l)));body.appendChild(grid);
 }
 function openLook(look){
+  if(look&&(look.ad||look.house)){openSheet('ad',look);return;}
   S.lookReturn=S.sheetOpen?null:null;openSheet('look',look);
+}
+function renderAd(title,body,x){
+  body.innerHTML='';
+  if(x.house){
+    title.textContent='Advertise in Lukks';
+    const d=document.createElement('div');d.className='adView';d.innerHTML=`<h3>Your brand goes here</h3><p class="desc">Get a full page in the magazine, or put your brand on the front cover. Add your website and social links so readers can find you.</p><div class="acts"><button id="adBook">Book an ad</button></div>`;
+    body.appendChild(d);d.querySelector('#adBook').onclick=()=>{closeSheet();setTimeout(()=>{Phone.intentAfterUnlock={open:'ads'};enterPhone();},250);};return;
+  }
+  const a=x.ad;title.textContent='Sponsored';
+  const d=document.createElement('div');d.className='adView';
+  const site=safeUrl(a.destination_url||'');
+  const soc=(a.social_links||[]).map(l=>({l,i:identifyLink(l.url)})).filter(o=>o.i);
+  d.innerHTML=`${a._cover?'<img class="adImg" alt="">':''}<div class="adHead">${a._logo?'<img class="adLogo" alt="">':''}<h3>${esc(a.brand_name)}</h3></div><p class="desc">${esc(a.description||'')}</p><div class="adLinks"></div><p class="adNote">Sponsored. Opens in a new tab.</p>`;
+  const ci=d.querySelector('.adImg');if(ci)ci.src=a._cover.src;const li=d.querySelector('.adLogo');if(li)li.src=a._logo.src;
+  const row=d.querySelector('.adLinks');
+  const mk=(label,url,bg,fg)=>{const b=document.createElement('button');b.className='adLink';b.textContent=label;b.style.background=bg;b.style.color=fg||'#fff';b.onclick=()=>window.open(url,'_blank','noopener,noreferrer');row.appendChild(b);};
+  if(site)mk('Visit website',site,'#ff7a3d');
+  soc.forEach(o=>mk(o.i.name,o.i.url,o.i.bg,o.i.dark?'#111':'#fff'));
+  body.appendChild(d);
 }
 function renderLook(title,body,look){
   title.textContent=look.coll;body.innerHTML='';
