@@ -67,7 +67,7 @@ mount(el,ctx,live){
   function titleBar(t,right){
     return h('div',{class:'lx-title'},h('button',{class:'lx-circ','aria-label':'Back',onclick:ctx.close},icon('back')),h('h1',null,t),h('span',{class:'grow'}),right,meBtn());
   }
-  const addBtn=()=>h('button',{class:'lx-circ plus','aria-label':'Add a lukk',onclick:()=>{if(authed())Posts.compose(null,()=>afterChange(),customStyles());}},icon('plus'));
+  const addBtn=()=>null;
   const masonry=(list,open)=>list.length?h('div',{class:'lx-mas'},list.map(x=>h('div',{class:'lx-card'},
     h('button',{class:'lx-cardimg','aria-label':x.title,onclick:()=>open(x)},h('img',{src:ph(x.photos[0]),alt:x.title,loading:'lazy'}),x.photos.length>1?h('span',{class:'lx-multi'},icon('image'),String(x.photos.length)):null),
     h('div',{class:'lx-capr'},h('span',{class:'lx-cap'},x.title),Posts.likeBtn(x,authed))))):null;
@@ -76,7 +76,7 @@ mount(el,ctx,live){
   function drawHome(){
     const chips=h('div',{class:'lx-chips'},['For You'].concat(styles()).map(c=>h('button',{class:(c==='For You'&&!cat)||c===cat?'on':'',onclick:()=>{cat=c==='For You'?'':c;Local.set('lxCat',cat);drawHome();}},c)));
     const list=feed.filter(x=>!cat||x.category===cat);
-    const body=masonry(list,openPost)||empty(cat?'No lukks in '+cat+' yet':'No lukks yet',cat?'Be the first to post one.':'Tap + to share your first lukk.',h('button',{class:'btn primary',onclick:()=>{if(authed())Posts.compose(null,()=>afterChange(),customStyles());}},'Add a lukk'));
+    const body=masonry(list,openPost)||empty(cat?'No lukks in '+cat+' yet':'No lukks yet',cat?'Nothing here yet.':'Lukks are receipt lukks. Publish one from Lukks Receipt and it shows up here.');
     main.replaceChildren(titleBar('Home',addBtn()),chips,h('div',{class:'lx-scroll'},body));
     const sc=$('.lx-chips .on',main);sc&&sc.scrollIntoView({inline:'center',block:'nearest'});
   }
@@ -95,7 +95,7 @@ mount(el,ctx,live){
     if(rc&&rc.items&&rc.items.length){const c=RC.calc({wear_count:rc.wear_count},rc.items.map(i=>({name:i.name,price:i.price,prior_wears:i.prior_wears})));
       receiptCard=h('div',{class:'lx-receipt'},h('b',null,'Receipt · '+rc.title),h('div',{class:'group',style:{margin:'8px 0 0'}},c.rows.map(r=>h('div',{class:'item'},h('span',{class:'grow'},h('b',null,r.name),h('span',null,(rc.items.find(i=>i.name===r.name)||{}).brand||'')),h('span',{class:'muted'},RC.money(r.price,rc.currency||'NGN')))),
         h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Total')),h('b',null,RC.money(c.total,rc.currency||'NGN'))),h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Cost per wear'),h('span',null,'Worn '+c.wears+(c.wears===1?' time':' times'))),h('b',null,RC.money(c.cpw,rc.currency||'NGN')))));}
-    const menu=()=>sheet('Options',(b,close)=>{const rows=x.mine?[['Edit lukk',()=>Posts.compose(x,()=>{popView();afterChange();},customStyles())],['Delete lukk',async()=>{if(!await confirmBox('Delete this lukk?','Its photos and likes will be removed.','Delete',true))return;const r=await sb.from('posts').delete().eq('id',x.id);if(r.error){toast(errMsg(r.error),'err');return;}x.photos.forEach(p=>removeFile('looks',p));popView();afterChange();toast('Deleted');}]]:[['Report this lukk',()=>{if(!authed())return;sb.from('post_reports').upsert({post_id:x.id,user_id:Auth.user.id,reason:'reported'},{onConflict:'post_id,user_id'}).then(r=>toast(r.error?errMsg(r.error):'Thanks, we will review it',r.error?'err':'ok'));}]];
+    const menu=()=>sheet('Options',(b,close)=>{const rows=x.mine?[['Unpublish lukk',async()=>{if(!await confirmBox('Unpublish this lukk?','It leaves Lukks and its likes are removed. Your receipt stays safe in Lukks Receipt.','Unpublish',true))return;const r=await sb.from('posts').delete().eq('id',x.id);if(r.error){toast(errMsg(r.error),'err');return;}popView();afterChange();toast('Unpublished');}]]:[['Report this lukk',()=>{if(!authed())return;sb.from('post_reports').upsert({post_id:x.id,user_id:Auth.user.id,reason:'reported'},{onConflict:'post_id,user_id'}).then(r=>toast(r.error?errMsg(r.error):'Thanks, we will review it',r.error?'err':'ok'));}]];
       b.append(h('div',{class:'group',style:{margin:'8px 14px'}},rows.concat([['Copy link',()=>copyText(profileUrl(x.username)).then(()=>toast('Link copied'))]]).map(a=>h('button',{class:'item',onclick:()=>{close();setTimeout(a[1],150);}},h('span',{class:'grow'},h('b',null,a[0]))))));});
     const v=pushView(h('div',{class:'lx-detail'},
       h('div',{class:'lx-hero'},Posts.carousel(x.photos,x.title),h('div',{class:'lx-herotop'},backBtn('glass'),h('span',{class:'grow'}),
@@ -137,10 +137,10 @@ mount(el,ctx,live){
         h('div',{class:'lx-pbtns'},followBtn,me?h('button',{class:'btn small',onclick:shareSheet},'Share'):null));
       const tabs=h('div',{class:'lx-ptabs'},[['created','Lukks']].concat(me?[['saved','Saved']]:[]).map(t=>h('button',{class:ptab===t[0]?'on':'',onclick:()=>{ptab=t[0];folder=null;render();}},t[1])));
       const body=h('div',{class:'lx-pbody'});
-      if(ptab==='created')body.append(masonry(posts,openPost)||empty(me?'No lukks yet':'No lukks yet',me?'Tap + to share your first lukk.':'This person has not posted yet.'));
+      if(ptab==='created')body.append(masonry(posts,openPost)||empty(me?'No lukks yet':'No lukks yet',me?'Open Lukks Receipt, pick a receipt and tap Publish to Lukks.':'This person has not published a receipt lukk yet.'));
       else if(folder)body.append(folderGrid(folder));
       else body.append(foldersGrid());
-      const fab=me&&ptab==='created'?h('button',{class:'lx-fab','aria-label':'Add a lukk',onclick:()=>Posts.compose(null,async()=>{feed=null;await load();render();},customStyles())},icon('plus')):null;
+      const fab=null;
       wrap.replaceChildren(...[h('div',{class:'lx-scroll nopad'},head,info,tabs,body),fab].filter(Boolean));
     };
     const uploadImg=(field,max)=>pickFile('image/jpeg,image/png,image/webp').then(async f=>{if(!f)return false;const pr=await prepareImage(f,{max,maxMB:12});const path=await uploadFile('avatars',pr.blob,pr.ext,pr.type);const r=await Auth.saveProfile({[field]:publicUrl('avatars',path)});if(r.error)throw r.error;return true;});
@@ -336,8 +336,7 @@ mount(el,ctx,live){
     sheet('Share a lukk',async(b,close)=>{
       b.append(spinner());
       const r=await sb.rpc('discover_posts',{p_limit:100,p_user:Auth.profile&&Auth.profile.username});const mine=(Array.isArray(r.data)?r.data:[]).filter(x=>!g.lukk_ids.includes(x.id));
-      const newBtn=h('button',{class:'btn block',onclick:()=>{close();Posts.compose(null,()=>{reload();},customStyles());}},icon('plus'),'Create a new lukk');
-      b.replaceChildren(h('div',{class:'stack pad'},newBtn,mine.length?h('div',{class:'lx-pick'},mine.map(x=>h('button',{class:'lx-pickc',onclick:e=>guard(e.currentTarget,async()=>{const q=await sb.from('group_lukks').insert({group_id:g.id,post_id:x.id,user_id:Auth.user.id});if(q.error)throw q.error;toast('Shared','ok');close();reload();})},h('img',{src:ph(x.photos[0]),alt:x.title}),h('span',null,x.title)))):h('p',{class:'muted',style:{textAlign:'center'}},'You have no more lukks to share. Create one above.')));
+      b.replaceChildren(h('div',{class:'stack pad'},mine.length?h('div',{class:'lx-pick'},mine.map(x=>h('button',{class:'lx-pickc',onclick:e=>guard(e.currentTarget,async()=>{const q=await sb.from('group_lukks').insert({group_id:g.id,post_id:x.id,user_id:Auth.user.id});if(q.error)throw q.error;toast('Shared','ok');close();reload();})},h('img',{src:ph(x.photos[0]),alt:x.title}),h('span',null,x.title)))):h('p',{class:'muted',style:{textAlign:'center'}},'You have no more receipt lukks to share. Publish one from Lukks Receipt.')));
     });
   }
   async function openSpotlight(){

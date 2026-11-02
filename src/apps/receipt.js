@@ -89,9 +89,31 @@ mount(el,ctx,live){
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{const r=await sb.from('wear_logs').insert({look_id:id,user_id:Auth.user.id,worn_on:isoDay(new Date())});if(r.error)throw r.error;await refreshOne(id);toast('Logged. Cost per wear updated','ok');detail(id);})},icon('check'),'I wore it today'),
       h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>history_(look)},'Wear history'),h('button',{class:'btn',onclick:async e=>guard(e.currentTarget,async()=>{const r=await sb.from('looks').update({favourite:!look.favourite}).eq('id',id);if(r.error)throw r.error;look.favourite=!look.favourite;detail(id);}),'aria-label':'Favourite'},icon('heart'),look.favourite?'Favourited':'Favourite')),
       featureBox(look,its),
+      publishBox(look,its),
       h('button',{class:'btn block',onclick:e=>guard(e.currentTarget,async()=>{const bl=await RC.image(look,its);download(bl,'lukks-receipt-'+look.look_no+'.png');toast('Saved as image','ok');})},icon('download'),'Save as image'),
       h('div',{class:'row-flex'},h('button',{class:'btn grow',onclick:()=>form(look)},icon('edit'),'Edit'),h('button',{class:'btn danger grow',onclick:async()=>{if(!await confirmBox('Delete this lukk?','Its receipt and wear history will be removed.','Delete',true))return;const r=await sb.from('looks').delete().eq('id',id);if(r.error){toast(errMsg(r.error),'err');return;}if(look.photo_path)removeFile('looks',look.photo_path);toast('Deleted');await load();}},icon('trash'),'Delete'))));
     root.replaceChildren(appBar({title:'Receipt',onBack:list,backLabel:'Back'}),body);
+  }
+  /* publish a receipt as a public lukk (opt-in); shows on the Lukks homepage and the owner's profile */
+  function publishBox(look,its){
+    const box=h('div',{class:'group',style:{margin:0}});
+    const draw=pub=>{
+      box.replaceChildren(h('div',{class:'item'},icon('globe'),h('span',{class:'grow'},h('b',null,pub?'Published on Lukks':'Publish to Lukks'),h('span',null,pub?'Everyone can see this receipt lukk on Lukks and on your profile.':'Show this receipt lukk on the Lukks homepage and your profile. You choose; nothing is public until you publish.'))),
+        h('div',{class:'pad'},h('button',{class:'btn block'+(pub?'':' primary'),onclick:e=>guard(e.currentTarget,async()=>{
+          if(pub){if(!await confirmBox('Unpublish this lukk?','It leaves Lukks and its likes are removed. Your receipt stays here.','Unpublish',true))return;
+            const r=await sb.from('posts').delete().eq('id',pub.id);if(r.error)throw r.error;toast('Unpublished');draw(null);return;}
+          if(!look.photo_path){toast('Add a photo to this receipt first.','err');return;}
+          if(!its.length){toast('Add at least one priced item first.','err');return;}
+          const ins=await sb.from('posts').insert({user_id:Auth.user.id,title:look.title,details:look.notes||null,category:null,external_url:look.external_url||null,receipt_id:look.id}).select().single();
+          if(ins.error)throw ins.error;
+          const ph=await sb.from('post_photos').insert({post_id:ins.data.id,path:look.photo_path,sort:0});
+          if(ph.error){await sb.from('posts').delete().eq('id',ins.data.id);throw ph.error;}
+          toast('Published on Lukks','ok');draw(ins.data);
+        })},pub?'Unpublish':'Publish to Lukks')));
+    };
+    draw(null);
+    sb.from('posts').select('id').eq('receipt_id',look.id).maybeSingle().then(r=>{if(r.data)draw(r.data);}).catch(()=>{});
+    return box;
   }
   function featureBox(look,its){
     const f=feat[look.id],used=Object.values(feat).filter(x=>x.status!=='rejected').length;
@@ -144,7 +166,8 @@ mount(el,ctx,live){
           if(photo){const np=await uploadFile('looks',photo.blob,photo.ext,photo.type);if(path)removeFile('looks',path);path=np;}
           const row={title:title.value.trim(),notes:notes.value.trim()||null,currency:cur.value,collection_id:col.value||null,photo_path:path,category:editing?(look.category||null):null,external_url:(()=>{const v=link.value.trim();if(!v)return null;const u=safeUrl(v);if(!u)throw new Error('The link is not a valid web address.');return u;})(),is_public:false};
           let id;
-          if(editing){const r=await sb.from('looks').update(row).eq('id',look.id);if(r.error)throw r.error;id=look.id;const d=await sb.from('look_items').delete().eq('look_id',id);if(d.error)throw d.error;}
+          if(editing){const r=await sb.from('looks').update(row).eq('id',look.id);if(r.error)throw r.error;id=look.id;const d=await sb.from('look_items').delete().eq('look_id',id);if(d.error)throw d.error;
+            try{const pp=await sb.from('posts').update({title:row.title,details:row.notes,external_url:row.external_url}).eq('receipt_id',id).select('id');const pid=pp.data&&pp.data[0]&&pp.data[0].id;if(pid&&row.photo_path)await sb.from('post_photos').update({path:row.photo_path}).eq('post_id',pid);}catch(e){}}
           else{const r=await sb.from('looks').insert(Object.assign({user_id:Auth.user.id},row)).select().single();if(r.error)throw r.error;id=r.data.id;}
           const ir=await sb.from('look_items').insert(clean.map(c=>Object.assign({look_id:id,user_id:Auth.user.id},c)));if(ir.error)throw ir.error;
           toast('Saved','ok');await load();detail(id);
