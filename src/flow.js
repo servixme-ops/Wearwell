@@ -300,7 +300,10 @@ function bindInput(){
     else if(S.mode==='phone'){if(tap&&(Phone.state==='closed'||Phone.layer.hidden))Phone.enter();}
     else if(S.mode==='browse'){
       if(tap)tapBrowse(e.clientX,e.clientY);
+      else if(magGroups.length<=1&&dy<-45&&Math.abs(dy)>Math.abs(dx)){S.target=0;pullOut();}
       else{const flick=-dy/Math.max(dt,60)*220/95;S.target=Math.max(0,Math.min(magGroups.length-1,Math.round(S.target+flick*.6)));}
+    }else if(S.mode==='pulled'){
+      if(!tap&&Math.abs(dy)>45&&Math.abs(dy)>Math.abs(dx)){if(dy>0)returnToCrate();else openBook();}
     }else if(S.mode==='reading'&&S.book){
       const n=S.book.NL;
       if(tap)tapBook(e.clientX,e.clientY);
