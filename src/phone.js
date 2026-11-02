@@ -211,7 +211,7 @@ const Phone={
       this.doneBtn=h('button',{class:'edit-done',hidden:true,onclick:()=>this.setEditing(false)},'Done'));
     this.appHost=h('div',{class:'app-host'});
     this.indicator=h('div',{class:'home-bar',role:'button','aria-label':'Home',tabindex:'0',onclick:()=>this.goHome(),onkeydown:e=>{if(e.key==='Enter')this.goHome();}});
-    this.roomBtn=h('button',{class:'room-btn',onclick:()=>this.exit(),'aria-label':'Put phone down and return to the room'},icon('back'),h('span',null,'Room'));
+    this.roomBtn=h('button',{class:'room-btn',hidden:true,onclick:()=>this.exit(),'aria-label':'Put phone down and return to the room'},icon('back'),h('span',null,'Room'));
     this.toasts=h('div',{id:'toasts',class:'toasts'});this.bannerBox=h('div',{class:'banner-box'});
     scr.append(this.homeEl,this.appHost,this.lockEl,this.status,this.roomBtn,this.bannerBox,this.toasts,this.indicator);
     this.shell=h('div',{class:'phone-shell'},h('span',{class:'side-btn b1'}),h('span',{class:'side-btn b2'}),h('span',{class:'side-btn b3'}),h('span',{class:'side-btn pw'}),scr);
@@ -330,6 +330,11 @@ const Phone={
     this.state='home';this.screen.dataset.state='home';this.lockEl.classList.add('gone');this.renderHome();
     this._instant=true;try{this.openApp(id,undefined,null,null);}finally{this._instant=false;}
   },
+  /* Magazine Crate app: hide the phone and show only the crate with the magazine in it */
+  openCrate(){
+    this.exit();
+    setTimeout(()=>{if(typeof goBrowse==='function'&&S.mode==='room')goBrowse();},420);
+  },
   exit(fromPop){
     if(this.state==='closed')return;
     Local.set('inPhone',false);if(this.app)Local.set('lastApp',this.app.id);
@@ -346,8 +351,8 @@ const Phone={
     if(this.state==='closed'||this.state==='closing')return;
     if(this._skipPop>0){this._skipPop--;return;}
     if(this.app){if(this.ctx&&typeof this.ctx.onBack==='function'&&this.ctx.onBack()){try{history.pushState({lukks:'app'},'');}catch(_){}return;}this.closeApp(true);return;}
-    if(this.state==='lock'||this.state==='home'){this.exit(true);return;}
-    this.exit(true);
+    /* the phone is the homepage now: back on the lock or home screen stays put */
+    try{history.pushState({lukks:'phone'},'');}catch(_){}
   },
   goHome(){
     if(this.app){this.backTo=null;this.closeApp();}else if(this.state==='home'){this.homeScroll.scrollTo({left:0,behavior:'smooth'});this.setEditing(false);}
@@ -466,7 +471,7 @@ const Phone={
     // widgets
     this.widgetEl=h('div',{class:'widgets'},
       this.wToday=h('button',{class:'widget w-today',onclick:()=>this.openApp('calendar')},h('div',{class:'w-k'},'Today'),h('div',{class:'w-big'},new Date().getDate()),h('div',{class:'w-s'},new Date().toLocaleDateString(undefined,{weekday:'long'})),h('div',{class:'w-e'},'Loading events…')),
-      h('button',{class:'widget w-crate',onclick:()=>{this.exit();setTimeout(()=>{if(typeof goBrowse==='function'&&S.mode==='room')goBrowse();},420);}},h('div',{class:'w-k'},'Magazine crate'),h('div',{class:'w-spines'},[0,1,2,3,4].map(i=>h('i',{style:{background:['#1d3a8a','#c8372d','#e9c46a','#2a6f5c','#7d1f33'][i]}}))),h('div',{class:'w-s'},'Pull one out →')));
+      h('button',{class:'widget w-crate',onclick:()=>this.openCrate()},h('div',{class:'w-k'},'Magazine crate'),h('div',{class:'w-spines'},[0,1,2,3,4].map(i=>h('i',{style:{background:['#1d3a8a','#c8372d','#e9c46a','#2a6f5c','#7d1f33'][i]}}))),h('div',{class:'w-s'},'Pull one out →')));
     page2.appendChild(this.widgetEl);
     this.loadWidgetEvent();
     const grid=h('div',{class:'home-grid'});this.order().forEach(id=>{const a=Apps.get(id);if(a)grid.appendChild(this.iconEl(a));});
@@ -494,6 +499,7 @@ const Phone={
   openApp(id,intent,fromEl,opener){
     const a=Apps.get(id);if(!a)return;
     if(a.redirect){const r=a.redirect;if(r.auth&&!Auth.user)return this.openApp('account',{mode:'signin'},fromEl,opener);return this.openApp(r.id,Object.assign({},r.intent),fromEl,opener);}
+    if(a.launch){if(this.state==='lock'){this.intentAfterUnlock={open:id,intent};this.unlock();return;}a.launch(this);return;}
     if(this.state==='lock'){this.intentAfterUnlock={open:id,intent};this.unlock();return;}
     const noPush=this._noPush;this._noPush=false;
     if(this.app){if(!opener&&this.app.id&&this.app.id!==id)opener=null;this.closeAppNow();}

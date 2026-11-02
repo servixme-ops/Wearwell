@@ -42,14 +42,16 @@ async function boot(){
   try{await Promise.race([Promise.all(fonts.map(f=>document.fonts.load(f))),new Promise(r=>setTimeout(r,3000))]);}catch(e){}
   try{await Promise.race([issuePreload(),new Promise(r=>setTimeout(r,6000))]);}catch(e){}
   try{adsPreload();}catch(e){}
-  initScene($('#stage'));buildPhone3d();
+  initScene($('#stage'));buildPhone3d();hideRoom();
   loadCrateMags(0);layoutMags(0);
   buildCratePicker();buildNav();bindInput();bindFab();resize();
   roomGoal();camera.position.copy(G.pos).add(new T.Vector3(.5,.5,.9));camera.fov=G.fov;cur.look.copy(G.look);
   addEventListener('resize',resize);
   setMode('room');
   Phone.init();
-  try{if(Local.get('inPhone',false)){S.auto=false;setMode('phone');Phone.enter();}}catch(e){}
+  /* the homepage is the phone's slide-to-unlock screen; a reload starts on it unless you were inside an app */
+  try{if(!Local.get('inPhone',false))Local.set('lastApp',null);}catch(e){}
+  S.auto=false;setMode('phone');Phone.enter();
   $('#loading').classList.add('gone');
   last=performance.now();requestAnimationFrame(frame);
   window.__ready=true;try{sessionStorage.removeItem('lk_try');}catch(e){}
@@ -114,7 +116,7 @@ function setMode(m){
 }
 function selectIdx(i){
   S.sel=i;const m=crateMags(S.crate)[i];
-  $('#bNum').textContent=String(i+1).padStart(2,'0')+' / '+String(magGroups.length).padStart(2,'0');
+  $('#bNum').textContent='Magazine Crate';
   $('#bTitle').textContent=m.title;$('#bTag').textContent=m.tagline;
   const t=$('#bTitle');t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop');
   document.querySelectorAll('.dots i').forEach((d,j)=>d.classList.toggle('on',j===i));
@@ -126,7 +128,13 @@ function goBrowse(){
 }
 function goRoom(){
   if(S.mode!=='browse')return;
-  setMode('room');idle=0;
+  S.auto=false;setMode('phone');Phone.intentAfterUnlock={};Phone.enter();
+}
+/* the living room is gone for now: keep only the crate, floating on a plain backdrop */
+function hideRoom(){
+  scene.children.forEach(c=>{if(!c.isLight&&c!==crate)c.visible=false;});
+  scene.background=new T.Color('#2a1a12');
+  const base=new T.Mesh(new T.CylinderGeometry(.62,.62,.03,64),mat('#6b4a30',.7));base.position.set(CRATE_POS.x,TABLE.top-.016,CRATE_POS.z);base.receiveShadow=true;scene.add(base);
 }
 
 /* ---- pull out / return ---- */
@@ -486,7 +494,7 @@ function fabActions(){
     {k:'prev',l:'Previous',i:'up',f:()=>stepMag(-1)},
     {k:'next',l:'Next',i:'down',f:()=>stepMag(1)},
     {k:'pull',l:'Pull out',i:'pull',f:pullOut},
-    {k:'room',l:'Room',i:'room',f:goRoom}];
+    {k:'room',l:'Phone',i:'room',f:goRoom}];
   if(m==='pulled')return[{k:'open',l:'Open',i:'open',f:openBook},{k:'ret',l:'Return',i:'ret',f:()=>returnToCrate()}];
   if(m==='reading')return[
     {k:'prev',l:'Previous page',i:'left',f:()=>turn(-1)},

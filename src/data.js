@@ -10,12 +10,6 @@ const FAB={
   akwete:{label:'Akwete weave',cols:[['#c9873a','#2a1a12','#f6e7cb'],['#a63a2c','#f2c14e','#2a1a12']]}
 };
 const FABKEYS=Object.keys(FAB);
-const DESIGNERS=['Atelier Ife','Kemi Adeyemi Studio','Zuri House','Studio Oma','Bisi & Co.','Nneka Atelier','Tolu Couture','Sade Loom','Amara Thread','Ayo Cuts'];
-const LOOKNAMES=['Sunday Gown','Palm Wine Wrapper','Iro & Buba Set','Lagos Midi','Harmattan Agbada','Bridal Peplum','Coral Dress','Eko Jumpsuit','Terra Kaftan','Indigo Two-Piece','Owambe Mermaid','Market Day Wrap','Island Linen Set','Gele Statement','Naming Day Gown','Yaba Shift','Lekki Evening','Abeokuta Wrap'];
-const SHAPES=['gown','agbada','iro','jumpsuit','midi','kaftan'];
-const DETAILS=['with a nipped waist and a sweeping hem','tailored by hand in Lagos','finished with a matching head wrap','cut loose for hot afternoons','with structured shoulders and a clean line','made to move on the dance floor','with hand-stitched trims at the neckline','in a relaxed, easy silhouette'];
-const COVERBG=[['#1d3a8a','#f4e9d6','#f2b705'],['#c8372d','#fff3e0','#1b1b1b'],['#e9c46a','#2a1a12','#7a1f2b'],['#2a6f5c','#fbeedd','#f4a261'],['#f1e4d1','#4a1424','#c8553d'],['#0f2a43','#f6e7cb','#e76f51'],['#7a1f2b','#f6e7cb','#f2b705'],['#e76f51','#1d1d1d','#f7ede2'],['#3d2c5e','#f6e7cb','#f4b942']];
-const HEADLINES=["LET'S DO IT","WEAR IT LOUD","MADE IN LAGOS","STEP OUT","FULL COLOUR","THE EDIT"];
 const SHOPS=['Lekki Phase 1 · Admiralty Way','Victoria Island · Adeola Odeku','Ikeja City Mall · Obafemi Awolowo Way','Balogun Market · Lagos Island','Yaba · Herbert Macaulay Way','Abuja · Wuse 2'];
 
 /* One crate, one magazine: Lukks, Issue 01 (built in issue.js) */
