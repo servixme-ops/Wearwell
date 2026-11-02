@@ -211,7 +211,7 @@ const Phone={
       this.doneBtn=h('button',{class:'edit-done',hidden:true,onclick:()=>this.setEditing(false)},'Done'));
     this.appHost=h('div',{class:'app-host'});
     this.indicator=h('div',{class:'home-bar',role:'button','aria-label':'Home',tabindex:'0',onclick:()=>this.goHome(),onkeydown:e=>{if(e.key==='Enter')this.goHome();}});
-    this.roomBtn=h('button',{class:'room-btn',hidden:true,onclick:()=>this.exit(),'aria-label':'Put phone down and return to the room'},icon('back'),h('span',null,'Room'));
+    this.roomBtn=h('button',{class:'room-btn',onclick:()=>this.lock(),'aria-label':'Lock screen'},icon('lock'),h('span',null,'Lock screen'));
     this.toasts=h('div',{id:'toasts',class:'toasts'});this.bannerBox=h('div',{class:'banner-box'});
     scr.append(this.homeEl,this.appHost,this.lockEl,this.status,this.roomBtn,this.bannerBox,this.toasts,this.indicator);
     this.shell=h('div',{class:'phone-shell'},h('span',{class:'side-btn b1'}),h('span',{class:'side-btn b2'}),h('span',{class:'side-btn b3'}),h('span',{class:'side-btn pw'}),scr);

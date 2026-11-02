@@ -8,7 +8,7 @@ mount(el,ctx,live){
   let saved=null;
   const stack=[];
   const it=ctx.intent||{};
-  if(it.cat){const m=CATS.find(c=>c.toLowerCase()===String(it.cat).toLowerCase());if(m){cat=m;tab='home';}else{tab='search';searchQ=String(it.cat);}}
+  if(it.cat){tab='search';searchQ=String(it.cat);}
   const root=h('div',{class:'lx'});el.append(root);
   const main=h('div',{class:'lx-main'});
   const pill=h('nav',{class:'lx-nav'});
@@ -74,16 +74,14 @@ mount(el,ctx,live){
 
   /* ---------- Home ---------- */
   function drawHome(){
-    const chips=h('div',{class:'lx-chips'},['For You'].concat(styles()).map(c=>h('button',{class:(c==='For You'&&!cat)||c===cat?'on':'',onclick:()=>{cat=c==='For You'?'':c;Local.set('lxCat',cat);drawHome();}},c)));
-    const list=feed.filter(x=>!cat||x.category===cat);
-    const body=masonry(list,openPost)||empty(cat?'No lukks in '+cat+' yet':'No lukks yet',cat?'Nothing here yet.':'Lukks are receipt lukks. Publish one from Lukks Receipt and it shows up here.');
-    main.replaceChildren(titleBar('Home',addBtn()),chips,h('div',{class:'lx-scroll'},body));
-    const sc=$('.lx-chips .on',main);sc&&sc.scrollIntoView({inline:'center',block:'nearest'});
+    const list=feed;
+    const body=masonry(list,openPost)||empty('No lukks yet','Lukks are receipt lukks. Publish one from Lukks Receipt and it shows up here.');
+    main.replaceChildren(titleBar('Home',addBtn()),h('div',{class:'lx-scroll'},body));
   }
 
   /* ---------- Post detail ---------- */
   function openPost(x){
-    const same=feed?feed.filter(y=>y.id!==x.id&&x.category&&y.category===x.category):[];
+    const same=[];
     const more=same.length?same:(feed||[]).filter(y=>y.id!==x.id).slice(0,12);
     const ext=x.external_url&&safeUrl(x.external_url);
     const saveBtn=h('button',{class:'lx-pillbtn'},icon('bookmark'),h('span',null,isSaved(x.id)?'Saved':'Save'));
@@ -106,7 +104,6 @@ mount(el,ctx,live){
         h('button',{class:'lx-author',onclick:()=>openProfile(x.username)},avatar({avatar_url:x.avatar_url,display_name:x.display_name,username:x.username}),h('span',null,x.display_name||'@'+x.username),icon('chevR')),
         x.details&&h('p',{class:'lx-details'},x.details),
         ext?h('button',{class:'btn block lx-visit',onclick:()=>openExternal(ext)},icon('link'),'Visit link'):null,
-        x.category&&h('span',{class:'lx-tag'},x.category),
         receiptCard,
         more.length?h('h3',{class:'lx-h3'},'More lukks'):null,more.length?masonry(more.slice(0,16),y=>{popView();openPost(y);}):null)));
     v.classList.add('full');
@@ -186,18 +183,13 @@ mount(el,ctx,live){
 
   /* ---------- Search ---------- */
   function drawSearch(){
-    const qi=h('input',{type:'search',placeholder:'Search lukks, styles or people',value:searchQ,'aria-label':'Search'});
+    const qi=h('input',{type:'search',placeholder:'Search lukks or people',value:searchQ,'aria-label':'Search'});
     const out=h('div',{class:'lx-scroll'});
     let t;
     const run=async()=>{
       const s=searchQ.trim();out.replaceChildren();
-      if(s){out.append(spinner());const r=await sb.rpc('discover_posts',{p_limit:60,p_q:s});if(searchQ.trim()!==s)return;out.replaceChildren(r.error?empty('Search failed',errMsg(r.error)):(masonry(Array.isArray(r.data)?r.data:[],openPost)||empty('Nothing found','Try another style, piece or name.')));return;}
-      const counts=styles().map(c=>({c,n:feed.filter(x=>x.category===c).length,cover:(feed.find(x=>x.category===c)||{photos:[]}).photos[0]}));
-      const go=c=>{cat=c;Local.set('lxCat',c);setTab('home');};
-      const live=counts.filter(o=>o.n>0);
-      if(!live.length){out.append(empty('No lukks yet','Styles and trending lukks show up here once people post.'));return;}
-      out.append(h('h3',{class:'lx-h3'},'Lukks for You'),h('div',{class:'lx-tiles'},live.slice(0,8).map(o=>h('button',{class:'lx-tile',onclick:()=>go(o.c)},o.cover?h('img',{src:ph(o.cover),alt:''}):h('div',{class:'lx-tilebg'},logoEl(40)),h('span',null,o.c)))),
-        h('h3',{class:'lx-h3'},'Trending'),h('div',{class:'group',style:{margin:'0 0 90px'}},live.slice().sort((a,b)=>b.n-a.n).slice(0,6).map(o=>h('button',{class:'item',onclick:()=>go(o.c)},icon('search'),h('span',{class:'grow'},h('b',null,o.c.toLowerCase())),h('span',{class:'muted'},o.n+' lukks')))));
+      if(s){out.append(spinner());const r=await sb.rpc('discover_posts',{p_limit:60,p_q:s});if(searchQ.trim()!==s)return;out.replaceChildren(r.error?empty('Search failed',errMsg(r.error)):(masonry(Array.isArray(r.data)?r.data:[],openPost)||empty('Nothing found','Try another piece or name.')));return;}
+      out.append(empty('Search Lukks','Find receipt lukks by title, details or the person who posted them.'));
     };
     qi.oninput=()=>{searchQ=qi.value;clearTimeout(t);t=setTimeout(run,300);};
     main.replaceChildren(h('div',{class:'lx-title'},h('button',{class:'lx-circ','aria-label':'Back',onclick:ctx.close},icon('back')),h('h1',null,'Search'),h('span',{class:'grow'}),meBtn()),h('div',{class:'pad',style:{paddingBottom:0}},h('label',{class:'lk-search wide'},icon('search'),qi)),out);run();
@@ -246,10 +238,10 @@ mount(el,ctx,live){
       const q=h('input',{type:'search',class:'lx-gsearch',placeholder:'Search groups',value:gQ,oninput:e=>{gQ=e.target.value;grid();}});
       const host=h('div',{class:'lx-gwrap'});
       const grid=()=>{
-        let list=all.filter(g=>(gTab==='all'||g.joined||g.mine)&&(!gQ||(g.name+' '+g.style).toLowerCase().includes(gQ.toLowerCase())));
+        let list=all.filter(g=>(gTab==='all'||g.joined||g.mine)&&(!gQ||(g.name).toLowerCase().includes(gQ.toLowerCase())));
         if(!list.length){host.replaceChildren(empty(gTab==='mine'?'You have not joined any groups':'No groups yet',gTab==='mine'?'Join one from All groups, or start your own.':'Start a group for your style crew.',h('button',{class:'btn primary',onclick:()=>createGroup()},'Create a group')));return;}
-        const by={};list.forEach(g=>(by[g.style]=by[g.style]||[]).push(g));
-        host.replaceChildren(...Object.keys(by).map(st=>h('div',{class:'lx-gsec'},h('h3',{class:'lx-h3'},st),h('div',{class:'lx-ggrid'},by[st].map(g=>h('button',{class:'lx-gtile',onclick:()=>openGroup(g.id)},
+        const by={all:list};
+        host.replaceChildren(...Object.keys(by).map(st=>h('div',{class:'lx-gsec'},h('div',{class:'lx-ggrid'},by[st].map(g=>h('button',{class:'lx-gtile',onclick:()=>openGroup(g.id)},
           g.cover_path?h('img',{src:ph(g.cover_path),alt:'',loading:'lazy'}):h('span',{class:'lx-gimg ph'},logoEl(36)),h('b',null,g.name),h('em',null,icon('people'),Number(g.members).toLocaleString())))))));
       };
       body.replaceChildren(tabs,h('div',{class:'lx-gq'},q),host);grid();
@@ -260,15 +252,12 @@ mount(el,ctx,live){
     if(!authed())return;let cover=null,style='';
     sheet('Create a group',(b,close)=>{
       const nm=h('input',{type:'text',maxlength:'60',placeholder:'Group name'}),ds=h('textarea',{maxlength:'500',placeholder:'Who is it for? What do you post?'});
-      const st=h('input',{type:'text',maxlength:'40',placeholder:'Type your own style',list:'lx-gstyles'});
-      const dl=h('datalist',{id:'lx-gstyles'},CATS.map(c=>h('option',{value:c})));
-      const chips=h('div',{class:'lx-chips lx-sugg'},CATS.slice(0,14).map(c=>h('button',{type:'button',onclick:e=>{st.value=c;chips.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===e.currentTarget));}},c)));
       const pv=h('div',{class:'ad-prev'});
-      b.append(h('div',{class:'stack pad'},field('Name',nm),h('div',{class:'f-label'},'Style (pick a suggestion or add your own)'),chips,st,dl,field('About',ds),h('div',{class:'f-label'},'Cover photo'),pv,
+      b.append(h('div',{class:'stack pad'},field('Name',nm),field('About',ds),h('div',{class:'f-label'},'Cover photo'),pv,
         h('button',{class:'btn block',onclick:async()=>{try{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;cover=await prepareImage(f,{max:1200});pv.replaceChildren(h('img',{src:URL.createObjectURL(cover.blob),alt:''}));}catch(e){toast(errMsg(e),'err');}}},icon('image'),'Choose cover'),
         h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
           const n=nm.value.trim();if(n.length<2)throw new Error('Add a name.');
-          const sty=Posts.cleanStyle?Posts.cleanStyle(st.value):st.value.trim();if(!sty)throw new Error('Pick or type a style.');
+          const sty='Groups';
           let path=null;if(cover)path=await uploadFile('looks',cover.blob,cover.ext,cover.type);
           const r=await sb.from('groups').insert({owner_id:Auth.user.id,name:n,description:ds.value.trim()||null,cover_path:path,style:sty.slice(0,80)}).select().single();if(r.error){if(path)removeFile('looks',path);throw r.error;}
           await sb.from('group_members').insert({group_id:r.data.id,user_id:Auth.user.id});
