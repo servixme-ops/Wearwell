@@ -67,7 +67,7 @@ mount(el,ctx,live){
   function titleBar(t,right){
     return h('div',{class:'lx-title'},h('button',{class:'lx-circ','aria-label':'Back',onclick:ctx.close},icon('back')),h('h1',null,t),h('span',{class:'grow'}),right,meBtn());
   }
-  const addBtn=()=>null;
+  const addBtn=()=>h('button',{class:'lx-circ plus','aria-label':'Add a receipt lukk',onclick:()=>ctx.open('receipt',{add:true})},icon('plus'));
   const masonry=(list,open)=>list.length?h('div',{class:'lx-mas'},list.map(x=>h('div',{class:'lx-card'},
     h('button',{class:'lx-cardimg','aria-label':x.title,onclick:()=>open(x)},h('img',{src:ph(x.photos[0]),alt:x.title,loading:'lazy'}),x.photos.length>1?h('span',{class:'lx-multi'},icon('image'),String(x.photos.length)):null),
     h('div',{class:'lx-capr'},h('span',{class:'lx-cap'},x.title),Posts.likeBtn(x,authed))))):null;

@@ -1,5 +1,5 @@
 /* Lukks service worker: offline shell, never caches API or payment traffic. */
-const VER='lukks-v47';
+const VER='lukks-v48';
 const SHELL=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','phone.css','profile.css','manifest.webmanifest','src/data.js','src/art.js','src/issue.js','src/config.js','src/logo.js','src/ui.js','src/scene.js','src/api.js','src/sound.js','src/water.js','icons/wp-ash.jpg','src/phone.js','src/apps/crate.js','src/apps/magazines.js','src/mags.js','src/apps/activity.js','src/profileview.js','src/pwa.js','src/phone3d.js','src/flow.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'].concat(['01','02','03','04','05','06','07','08','09','10','11'].map(n=>'mag/p'+n+'.jpg')).concat(['common','calendar','camera','photos','messages','safari','notes','profile','receipt','post','lukks','ads','account'].map(n=>'src/apps/'+n+'.js'));
 const STATIC_HOSTS=['cdnjs.cloudflare.com','cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));});

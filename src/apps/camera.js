@@ -25,32 +25,26 @@ const Contrib={
   /* shared dialog: save one or more photos into the gallery. Signed out: Randoms only, kept on this device. */
   sendSheet(ctx,input,opts){
     opts=opts||{};
-    const files=(Array.isArray(input)?input:[input]).filter(Boolean).slice(0,Auth.user?50:1).map(x=>x instanceof File?x:new File([x],'photo.jpg',{type:x.type||'image/jpeg'}));
-    sheet(files.length>1?'Save photos':'Save photo',async(b,close)=>{
-      const albums=await this.albums();const signed=!!Auth.user;
+    const files=(Array.isArray(input)?input:[input]).filter(Boolean).slice(0,1).map(x=>x instanceof File?x:new File([x],'photo.jpg',{type:x.type||'image/jpeg'}));
+    sheet('Save photo',async(b,close)=>{
+      const signed=!!Auth.user;
       const items=files.map(f=>({file:f,url:URL.createObjectURL(f),pending:true}));
       const strip=h('div',{class:'lx-sendstrip'});
       const drawStrip=()=>strip.replaceChildren(...items.map(it=>h('div',{class:'lx-sthumb'},h('img',{src:it.url,alt:''}),it.pending?h('span',{class:'xspin'},spinner()):null,
         h('button',{class:'rm','aria-label':'Remove photo',onclick:()=>{const k=items.indexOf(it);if(k>=0)items.splice(k,1);drawStrip();}},icon('close')))));
       drawStrip();
       (async()=>{for(const it of items.slice()){try{const pr=await prepareImage(it.file,{max:1800});if(!items.includes(it))continue;Object.assign(it,{prepared:pr,pending:false});}catch(e){const k=items.indexOf(it);if(k>=0)items.splice(k,1);toast(errMsg(e),'err');}drawStrip();}})();
-      let want=signed?(opts.album||'randoms'):'randoms';
-      const sel=h('select',{disabled:!signed});
-      const fillSel=()=>{sel.replaceChildren(...albums.map(a=>h('option',{value:a.slug,selected:a.slug===want},a.title)),signed?h('option',{value:'__new'},'+ New folder…'):null);sel.value=want;};fillSel();
-      const nf=h('input',{type:'text',maxlength:'40',placeholder:'Folder name'});const nfBox=h('div',{hidden:true,class:'stack'},field('New folder',nf));
-      sel.onchange=()=>{nfBox.hidden=sel.value!=='__new';if(sel.value!=='__new')want=sel.value;};
       const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption (optional)'});
       const lnk=h('input',{type:'url',inputmode:'url',maxlength:'300',placeholder:'Paste a link: Instagram, TikTok, Linktree…',autocapitalize:'off',autocomplete:'off'});
       const lnkTag=h('div',{class:'lk-detect',hidden:true});
       lnk.oninput=()=>{const i=identifyLink(lnk.value);lnkTag.hidden=!i&&!lnk.value.trim();lnkTag.replaceChildren(...(i?[linkChip(i),h('span',null,i.key==='link'?'Website link':'Detected '+i.name)]:[h('span',{class:'lk-bad'},'That doesn’t look like a link yet')]));};
       const cancel={v:false};const cancelB=h('button',{class:'btn block',hidden:true,style:{marginTop:'8px'},onclick:()=>{cancel.v=true;cancelB.textContent='Cancelling…';}},'Cancel');
-      const saveLbl=signed?'Save to gallery':'Save to Randoms';
+      const saveLbl='Save to Randoms';
       const saveB=h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         if(items.some(i=>i.pending))throw new Error('Photos are still loading.');
         if(!items.length)throw new Error('No photos to save.');
         if(lnk.value.trim()&&!identifyLink(lnk.value))throw new Error('That link doesn’t look right. Check it or clear it.');
-        let slug=sel.value;
-        if(signed&&slug==='__new'){const nm=nf.value.trim();if(!nm)throw new Error('Name the new folder.');const a=await this.newFolder(nm);albums.push(a);want=a.slug;slug=a.slug;fillSel();nfBox.hidden=true;}
+        const slug='randoms';
         cancel.v=false;cancelB.hidden=false;let n=0;
         try{
           for(const it of items){
@@ -65,10 +59,9 @@ const Contrib={
           }
         }finally{cancelB.hidden=true;cancelB.textContent='Cancel';saveB.textContent=saveLbl;}
         if(cancel.v&&!n){toast('Cancelled');return;}
-        toast((n>1?n+' photos':'Photo')+' saved to '+(albums.find(a=>a.slug===slug)||{title:'Randoms'}).title+(cancel.v?' (cancelled the rest)':''),'ok');close();opts.done&&opts.done();
+        toast('Photo saved to Randoms','ok');close();try{Contrib.onSaved&&await Contrib.onSaved();}catch(e){}opts.done&&opts.done();
       })},saveLbl);
-      b.append(...[strip,field('Folder',sel,signed?undefined:'Signed out: one photo at a time, saved to Randoms on this device. Sign in to add many and pick folders.'),nfBox,field('Caption',cap),field('Link (optional)',lnk),lnkTag,saveB,cancelB,
-        signed?null:h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{close();ctx.open('account',{mode:'signin'});}},'Sign in to choose a folder'),
+      b.append(...[strip,h('p',{class:'muted small-t',style:{margin:0}},signed?'One photo at a time. It goes to Randoms and can’t be deleted later.':'One photo at a time, saved to Randoms on this device.'),field('Caption',cap),field('Link (optional)',lnk),lnkTag,saveB,cancelB,
         h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{const ok=items.filter(i=>i.prepared);ok.forEach(i=>download(i.prepared.blob,'lukks-photo.'+i.prepared.ext));}},icon('download'),'Save to my device')].filter(Boolean));
     });
   }
@@ -84,7 +77,7 @@ mount(el,ctx){
   const flash=h('div',{class:'cam-flash'});
   const shutter=h('button',{class:'shutter','aria-label':'Take photo',onclick:capture});
   const flip=h('button',{class:'cam-side','aria-label':'Switch camera',onclick:()=>{facing=facing==='environment'?'user':'environment';start();}},icon('flip'));
-  const pick=h('button',{class:'cam-side','aria-label':'Choose a photo',onclick:async()=>{const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length){if(!Auth.user&&fs.length>1)toast('Sign in to add more than one photo');Contrib.sendSheet(ctx,fs);}}},icon('image'));
+  const pick=h('button',{class:'cam-side','aria-label':'Choose a photo',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(f)Contrib.sendSheet(ctx,[f]);}},icon('image'));
   const stage=h('div',{class:'cam-stage'},video,msg,flash);
   el.append(appBar({title:'Camera',onBack:ctx.close,backLabel:'Back'}),stage,h('div',{class:'cam-bar'},pick,shutter,flip));
   async function start(){
@@ -93,7 +86,7 @@ mount(el,ctx){
     try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920}},audio:false});video.srcObject=stream;video.classList.toggle('mirror',facing==='user');await video.play().catch(()=>{});}
     catch(e){fallback(e&&e.name==='NotAllowedError'?'Camera access was blocked. Allow it in your browser settings, or choose a photo instead.':'No camera found. Choose a photo from your device instead.');}
   }
-  function fallback(t){msg.innerHTML='';msg.append(h('p',null,t),h('button',{class:'btn primary',onclick:async()=>{const fs=await pickFiles('image/jpeg,image/png,image/webp');if(fs.length)Contrib.sendSheet(ctx,fs);}},'Choose photos'),h('button',{class:'btn',style:{marginTop:'8px'},onclick:async()=>{const f=await pickFile('image/*','environment');if(f)Contrib.sendSheet(ctx,f);}},'Take a photo'));flip.hidden=true;shutter.disabled=true;}
+  function fallback(t){msg.innerHTML='';msg.append(h('p',null,t),h('button',{class:'btn primary',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(f)Contrib.sendSheet(ctx,[f]);}},'Choose a photo'),h('button',{class:'btn',style:{marginTop:'8px'},onclick:async()=>{const f=await pickFile('image/*','environment');if(f)Contrib.sendSheet(ctx,f);}},'Take a photo'));flip.hidden=true;shutter.disabled=true;}
   function stop(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
   async function capture(){
     if(!video.videoWidth)return;
