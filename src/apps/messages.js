@@ -1,4 +1,4 @@
-/* ---------- MESSAGES: chat with the Lukks team and replies to direct messages ---------- */
+/* ---------- MESSAGES: chat with the Photo Dump team and replies to direct messages ---------- */
 defApp({id:'messages',name:'Messages',bg:'linear-gradient(#5bf675,#0cbd2a)',dock:true,glyph:()=>`<svg viewBox="0 0 60 60"><path d="M30 12c11.6 0 21 7.4 21 16.6S41.600 45.200 30 45.200c-2.200 0-4.300-.3-6.300-.8-3 2.600-6.700 3.800-10.500 3.600 2.300-2 3.700-4.300 4-6.800C13.400 38.600 9 33.900 9 28.600 9 19.400 18.400 12 30 12z" fill="#fff"/></svg>`,
 mount(el,ctx,live){
   let threads=[],cur=null,ch=null,msgs=[];
@@ -6,7 +6,7 @@ mount(el,ctx,live){
   const meId=()=>Auth.user&&Auth.user.id;
   async function loadThreads(){
     root.replaceChildren(appBar({title:'Messages',onBack:ctx.close,backLabel:'Back'}));
-    if(!Auth.user){root.append(appBody(gate(ctx,'Sign in to message the Lukks team.')));return;}
+    if(!Auth.user){root.append(appBody(gate(ctx,'Sign in to message the Photo Dump team.')));return;}
     const body=appBody(spinner());root.append(body);
     const r=await sb.from('messages').select('*').order('created_at',{ascending:false}).limit(300);
     if(r.error){body.replaceChildren(empty('Could not load messages',errMsg(r.error),h('button',{class:'btn',onclick:loadThreads},'Try again')));return;}
@@ -18,7 +18,7 @@ mount(el,ctx,live){
     const g=h('div',{class:'group',style:{marginTop:'12px'}});
     threads.forEach(t=>g.append(h('button',{class:'item',onclick:()=>openThread(t.key)},
       h('span',{class:'avatar'},t.key==='team'?'L':'#'),
-      h('span',{class:'grow'},h('b',null,t.key==='team'?'Lukks Team':'Direct message'),h('span',null,t.last?t.last.body.slice(0,60):'Say hello. We reply as soon as we can.')),
+      h('span',{class:'grow'},h('b',null,t.key==='team'?'Photo Dump Team':'Direct message'),h('span',null,t.last?t.last.body.slice(0,60):'Say hello. We reply as soon as we can.')),
       t.unread>0&&h('span',{class:'badge',style:{position:'static'}},String(t.unread)),t.last&&h('span',{class:'muted small-t'},timeAgo(t.last.created_at)))));
     body.replaceChildren(g);
     if(ctx.intent&&ctx.intent.thread){const k=ctx.intent.thread;ctx.intent=null;openThread(k);}
@@ -30,7 +30,7 @@ mount(el,ctx,live){
     const send=h('button',{class:'send','aria-label':'Send',disabled:true},icon('send'));
     ta.addEventListener('input',()=>{send.disabled=!ta.value.trim();ta.style.height='auto';ta.style.height=Math.min(110,ta.scrollHeight)+'px';});
     ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send.click();}});
-    root.replaceChildren(appBar({title:key==='team'?'Lukks Team':'Direct message',onBack:()=>{unsub();cur=null;loadThreads();},backLabel:'Back'}),scroll,h('div',{class:'compose'},ta,send));
+    root.replaceChildren(appBar({title:key==='team'?'Photo Dump Team':'Direct message',onBack:()=>{unsub();cur=null;loadThreads();},backLabel:'Back'}),scroll,h('div',{class:'compose'},ta,send));
     const draw=()=>{list.replaceChildren();if(!msgs.length)list.append(h('p',{class:'muted',style:{textAlign:'center',margin:'30px 0'}},'No messages yet. Write the first one.'));
       msgs.forEach(m=>list.append(h('div',{class:'bubble '+(m.sender_id===meId()?'me':'them')},m.body,h('small',null,fmtTime(m.created_at)))));scroll.scrollTop=scroll.scrollHeight;};
     const q=key==='team'?sb.from('messages').select('*').or(`and(sender_id.eq.${meId()},recipient_id.is.null),and(recipient_id.eq.${meId()},from_team.eq.true)`):sb.from('messages').select('*').or(`and(sender_id.eq.${meId()},recipient_id.eq.${key}),and(sender_id.eq.${key},recipient_id.eq.${meId()})`);

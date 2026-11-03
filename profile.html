@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Lukks Profile</title>
+<title>Photo Dump Profile</title>
 <meta name="theme-color" content="#f0501e">
 <meta name="robots" content="noindex">
 <link rel="icon" href="icons/icon-192.png">
@@ -24,7 +24,6 @@ body{font-family:'Instrument Sans',system-ui,sans-serif}
 <body>
 <div id="root"><div class="msg"><div>Loading…</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="src/data.js"></script>
 <script src="src/config.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/api.js"></script>
@@ -34,14 +33,14 @@ body{font-family:'Instrument Sans',system-ui,sans-serif}
   const root=document.getElementById('root');
   const u=(new URLSearchParams(location.search).get('u')||'').toLowerCase();
   const home=CFG.site;
-  const notFound=(t,m)=>{root.replaceChildren(h('div',{class:'msg'},h('div',null,h('h1',null,t),h('p',null,m),h('p',null,h('a',{href:home},'Visit Lukks')))));document.title='Lukks Profile';};
+  const notFound=(t,m)=>{root.replaceChildren(h('div',{class:'msg'},h('div',null,h('h1',null,t),h('p',null,m),h('p',null,h('a',{href:home},'Visit Photo Dump')))));document.title='Photo Dump Profile';};
   if(!/^[a-z0-9_]{3,24}$/.test(u)){notFound('Profile not found','That link does not look right.');return;}
   if(!sb){notFound('Cannot load right now','Please try again in a moment.');return;}
   const r=await sb.rpc('get_public_profile',{p_username:u});
   if(r.error){notFound('Something went wrong','Please try again in a moment.');return;}
   if(!r.data){notFound('Profile not found','This profile is private or does not exist.');return;}
   const p=r.data.profile;
-  document.title=(p.display_name||'@'+p.username)+' on Lukks';
+  document.title=(p.display_name||'@'+p.username)+' on Photo Dump';
   root.replaceChildren(renderPublicProfile(r.data,{highlight:new URLSearchParams(location.search).get('l')}));
   const t=getComputedStyle(root.firstChild).getPropertyValue('--b').trim();if(t)document.body.style.background=t;
   const url=profileUrl(p.username);

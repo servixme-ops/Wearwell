@@ -205,41 +205,17 @@ function linkChip(info,opts){
   opts=opts||{};if(!info)return null;
   return h('span',{class:'lk-chip'+(opts.small?' small':''),style:{background:info.bg,color:info.dark?'#111':'#fff'},title:info.url},info.name);
 }
-/* ---------- Generated fashion art (placeholder photography) ---------- */
-let _looksReady=false;
-function ensureLooks(){if(_looksReady)return;[0,1,2].forEach(crateMags);_looksReady=true;}
-const _art={};
-function artImage(ref,w,hh){
-  ensureLooks();
-  const k=ref+'|'+(w||300);if(_art[k])return _art[k];
-  const look=LOOKS[ref];if(!look)return null;
-  const c=thumb(look,w||300,hh||Math.round((w||300)*1.33));
-  return _art[k]=c.toDataURL('image/jpeg',.82);
-}
-const issueCover=(mi,ci,w)=>{ensureLooks();const m=crateMags(ci)[mi];return m?drawCover(m,w||240,Math.round((w||240)*1.32)).toDataURL('image/jpeg',.82):null;};
 
-/* ---------- Saved looks (crate wardrobe) sync ---------- */
-async function syncSavedLooks(){
-  if(!Auth.user||!sb)return;
-  try{
-    const r=await sb.from('saved_looks').select('look_id,kind');
-    if(r.error)return;
-    const have={saved:new Set(),wardrobe:new Set()};
-    (r.data||[]).forEach(x=>have[x.kind]&&have[x.kind].add(x.look_id));
-    const add=[];
-    ['saved','wardrobe'].forEach(kind=>{
-      const loc=kind==='saved'?saved:wardrobe;
-      loc.forEach(id=>{if(!have[kind].has(id))add.push({user_id:Auth.user.id,look_id:id,kind});});
-      have[kind].forEach(id=>loc.add(id));
-      store.set(kind,[...loc]);
-    });
-    if(add.length)await sb.from('saved_looks').upsert(add,{onConflict:'user_id,look_id,kind',ignoreDuplicates:true});
-  }catch(e){console.warn('saved sync',e);}
-}
-async function pushSaved(kind,id,on){
-  if(!Auth.user||!sb)return;
-  try{
-    if(on)await sb.from('saved_looks').upsert({user_id:Auth.user.id,look_id:id,kind},{onConflict:'user_id,look_id,kind',ignoreDuplicates:true});
-    else await sb.from('saved_looks').delete().eq('user_id',Auth.user.id).eq('look_id',id).eq('kind',kind);
-  }catch(e){}
+/* ---------- Social handles on profiles ---------- */
+const SOCIAL_SITES={instagram:['Instagram','#e1306c',h=>'https://instagram.com/'+h],tiktok:['TikTok','#111111',h=>'https://tiktok.com/@'+h],x:['X','#111111',h=>'https://x.com/'+h],snapchat:['Snapchat','#fffc00',h=>'https://snapchat.com/add/'+h],website:['Website','#2b6cb0',h=>h]};
+function socialList(so){
+  const out=[];Object.keys(SOCIAL_SITES).forEach(k=>{
+    let v=so&&so[k];if(!v)return;v=String(v).trim();if(!v)return;
+    const S=SOCIAL_SITES[k];let url=null;
+    if(/^https?:\/\//i.test(v))url=safeUrl(v);
+    else if(k==='website')url=safeUrl('https://'+v);
+    else{const hd=v.replace(/^@/,'').replace(/[^\w.\-]/g,'');if(hd)url=S[2](hd);}
+    if(url)out.push({key:k,name:S[0],bg:S[1],dark:k==='snapchat',url,label:k==='website'?v.replace(/^https?:\/\//,'').slice(0,30):(v.startsWith('@')||/^https?:/.test(v)?(/^https?:/.test(v)?S[0]:v):'@'+v)});
+  });
+  return out;
 }

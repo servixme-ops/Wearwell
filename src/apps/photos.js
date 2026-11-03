@@ -54,8 +54,8 @@ mount(el,ctx,live){
       const p=cur(),li=identifyLink(p.link);bot.replaceChildren(...[
         li?h('button',{class:'pv-link',onclick:()=>openExternal(li.url)},linkChip(li),h('span',null,li.key==='link'?li.host:'Open on '+li.name)):null,
         p.caption?h('p',{class:'pv-cap'},p.caption):null,
-        h('div',{class:'pv-row'},h('button',{class:'pv-btn',onclick:async()=>{try{const bl=p.blob||await (await fetch(p.src)).blob();const f=new File([bl],'lukks-photo.jpg',{type:bl.type||'image/jpeg'});
-          if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else download(bl,'lukks-photo.jpg');}catch(e){if(e&&e.name!=='AbortError')toast('Could not save that photo','err');}}},icon('share'),'Save or share'))].filter(Boolean));
+        h('div',{class:'pv-row'},h('button',{class:'pv-btn',onclick:async()=>{try{const bl=p.blob||await (await fetch(p.src)).blob();const f=new File([bl],'photodump-photo.jpg',{type:bl.type||'image/jpeg'});
+          if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else download(bl,'photodump-photo.jpg');}catch(e){if(e&&e.name!=='AbortError')toast('Could not save that photo','err');}}},icon('share'),'Save or share'))].filter(Boolean));
     }
     function apply(dx,dy,sc,fade){
       track.style.transition=anim?'transform .28s cubic-bezier(.2,.8,.2,1)':'none';

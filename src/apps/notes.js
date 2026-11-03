@@ -1,25 +1,23 @@
-/* ---------- NOTES: About Lukks + Testimonials (two separate sections) ---------- */
+/* ---------- NOTES: About Photo Dump + Testimonials (two separate sections) ---------- */
 defApp({id:'notes',name:'Notes',bg:'#fff',glyph:()=>`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"/><rect width="60" height="17" fill="#fecc02"/><g stroke="#d8d8dc" stroke-width="1.3"><path d="M0 28h60M0 38h60M0 48h60"/></g><path d="M0 17h60" stroke="#e5b400" stroke-width="1"/></svg>`,
 mount(el,ctx,live){
   let sec=null;const root=h('div',{class:'msg-root'});el.append(root);
   const ABOUT=[
-    ['What is Lukks?','Lukks is where you showcase your style and discover other people\'s. Find Your Kind of Style, share your lukks, and see what everyone else is wearing.'],
-    ['Your Lukks','Add outfits to your Lukks with a photo and the pieces you wore. Mark when you wear them and watch the cost per wear drop in Lukks Receipt.'],
-    ['Share your profile','Lukks Profile is your shareable style page. Turn it on, choose what to show, and send your link to anyone.'],
-    ['Discover','Browse public lukks from other people, search by style or piece, and open their profiles for inspiration.'],
-    ['The crate','The magazine crate in the living room is full of Nigerian fashion to flip through. Tap any outfit to save it to My Lukks.'],
-    ['Contact','Message the Lukks Team any time from the Messages app.']];
+    ['What is Photo Dump?','Photo Dump is a roll of film made by everyone. Every photo shows up first as a colour negative. Tap a frame to develop it into the real photograph.'],
+    ['Add a photo','Use the Camera app or the + button on Photo Dump to add one photo to Randoms. Signed-in people can choose to show it on the film.'],
+    ['Share your profile','Add a bio and your social handles in Account, then turn your profile public so people can find you from your photos.'],
+    ['Contact','Message the Photo Dump Team any time from the Messages app.']];
   function home(){
     sec=null;root.replaceChildren(appBar({title:'Notes',onBack:ctx.close,backLabel:'Back'}));
     const g=h('div',{class:'group',style:{marginTop:'14px'}},
-      h('button',{class:'item',onclick:()=>open('about')},icon('shirt'),h('span',{class:'grow'},h('b',null,'About Lukks'),h('span',null,'What Lukks is and how it works')),h('span',{class:'chev'},icon('chevR'))),
-      h('button',{class:'item',onclick:()=>open('testimonials')},icon('star'),h('span',{class:'grow'},h('b',null,'Testimonials'),h('span',null,'What readers say about Lukks')),h('span',{class:'chev'},icon('chevR'))));
-    root.append(appBody(h('div',{class:'sec-t'},'Lukks'),g));
+      h('button',{class:'item',onclick:()=>open('about')},icon('shirt'),h('span',{class:'grow'},h('b',null,'About Photo Dump'),h('span',null,'What Photo Dump is and how it works')),h('span',{class:'chev'},icon('chevR'))),
+      h('button',{class:'item',onclick:()=>open('testimonials')},icon('star'),h('span',{class:'grow'},h('b',null,'Testimonials'),h('span',null,'What readers say about Photo Dump')),h('span',{class:'chev'},icon('chevR'))));
+    root.append(appBody(h('div',{class:'sec-t'},'Photo Dump'),g));
   }
   async function open(s,compose){
     sec=s;
     if(s==='about'){
-      root.replaceChildren(appBar({title:'About Lukks',onBack:home,backLabel:'Back'}),appBody(h('article',{class:'note-doc'},h('h1',null,'About Lukks'),ABOUT.map(a=>[h('h3',null,a[0]),h('p',null,a[1])]))));return;
+      root.replaceChildren(appBar({title:'About Photo Dump',onBack:home,backLabel:'Back'}),appBody(h('article',{class:'note-doc'},h('h1',null,'About Photo Dump'),ABOUT.map(a=>[h('h3',null,a[0]),h('p',null,a[1])]))));return;
     }
     const add=h('button',{class:'icon-btn','aria-label':'Write a testimonial',onclick:write},icon('edit'));
     const body=appBody(spinner());root.replaceChildren(appBar({title:'Testimonials',onBack:home,backLabel:'Back',right:add}),body);
@@ -36,7 +34,7 @@ mount(el,ctx,live){
   function write(){
     if(!Auth.user){toast('Sign in to write a testimonial');ctx.open('account',{mode:'signin'});return;}
     sheet('Write a testimonial',(b,close)=>{
-      let rating=5;const name=h('input',{type:'text',maxlength:'60',value:(Auth.profile&&Auth.profile.display_name)||''}),txt=h('textarea',{maxlength:'600',placeholder:'What do you like about Lukks?'});
+      let rating=5;const name=h('input',{type:'text',maxlength:'60',value:(Auth.profile&&Auth.profile.display_name)||''}),txt=h('textarea',{maxlength:'600',placeholder:'What do you like about Photo Dump?'});
       const stars=h('div',{class:'star-pick',role:'radiogroup','aria-label':'Rating'});
       const paint=()=>{stars.replaceChildren();for(let i=1;i<=5;i++)stars.append(h('button',{role:'radio','aria-checked':String(i===rating),'aria-label':i+' stars',class:i<=rating?'on':'',onclick:()=>{rating=i;paint();}},'★'));};paint();
       b.append(field('Rating',stars),field('Display name',name),field('Your words',txt),h('p',{class:'muted small-t'},'Testimonials appear after a quick review.'),

@@ -34,6 +34,7 @@ const Contrib={
         h('button',{class:'rm','aria-label':'Remove photo',onclick:()=>{const k=items.indexOf(it);if(k>=0)items.splice(k,1);drawStrip();}},icon('close')))));
       drawStrip();
       (async()=>{for(const it of items.slice()){try{const pr=await prepareImage(it.file,{max:1800});if(!items.includes(it))continue;Object.assign(it,{prepared:pr,pending:false});}catch(e){const k=items.indexOf(it);if(k>=0)items.splice(k,1);toast(errMsg(e),'err');}drawStrip();}})();
+      let share=true;const shareRow=signed?h('div',{class:'group',style:{margin:'0 0 8px'}},h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Show on Photo Dump'),h('span',null,'Everyone can see it on the film, with your username')),toggleEl(true,v=>{share=v;},'Show on Photo Dump'))):null;
       const cap=h('input',{type:'text',maxlength:'200',placeholder:'Caption (optional)'});
       const lnk=h('input',{type:'url',inputmode:'url',maxlength:'300',placeholder:'Paste a link: Instagram, TikTok, Linktree…',autocapitalize:'off',autocomplete:'off'});
       const lnkTag=h('div',{class:'lk-detect',hidden:true});
@@ -52,7 +53,7 @@ const Contrib={
             const pr=it.prepared;
             if(signed){const path=await uploadFile('gallery',pr.blob,pr.ext,pr.type);
               if(cancel.v){removeFile('gallery',path);break;}
-              const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:slug,storage_path:path,caption:cap.value.trim().slice(0,200)||null,link:(identifyLink(lnk.value)||{}).url||null,status:'private'});
+              const r=await sb.from('photos').insert({user_id:Auth.user.id,album_slug:slug,storage_path:path,caption:cap.value.trim().slice(0,200)||null,link:(identifyLink(lnk.value)||{}).url||null,status:share?'approved':'private'});
               if(r.error){removeFile('gallery',path);throw r.error;}}
             else await LocalGallery.add(pr.blob,'randoms',cap.value.trim().slice(0,200),(identifyLink(lnk.value)||{}).url);
             n++;
@@ -61,7 +62,7 @@ const Contrib={
         if(cancel.v&&!n){toast('Cancelled');return;}
         toast('Photo saved to Randoms','ok');close();try{Contrib.onSaved&&await Contrib.onSaved();}catch(e){}opts.done&&opts.done();
       })},saveLbl);
-      b.append(...[strip,h('p',{class:'muted small-t',style:{margin:0}},signed?'One photo at a time. It goes to Randoms and can’t be deleted later.':'One photo at a time, saved to Randoms on this device.'),field('Caption',cap),field('Link (optional)',lnk),lnkTag,saveB,cancelB,
+      b.append(...[strip,h('p',{class:'muted small-t',style:{margin:0}},signed?'One photo at a time. It goes to Randoms and can’t be deleted later.':'One photo at a time, saved to Randoms on this device.'),shareRow,field('Caption',cap),field('Link (optional)',lnk),lnkTag,saveB,cancelB,
         h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{const ok=items.filter(i=>i.prepared);ok.forEach(i=>download(i.prepared.blob,'lukks-photo.'+i.prepared.ext));}},icon('download'),'Save to my device')].filter(Boolean));
     });
   }
