@@ -5,48 +5,29 @@ const Film={
     cv.width=w;cv.height=h;const g=cv.getContext('2d',{willReadFrequently:true});
     const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
     if(cover){const r=Math.max(w/iw,h/ih),sw=w/r,sh=h/r;g.drawImage(img,(iw-sw)/2,(ih-sh)/2,sw,sh,0,0,w,h);}else g.drawImage(img,0,0,w,h);
-    const d=g.getImageData(0,0,w,h),a=d.data;
-    for(let i=0;i<a.length;i+=4){
-      /* black & white negative: tones inverted, a little flat, with grain */
-      const L=(a[i]*.299+a[i+1]*.587+a[i+2]*.114)/255,n=(Math.random()-.5)*20;
-      const v=Math.max(0,Math.min(255,(1-L)*215+22+n));
-      a[i]=a[i+1]=a[i+2]=v;
-    }
-    g.putImageData(d,0,0);
-    const vg=g.createRadialGradient(w/2,h/2,Math.min(w,h)*.3,w/2,h/2,Math.max(w,h)*.75);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.35)');g.fillStyle=vg;g.fillRect(0,0,w,h);
+    g.globalCompositeOperation='saturation';g.fillStyle='#000';g.fillRect(0,0,w,h);g.globalCompositeOperation='source-over';
     return cv;
   },
   load(url){return new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.decoding='async';i.onload=()=>res(i);i.onerror=()=>rej(new Error('Could not load that photo.'));i.src=url;});},
   canister(){
-    const T=(x,y,sz,t,extra)=>`<text x="${x}" y="${y}" font-size="${sz}" ${extra||''}>${t}</text>`;
-    return h('span',{class:'fd-canwrap',html:`<svg class="fd-can" viewBox="0 0 340 170" aria-hidden="true">
-      <defs><clipPath id="fdBody"><rect x="40" y="52" width="262" height="96" rx="6"/></clipPath>
-      <linearGradient id="fdShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient></defs>
-      <ellipse cx="170" cy="160" rx="140" ry="6" fill="#1f5a45" opacity=".3"/>
-      <g transform="rotate(-8 170 100)">
-        <g><path d="M70 54 L70 18 L150 8 L150 54Z" fill="#9b928a"/><path d="M70 18 L150 8" stroke="#6f665f" stroke-width="2"/>
-          <g fill="#80c5a9"><rect x="78" y="22" width="9" height="6" rx="1.5"/><rect x="92" y="20" width="9" height="6" rx="1.5"/><rect x="106" y="18" width="9" height="6" rx="1.5"/><rect x="120" y="16" width="9" height="6" rx="1.5"/></g></g>
-        <rect x="16" y="56" width="30" height="88" rx="8" fill="#141414"/>
-        <g clip-path="url(#fdBody)">
-          <rect x="40" y="52" width="262" height="96" fill="#f5a01a"/>
-          <rect x="40" y="52" width="150" height="96" fill="#f7f4ea"/>
-          <polygon points="190,52 205,52 190,148 175,148" fill="#f5a01a"/>
-          <rect x="40" y="52" width="262" height="96" fill="url(#fdShade)"/>
-          <g fill="#1e7a5a" font-family="Arial Black,Arial,sans-serif" font-weight="900">
-            ${T(50,66,7,'TRI-X 400 FILM','font-weight="700"')}
-            ${T(50,100,36,'400TX','textLength="132" lengthAdjust="spacingAndGlyphs"')}
-            ${T(50,114,6.4,'BLACK &amp; WHITE NEGATIVE FILM','font-weight="700"')}
-            ${T(50,132,10,'B&amp;W')}${T(100,132,10,'NOTES')}
-            ${T(206,92,36,'400','textLength="84" lengthAdjust="spacingAndGlyphs"')}
-            ${T(206,128,36,'400','textLength="84" lengthAdjust="spacingAndGlyphs"')}
-            ${T(50,144,6.5,'400TX\u00b736','font-weight="700"')}
-          </g>
-        </g>
-        <rect x="40" y="52" width="262" height="96" rx="6" fill="none" stroke="#111" stroke-width="1.5" opacity=".5"/>
-        <rect x="298" y="50" width="22" height="100" rx="8" fill="#141414"/>
-        <g transform="translate(31 100)"><g class="fd-reel"><circle r="9" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="6 4.6"/><circle r="3" fill="#fff"/></g></g>
-      </g>
+    const ns='http://www.w3.org/2000/svg';
+    const w=h('span',{class:'fd-canwrap',html:`<svg class="fd-can" viewBox="0 0 340 150" aria-hidden="true">
+      <defs><clipPath id="fdBody"><rect x="22" y="26" width="256" height="92" rx="34"/></clipPath>
+      <linearGradient id="fdShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs>
+      <ellipse cx="150" cy="136" rx="124" ry="9" fill="#1f5a45" opacity=".35"/>
+      <g transform="translate(-4 -3)" fill="none" stroke="#e8574a" stroke-width="2.2" opacity=".85"><rect x="22" y="26" width="256" height="92" rx="34"/><ellipse cx="288" cy="72" rx="27" ry="48"/></g>
+      <g clip-path="url(#fdBody)"><rect x="22" y="26" width="256" height="92" fill="#ff9500"/><polygon points="90,120 280,24 280,120" fill="#ffbf00"/><rect x="22" y="26" width="256" height="92" fill="url(#fdShade)"/></g>
+      <rect x="22" y="26" width="256" height="92" rx="34" fill="none" stroke="#141414" stroke-width="5"/>
+      <line x1="94" y1="118" x2="276" y2="27" stroke="#141414" stroke-width="2.4"/>
+      <ellipse cx="282" cy="72" rx="25" ry="46" fill="#fff" stroke="#141414" stroke-width="5"/>
+      <ellipse cx="282" cy="72" rx="19" ry="36" fill="none" stroke="#141414" stroke-width="2.2"/>
+      <ellipse cx="282" cy="72" rx="13" ry="26" fill="#fff" stroke="#141414" stroke-width="2.2"/>
+      <rect x="282" y="52" width="40" height="40" rx="8" fill="#141414" transform="translate(0 0)"/>
+      <ellipse cx="322" cy="72" rx="9" ry="20" fill="#141414" stroke="#fff" stroke-width="3.5"/>
+      <g transform="translate(322 72) scale(1 2.2)"><g class="fd-reel"><circle r="4.6" fill="none" stroke="#fff" stroke-width="2.2" stroke-dasharray="4.2 3.3"/></g></g>
+      <ellipse cx="282" cy="72" rx="13" ry="26" fill="none" stroke="#fff" stroke-width="1" opacity=".0"/>
     </svg>`});
+    return w;
   }
 };
 defApp({id:'dump',name:'Photo Dump',bg:'#80c5a9',
@@ -81,7 +62,7 @@ mount(el,ctx,live){
   /* one frame on the roll */
   function frameEl(it,i){
     const cv=h('canvas',{class:'fd-neg',width:300,height:400,'aria-hidden':'true'});
-    const f=h('button',{class:'fd-frame','aria-label':(it.caption||'Photo')+' by @'+it.username,style:{'--tilt':((i*37%9)-4)/10+'deg'},onclick:()=>openViewer(i,f)},cv,h('span',{class:'fd-grain'}));
+    const f=h('button',{class:'fd-frame','aria-label':(it.caption||'Photo')+' by @'+it.username,onclick:()=>openViewer(i,f)},cv);
     f._it=it;f._cv=cv;
     return h('div',{class:'fd-cell'},h('div',{class:'fd-edge'},h('span',null,'PHOTO DUMP 400'),h('span',null,String(i+1).padStart(2,'0')+' ▸')),f,h('div',{class:'fd-edge low'},h('span',null,String(i+1).padStart(2,'0')+'A'),h('span',null,'@'+it.username)));
   }
@@ -164,8 +145,8 @@ mount(el,ctx,live){
       if(reduce){neg.style.opacity='0';return;}
       /* the development: the orange cast and inverted tones clear to the real colours */
       dev.classList.add('on');
-      orig.animate([{filter:'grayscale(1) brightness(.5) contrast(.8) blur(2px)'},{filter:'grayscale(.6) brightness(.85) contrast(.95) blur(.5px)',offset:.55},{filter:'none'}],{duration:2200,easing:'ease-in-out',fill:'both'});
-      const an=neg.animate([{opacity:1,filter:'blur(0px)'},{opacity:.7,filter:'blur(1px) brightness(1.15)',offset:.35},{opacity:0,filter:'blur(3px) brightness(1.4)'}],{duration:2200,easing:'ease-in-out',fill:'both'});
+      orig.animate([{filter:'grayscale(1)'},{filter:'none'}],{duration:2200,easing:'ease-in-out',fill:'both'});
+      const an=neg.animate([{opacity:1},{opacity:0}],{duration:2200,easing:'ease-in-out',fill:'both'});
       an.finished.then(()=>{if(my===token){dev.classList.remove('on');}}).catch(()=>{});
     }
     function closeV(skipBack){
