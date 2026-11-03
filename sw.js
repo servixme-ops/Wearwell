@@ -1,5 +1,5 @@
 /* Photo Dump service worker: offline shell, never caches API or payment traffic. */
-const VER='photodump-v2';
+const VER='photodump-v3';
 const SHELL=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','phone.css','profile.css','manifest.webmanifest','src/config.js','src/logo.js','src/ui.js','src/api.js','src/sound.js','src/water.js','src/phone.js','src/apps/common.js','src/apps/film.js','src/apps/camera.js','src/apps/photos.js','src/pwa.js','src/boot.js','icons/wp-ash.jpg','icons/icon-192.png','icons/icon-512.png','icons/logo.png'];
 const STATIC_HOSTS=['cdnjs.cloudflare.com','cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));});
