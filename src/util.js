@@ -1,13 +1,4 @@
 /* ---------- Shared helpers for apps ---------- */
-function defApp(def){
-  const st={r:null},mount=def.mount;
-  def.mount=(el,ctx)=>{st.r=null;mount(el,ctx,fn=>{st.r=fn;});};
-  const un=def.unmount;def.unmount=()=>{st.r=null;un&&un();};
-  def.onAuth=()=>{st.r&&st.r();};
-  Apps.reg(def);return def;
-}
-const gate=(ctx,why,mode)=>empty('Sign in to continue',why,h('button',{class:'btn primary',onclick:()=>ctx.open('account',{mode:mode||'signin'})},'Sign in or create account'));
-const appBody=(...k)=>h('div',{class:'app-body'},k);
 const errMsg=e=>friendlyError(e);
 async function guard(btn,fn){
   if(btn){if(btn.disabled)return;btn.disabled=true;}

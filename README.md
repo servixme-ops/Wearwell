@@ -1,24 +1,21 @@
-# Lukks
+# OpenWalls
 
-A 3D digital fashion magazine set in a Nigerian living room: pull magazines from a crate, flip the pages, tap outfits. A **phone on the coffee table** opens a full iOS-style phone with 15 apps.
+**Discover what's on everyone's walls.**
 
-Static site (no build step): vanilla JS + three.js r128 + Supabase. Host it on GitHub Pages (Settings > Pages > Deploy from branch `main` / root).
+OpenWalls is a social discovery app where everyone has a personalised 3D room. Pick a room size, add furniture, hang photos and posters on the walls, attach links to objects, then share your room (`#/@username`) and explore other people's rooms.
 
-## Phone
-Lock screen (live clock, battery, signal, notifications, swipe up) → home screen (draggable icons, dock, widgets page) → apps:
-Lukks (discover, save, challenges, groups) · Profile (name, banner, shareable link) · Lukks Receipt · Calendar · Camera · Photos · Messages · Safari · Notes · Account · Ads
+Static site, no build step: vanilla JS + three.js r128 + Supabase (auth, Postgres with row-level security, storage). Host it on GitHub Pages (Settings > Pages > Deploy from branch `main` / root).
 
-## Pages
-- `index.html` the experience (PWA: `manifest.webmanifest`, `sw.js`, install banner)
-- `profile.html?u=<username>` public Lukks Profile (`/u/<username>` also works through `404.html`)
-- `admin.html` admin dashboard (admin emails live in the `admin_emails` table)
+## Structure
+- `src/ow/catalog.js` room sizes, themes, furniture and wall-decoration catalogue (models are built from primitives in code, created only when placed)
+- `src/ow/room.js` the 3D room: camera, picking, dragging, bounds and collision, wall decorations, thumbnails and previews
+- `src/ow/store.js` Supabase reads and writes (`rooms`, `room_items`, `room-images` bucket)
+- `src/ow/app.js` Wall, Discover, Create (editor), Inbox, Me and the visitor view
+- `src/api.js`, `src/ui.js`, `src/util.js`, `src/config.js` existing auth, upload and UI helpers
+- `admin.html` kept from the earlier app for moderation; it is not linked from the main app except for admins
 
-## Backend (Supabase project `iybiznrvhkeimkzepyvv`)
-Row-level security on every table. Limits (2 magazine photos per user, ad date clashes, prices, statuses) are enforced by database triggers, not the browser. Edge Functions: `paystack-init`, `paystack-verify`, `paystack-webhook`, `admin-approve-submission`.
-
-## One-time setup
-1. Supabase > Authentication > URL Configuration: Site URL = `https://servixme-ops.github.io/Wearwell/` (and add it to Redirect URLs).
-2. Supabase > Edge Functions > Secrets: add `PAYSTACK_SECRET_KEY`. In Paystack set the webhook URL to the `paystack-webhook` function URL.
-3. Sign up with the admin email, confirm it, then open `admin.html`.
-
-Public keys only are in `src/config.js` (the Supabase publishable key is safe in the browser).
+## Phases
+1. Foundation: rooms, furniture, wall pictures, saving (done)
+2. Room experience: richer interactions, preview generation, visitor mode (basics done)
+3. Social discovery: ranking, reactions, visits, featured rooms
+4. Community: comments, messages, notifications, privacy, reporting
