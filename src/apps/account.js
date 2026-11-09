@@ -13,19 +13,19 @@ mount(el,ctx,live){
       const p=Auth.profile||{};
       body.append(h('button',{class:'group acct-card',onclick:editProfile},h('span',{class:'item'},avatarEl(p,'lg'),h('span',{class:'grow'},h('b',{style:{fontSize:'20px'}},p.display_name||p.username||'You'),h('span',null,'@'+(p.username||'')),h('span',null,Auth.user.email)),h('span',{class:'chev'},icon('chevR')))));
     }else{
-      body.append(h('div',{class:'group'},h('div',{class:'pad stack'},h('b',{style:{fontSize:'18px'}},'Welcome to Photo Dump'),h('span',{class:'muted'},'Sign in to save your wallpapers, lukks, photos and profile across devices.'),h('button',{class:'btn primary block',onclick:()=>auth('signin')},'Sign in'),h('button',{class:'btn block',onclick:()=>auth('signup')},'Create account'))));
+      body.append(h('div',{class:'group'},h('div',{class:'pad stack'},h('b',{style:{fontSize:'18px'}},'Welcome to Lukks'),h('span',{class:'muted'},'Sign in to save your wallpapers, lukks, photos and profile across devices.'),h('button',{class:'btn primary block',onclick:()=>auth('signin')},'Sign in'),h('button',{class:'btn block',onclick:()=>auth('signup')},'Create account'))));
     }
     const row=(ic,t,sub,fn)=>h('button',{class:'item',onclick:fn},icon(ic),h('span',{class:'grow'},h('b',null,t),sub&&h('span',null,sub)),h('span',{class:'chev'},icon('chevR')));
     body.append(h('div',{class:'sec-t'},'Personalise'),h('div',{class:'group'},row('image','Wallpapers','Lock screen and home screen',wallpapers),row('speaker','Sound',Sound.kind==='off'?'Off':Sound.KINDS.find(k=>k.id===Sound.kind).label+(Sound.muted?' (muted)':''),soundSheet),row('bell','Notifications','Choose what you hear about',notifPrefs)));
-    if(Auth.user)body.append(h('div',{class:'sec-t'},'Your content'),h('div',{class:'group'},row('image','My photos','Your Randoms',()=>ctx.open('photos')),row('user','My profile','Your photos and social links',()=>ctx.open('dump',{me:1}))));
+    if(Auth.user)body.append(h('div',{class:'sec-t'},'Your content'),h('div',{class:'group'},row('image','My photos','Your gallery folders',()=>ctx.open('photos')),row('user','Lukks Profile','Your public style page',()=>ctx.open('profile')),row('shirt','Lukks Receipt','Your outfit archive',()=>ctx.open('receipt')),row('bell','Lukks Ads','Your featured campaigns',()=>ctx.open('ads',{tab:'mine'}))));
     const more=h('div',{class:'group'});
-    if(typeof PWA!=='undefined'&&PWA.canInstall())more.append(row('download','Install Photo Dump','Add to your home screen',()=>PWA.install()));
-    else if(typeof PWA!=='undefined'&&PWA.isIosSafari&&PWA.isIosSafari()&&!PWA.isStandalone())more.append(row('download','Install Photo Dump','Share, then Add to Home Screen',()=>PWA.iosHelp()));
+    if(typeof PWA!=='undefined'&&PWA.canInstall())more.append(row('download','Install Lukks','Add to your home screen',()=>PWA.install()));
+    else if(typeof PWA!=='undefined'&&PWA.isIosSafari&&PWA.isIosSafari()&&!PWA.isStandalone())more.append(row('download','Install Lukks','Share, then Add to Home Screen',()=>PWA.iosHelp()));
     more.append(row('home','Reset home screen layout','Restore the original icon order',async()=>{if(await confirmBox('Reset icon layout?',null,'Reset')){Local.del('iconorder');if(Auth.user)await Auth.saveSettings({icon_order:[]});Phone.renderHome();toast('Layout reset','ok');}}));
     if(Auth.isAdmin)more.append(row('lock','Admin dashboard','Review submissions, ads and events',()=>window.open('admin.html','_blank','noopener')));
     body.append(h('div',{class:'sec-t'},'More'),more);
     if(Auth.user)body.append(h('div',{class:'pad'},h('button',{class:'btn danger block',onclick:async()=>{if(await confirmBox('Sign out?','Your saved data stays safe on your account.','Sign out')){await Auth.signOut();toast('Signed out');}}},'Sign out')));
-    body.append(h('p',{class:'muted small-t',style:{textAlign:'center',padding:'6px 20px 20px'}},'Photo Dump · Browse the negatives'));
+    body.append(h('p',{class:'muted small-t',style:{textAlign:'center',padding:'6px 20px 20px'}},'Lukks · Discover Nigerian fashion'));
   }
   /* ---- auth forms ---- */
   function auth(m){
@@ -47,7 +47,7 @@ mount(el,ctx,live){
     eyeB.onclick=()=>{const show=pw.type==='password';pw.type=show?'text':'password';eyeB.replaceChildren(icon(show?'eyeOff':'eye'));eyeB.setAttribute('aria-pressed',String(show));eyeB.setAttribute('aria-label',show?'Hide password':'Show password');};
     const pwBox=h('div',{class:'pw-wrap'},pw,eyeB);
     form.append(field('Email',email),field('Password',pwBox));
-    if(m==='signup')form.append(h('label',{class:'check'},cons,h('span',null,'I agree to the Photo Dump terms and privacy notice.')));
+    if(m==='signup')form.append(h('label',{class:'check'},cons,h('span',null,'I agree to the Lukks terms and privacy notice.')));
     if(m==='forgot'){form.replaceChildren(h('p',{class:'muted'},'Enter your email and we will send you a link to choose a new password.'),field('Email',email));}
     const go=h('button',{class:'btn primary block',type:'submit'},m==='signup'?'Create account':m==='forgot'?'Send reset link':'Sign in');
     form.append(err,go);
@@ -77,15 +77,12 @@ mount(el,ctx,live){
       const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;
       const pr=await prepareImage(f,{max:512,maxMB:CFG.limits.avatarMB*3});const path=await uploadFile('avatars',pr.blob,pr.ext,pr.type);
       const r=await Auth.saveProfile({avatar_url:publicUrl('avatars',path)});if(r.error)throw r.error;toast('Photo updated','ok');editProfile();})},'Change photo'));
-    const so=Object.assign({},p.socials||{});const SOC=[['instagram','Instagram','@yourname'],['tiktok','TikTok','@yourname'],['x','X (Twitter)','@yourname'],['snapchat','Snapchat','yourname'],['website','Website','https://…']];
-    const soIn=SOC.map(([k,l,ph])=>[k,l,h('input',{type:'text',maxlength:'120',placeholder:ph,value:so[k]||'',autocapitalize:'none'})]);
-    let pub=p.is_public!==false;const pubT=toggleEl(pub,v=>{pub=v;},'Public profile');
     const hint=h('span',{class:'f-hint'});let t;
     un.addEventListener('input',()=>{un.value=slugify(un.value);clearTimeout(t);if(un.value===p.username||un.value.length<3){hint.textContent='';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:un.value});if(r.error){hint.textContent='Could not check right now';hint.className='f-hint';return;}hint.textContent=r.data?'✓ Available':'Already taken';hint.className='f-hint '+(r.data?'ok-t':'err-t');},350);});
-    body.append(av,h('div',{class:'pad'},field('Name',dn),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),field('Bio',bio),h('div',{class:'f-label'},'Social handles'),...soIn.map(([k,l,i])=>field(l,i)),h('div',{class:'group'},h('div',{class:'item'},h('span',{class:'grow'},h('b',null,'Public profile'),h('span',null,'Show your bio and social handles on Photo Dump')),pubT)),
+    body.append(av,h('div',{class:'pad'},field('Name',dn),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),field('Bio',bio),
       h('button',{class:'btn primary block',onclick:e=>guard(e.currentTarget,async()=>{
         if(un.value.length<3)throw new Error('Username must be at least 3 characters.');
-        const r=await Auth.saveProfile({display_name:dn.value.trim()||null,username:un.value,bio:bio.value.trim()||null,socials:Object.fromEntries(soIn.map(([k,l,i])=>[k,i.value.trim()]).filter(x=>x[1])),is_public:pub});if(r.error)throw r.error;toast('Saved','ok');main();})},'Save')));
+        const r=await Auth.saveProfile({display_name:dn.value.trim()||null,username:un.value,bio:bio.value.trim()||null});if(r.error)throw r.error;toast('Saved','ok');main();})},'Save')));
   }
   /* ---- wallpapers ---- */
   function wallpapers(){
@@ -110,7 +107,7 @@ mount(el,ctx,live){
   /* ---- notifications ---- */
   function notifPrefs(){
     const body=appBody();root.replaceChildren(bar('Notifications',main),body);const pr=Notifs.prefs();
-    const items=[['events','Events','New and upcoming Photo Dump events'],['community','Community','New photos and activity'],['testimonials','Testimonial reminders','Occasional prompts'],['campaigns','Campaigns and account','Ads, reviews and team updates']];
+    const items=[['events','Events','New and upcoming Lukks events'],['community','Community','New photos and activity'],['features','Magazines','New issues in the crate'],['testimonials','Testimonial reminders','Occasional prompts'],['campaigns','Campaigns and account','Ads, reviews and team updates']];
     body.append(h('div',{class:'group',style:{marginTop:'14px'}},items.map(i=>h('div',{class:'item'},h('span',{class:'grow'},h('b',null,i[1]),h('span',null,i[2])),toggleEl(pr[i[0]]!==false,async v=>{pr[i[0]]=v;const r=await Notifs.savePrefs(pr);if(r&&r.error)toast(errMsg(r.error),'err');Notifs.build();},i[1])))),
       h('div',{class:'pad stack'},h('button',{class:'btn block',onclick:async()=>{const r=await Notifs.enableBrowser();toast(r.msg,r.ok?'ok':'');}},'Allow browser notifications'),h('p',{class:'muted small-t'},'Notifications always appear on the phone lock screen. Browser notifications are optional.')));
   }

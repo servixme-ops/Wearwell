@@ -7,7 +7,7 @@ const CFG={
   supabaseKey:'sb_publishable_I7FU3Y4jSTtzJR_6fD289w_nxfMongA',
   // Folder this site is served from, e.g. https://servixme-ops.github.io/Wearwell/
   site:location.origin+location.pathname.replace(/[^/]*$/,''),
-  // Public website opened by Safari's "Open in browser". Change if Photo Dump gets its own domain.
+  // Public website opened by Safari's "Open in browser". Change if Lukks gets its own domain.
   mainSite:'https://servixme-ops.github.io/Wearwell/',
   limits:{magazinePhotos:2,imageMB:12,wallpaperMB:6,gifMB:5,avatarMB:2},
 };

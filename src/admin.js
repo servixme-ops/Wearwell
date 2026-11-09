@@ -1,16 +1,15 @@
-/* ---------- Photo Dump Admin: standalone dashboard. Every action is enforced by Supabase RLS / admin-only functions. ---------- */
+/* ---------- Lukks Admin: standalone dashboard. Every action is enforced by Supabase RLS / admin-only functions. ---------- */
 const app=document.getElementById('app');
 const RC={calc(look,items){const w=look.wear_count||0;const rows=items.map(i=>({price:Number(i.price)||0}));return{total:rows.reduce((a,r)=>a+r.price,0)};},money:(n,cur)=>fmtMoney(Math.round((Number(n)||0)*100)/100,cur||'NGN')};
 const Ads={async verify(reference){const r=await sb.functions.invoke('paystack-verify',{body:{reference}});let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(_){}}if(!d)throw new Error('Could not verify payment.');if(d.error&&!d.paid)throw new Error(d.message||'Could not verify payment.');return d;}};
-function thumb(look,w,h_){const c=document.createElement('canvas');c.width=w;c.height=h_;const g=c.getContext('2d');g.fillStyle='#ddd';g.fillRect(0,0,w,h_);return c;}
-const LOOKS={},CRATES=[];function crateMags(){return[];}
+function thumb(look,w,h_){const c=mk(w,h_),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h_);drawFigure(g,look,w/2,h_*.05,h_*.9);return c;}
 const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
 let tab='overview',counts={};
 function loginView(msg){
   const em=h('input',{type:'email',placeholder:'Email',autocomplete:'email'}),pw=h('input',{type:'password',placeholder:'Password',autocomplete:'current-password'}),err=h('p',{class:'err-t'},msg||'');
   const go=h('button',{class:'btn primary block',onclick:async()=>{err.textContent='';go.disabled=true;const r=await Auth.signIn(em.value.trim(),pw.value);go.disabled=false;if(r.error){err.textContent=errMsg(r.error);return;}start();}},'Sign in');
   pw.addEventListener('keydown',e=>{if(e.key==='Enter')go.click();});
-  app.replaceChildren(h('div',{class:'adm-login stack'},h('h1',null,'PHOTO DUMP'),h('p',{class:'muted',style:{margin:0}},'Admin sign in'),em,pw,err,go));
+  app.replaceChildren(h('div',{class:'adm-login stack'},h('h1',null,'LUKKS'),h('p',{class:'muted',style:{margin:0}},'Admin sign in'),em,pw,err,go));
 }
 async function start(){
   if(!Auth.user){loginView();return;}
@@ -24,7 +23,7 @@ async function loadCounts(){
   counts.msgs=0;
 }
 function shell(){
-  const nav=h('nav',null,h('h2',null,'PHOTO DUMP'),...ADM_TABS.map(t=>h('button',{'data-t':t[0],class:tab===t[0]?'on':'',onclick:()=>{tab=t[0];shell();}},t[1],counts[t[0]]?h('span',{class:'cnt'},counts[t[0]]):null)),h('span',{class:'sp'}),h('a',{class:'btn ghost',style:{color:'#f4ead9'},href:'./'},'Open Photo Dump'),h('button',{onclick:async()=>{await Auth.signOut();loginView();}},'Sign out'));
+  const nav=h('nav',null,h('h2',null,'LUKKS'),...ADM_TABS.map(t=>h('button',{'data-t':t[0],class:tab===t[0]?'on':'',onclick:()=>{tab=t[0];shell();}},t[1],counts[t[0]]?h('span',{class:'cnt'},counts[t[0]]):null)),h('span',{class:'sp'}),h('a',{class:'btn ghost',style:{color:'#f4ead9'},href:'./'},'Open Lukks'),h('button',{onclick:async()=>{await Auth.signOut();loginView();}},'Sign out'));
   const main=h('main');app.replaceChildren(h('div',{class:'adm'},nav,main));
   loadCounts().then(()=>{$$('nav button',nav).forEach(b=>{const t=b.dataset.t;let c=b.querySelector('.cnt');const n=({ads:counts.ads,subs:counts.subs,photos:counts.photos,testi:counts.testi,msgs:counts.msgs})[t];if(n){if(!c){c=h('span',{class:'cnt'});b.append(c);}c.textContent=n;}});});
   ({overview,ads,subs,feats,photos,testi,events,msgs})[tab](main);
@@ -151,7 +150,7 @@ async function msgs(main){
   function thread(uid,list){
     sheet('Conversation',(b,close)=>{
       const wrap=h('div',{class:'chat-wrap'},list.map(m=>h('div',{class:'bubble '+(m.from_team?'me':'them')},m.body,h('small',null,fmtDate(m.created_at,{day:'numeric',month:'short'})+' '+fmtTime(m.created_at)))));
-      const ta=h('textarea',{maxlength:'1000',placeholder:'Reply as Photo Dump Team'});
+      const ta=h('textarea',{maxlength:'1000',placeholder:'Reply as Lukks Team'});
       b.append(wrap,ta,h('button',{class:'btn primary block',style:{marginTop:'8px'},onclick:e=>guard(e.currentTarget,async()=>{if(!ta.value.trim())return;const x=await sb.from('messages').insert({sender_id:Auth.user.id,recipient_id:uid,body:ta.value.trim()});if(x.error)throw x.error;toast('Sent','ok');close();msgs(main);})},'Send reply'));
     });
   }

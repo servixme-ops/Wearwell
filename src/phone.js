@@ -12,10 +12,12 @@ const Wall={
     if(kind==='lock'&&typeof WaterWall!=='undefined'){WaterWall.draw(g,W,H,2,0,0);}
     else if(kind==='lock'){
       const gr=g.createLinearGradient(0,0,W*.4,H);gr.addColorStop(0,'#7d1f33');gr.addColorStop(.55,'#4a1020');gr.addColorStop(1,'#1f0a0f');g.fillStyle=gr;g.fillRect(0,0,W,H);
+      g.globalAlpha=.16;g.fillStyle=fabricFill(g,'asooke',['#8a2a3a','#e9c46a','#f6e7cb'],2.4);g.fillRect(0,H*.52,W,H*.48);g.globalAlpha=1;
       const rg=g.createRadialGradient(W*.75,H*.82,10,W*.75,H*.82,W*.7);rg.addColorStop(0,'rgba(233,196,106,.55)');rg.addColorStop(1,'rgba(233,196,106,0)');g.fillStyle=rg;g.fillRect(0,0,W,H);
       g.strokeStyle='rgba(233,196,106,.35)';g.lineWidth=3;for(let i=0;i<7;i++){g.beginPath();g.arc(W*.78,H*.86,120+i*70,Math.PI,Math.PI*1.6);g.stroke();}
     }else{
       const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#efe0c4');gr.addColorStop(1,'#c98f62');g.fillStyle=gr;g.fillRect(0,0,W,H);
+      g.globalAlpha=.2;g.fillStyle=fabricFill(g,'adire',['#14284b','#9fb8d8','#e9eef5'],3);g.fillRect(0,0,W,H);g.globalAlpha=1;
       const rg=g.createRadialGradient(W*.2,H*.12,10,W*.2,H*.12,W);rg.addColorStop(0,'rgba(255,248,232,.7)');rg.addColorStop(1,'rgba(255,248,232,0)');g.fillStyle=rg;g.fillRect(0,0,W,H);
     }
     return this._def[kind]=c.toDataURL('image/jpeg',.82);
@@ -74,7 +76,7 @@ function removeWallpaperFile(url){const m=/\/wallpapers\/(.+)$/.exec(url||'');if
 /* ---------- Notifications ---------- */
 const Notifs={
   items:[],_ch:null,_seen:new Set(),_primed:false,_iv:null,_rows:[],
-  _mk(x){return{id:'db:'+x.id,dbId:x.id,app:x.app||'dump',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()};},
+  _mk(x){return{id:'db:'+x.id,dbId:x.id,app:x.app||'lukks',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()};},
   /* checks for new activity every few seconds, so banners arrive like on an iPhone even if realtime is slow */
   async poll(){
     if(!Auth.user||!sb){this._rows=[];this.paintBadges();return;}
@@ -88,7 +90,7 @@ const Notifs={
     Phone.renderNotifs();this.paintBadges();
   },
   paintBadges(){
-    const c={dump:(this._rows||[]).length};
+    const c={lukks:(this._rows||[]).length};
     document.querySelectorAll('.app-icon .badge').forEach(b=>{const ic=b.closest('.app-icon');const id=ic&&ic.dataset.id;if(!id||id==='messages')return;const n=c[id]||0;b.hidden=!n;b.textContent=n>9?'9+':String(n);});
   },
   prefs(){const d={events:true,community:true,features:true,testimonials:true,campaigns:true};return Object.assign(d,Auth.settings?Auth.settings.notif_prefs:Local.get('notifprefs',{}));},
@@ -108,29 +110,34 @@ const Notifs={
     if(sb){
       try{
         if(pr.events){const r=await sb.from('events').select('id,title,starts_at').gte('starts_at',new Date().toISOString()).order('starts_at').limit(1);
-          const e=r.data&&r.data[0];if(e)add({id:'ev:'+e.id,app:'calendar',cat:'events',title:'New Photo Dump event coming up',body:`${e.title} · ${fmtDate(e.starts_at,{weekday:'short',day:'numeric',month:'short'})}`,intent:{event:e.id},t:Date.now()-3e5});}
+          const e=r.data&&r.data[0];if(e)add({id:'ev:'+e.id,app:'calendar',cat:'events',title:'New Lukks event coming up',body:`${e.title} · ${fmtDate(e.starts_at,{weekday:'short',day:'numeric',month:'short'})}`,intent:{event:e.id},t:Date.now()-3e5});}
         if(pr.community){const since=new Date(Date.now()-7*864e5).toISOString();
           const r=await sb.from('photos').select('id',{count:'exact',head:true}).eq('album_slug','community').eq('status','approved').gte('created_at',since);
           if(r.count>0)add({id:'comm:'+week,app:'photos',cat:'community',title:'New community activity',body:`${r.count} new photo${r.count>1?'s':''} in the Community album`,intent:{album:'community'},t:Date.now()-9e5});}
+        if(pr.features){const since=new Date(Date.now()-45*864e5).toISOString().slice(0,10);
+          const r=await sb.from('magazine_issues').select('id,title,release_date').eq('published',true).gte('release_date',since).order('release_date',{ascending:false}).limit(1);
+          const m=r.data&&r.data[0];if(m)add({id:'mag:'+m.id,app:'safari',cat:'features',title:'A new fashion magazine is available',body:`${m.title} is now in the crate`,intent:{page:'issue',issue:m.id},t:Date.now()-18e5});}
       }catch(e){console.warn('notif build',e);}
     }
     if(pr.testimonials&&(day%3!==1)){
       let mine=0;if(Auth.user&&sb){const r=await sb.from('testimonials').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id);mine=r.count||0;}
-      if(!mine)add({id:'testi:'+week,app:'notes',cat:'testimonials',title:'Enjoying Photo Dump?',body:'Leave a testimonial about Photo Dump.',intent:{section:'testimonials',compose:true},t:Date.now()-36e5});
+      if(!mine)add({id:'testi:'+week,app:'notes',cat:'testimonials',title:'Got a lukk to share?',body:'Leave a testimonial about Lukks.',intent:{section:'testimonials',compose:true},t:Date.now()-36e5});
     }
     if(Auth.user&&sb){
       try{
         const r=await sb.from('notifications').select('*').eq('read',false).order('created_at',{ascending:false}).limit(30);
-        (r.data||[]).forEach(x=>{this._seen.add('db:'+x.id);add({id:'db:'+x.id,dbId:x.id,app:x.app||'dump',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()})});
+        (r.data||[]).forEach(x=>{this._seen.add('db:'+x.id);add({id:'db:'+x.id,dbId:x.id,app:x.app||'lukks',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:new Date(x.created_at).getTime()})});
         const [ph,sub,ad]=await Promise.all([
           sb.from('photos').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id).eq('status','pending'),
-          Promise.resolve({count:0}),
-          Promise.resolve({data:[]})]);
+          sb.from('magazine_submissions').select('id',{count:'exact',head:true}).eq('user_id',Auth.user.id).eq('status','pending'),
+          sb.from('ad_bookings').select('id,status',{count:'exact'}).eq('user_id',Auth.user.id).in('status',['awaiting_payment','paid_in_review'])]);
         const pend=(ph.count||0)+(sub.count||0);
         if(pend)add({id:'pend:'+pend,app:'camera',cat:'community',title:'Your photos are awaiting review',body:`${pend} photo${pend>1?'s':''} pending approval`,intent:{tab:'mine'},t:Date.now()-72e5});
+        const rev=(ad.data||[]).filter(b=>b.status==='paid_in_review').length;
+        if(rev&&pr.campaigns)add({id:'adrev:'+rev,app:'ads',cat:'campaigns',title:'Your featured campaign is awaiting approval',body:'We are reviewing your creative.',intent:{tab:'mine'},t:Date.now()-5e6});
       }catch(e){console.warn('notif build (account)',e);}
     }else if(Local.get('customised')||(Local.get('opens',0)>2)){
-      add({id:'save:'+week,app:'account',cat:'features',title:'Keep your phone set up',body:'Sign up to save your wallpapers and photos on every device.',intent:{mode:'signup'},t:Date.now()-96e5});
+      add({id:'save:'+week,app:'account',cat:'features',title:'Keep your phone set up',body:'Sign up to save your wallpapers, photos and lukks on every device.',intent:{mode:'signup'},t:Date.now()-96e5});
     }
     out.sort((a,b)=>b.t-a.t);this.items=out;Phone.renderNotifs();
   },
@@ -139,7 +146,7 @@ const Notifs={
     if(this._ch&&sb){try{sb.removeChannel(this._ch);}catch(e){}this._ch=null;}
     if(!Auth.user||!sb)return;
     this._ch=sb.channel('notifs-'+Auth.user.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'user_id=eq.'+Auth.user.id},p=>{
-      const x=p.new;if(this._seen.has('db:'+x.id))return;this._seen.add('db:'+x.id);const n={id:'db:'+x.id,dbId:x.id,app:x.app||'dump',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:Date.now()};this._rows.unshift(x);
+      const x=p.new;if(this._seen.has('db:'+x.id))return;this._seen.add('db:'+x.id);const n={id:'db:'+x.id,dbId:x.id,app:x.app||'lukks',cat:'campaigns',title:x.title,body:x.body||'',intent:x.payload||{},t:Date.now()};this._rows.unshift(x);
       this.items.unshift(n);Phone.renderNotifs();Phone.banner(n);
       if('Notification' in window&&Notification.permission==='granted'&&document.hidden){try{new Notification(x.title,{body:x.body||'',icon:'icons/icon-192.png'});}catch(e){}}
     }).subscribe();
@@ -163,7 +170,7 @@ const Phone={
     addEventListener('popstate',e=>this.onPop(e));
     addEventListener('resize',()=>this.fit());
     Auth.on(ev=>{
-      if(ev==='signin'){Wall.migrateGuest().then(()=>this.applyWallpapers());this.afterAuth();}
+      if(ev==='signin'){Wall.migrateGuest().then(()=>this.applyWallpapers());syncSavedLooks();this.afterAuth();}
       if(ev==='signout'){this.applyWallpapers();this.afterAuth();}
       if(ev==='refresh')this.applyWallpapers();
     });
@@ -178,7 +185,7 @@ const Phone={
     Apps.list.forEach(a=>a.onAuth&&a.onAuth());
   },
   build(){
-    const L=this.layer=h('div',{id:'phoneLayer',class:'phone-layer',hidden:true,'aria-label':'Photo Dump phone'});
+    const L=this.layer=h('div',{id:'phoneLayer',class:'phone-layer',hidden:true,'aria-label':'Lukks phone'});
     const scr=this.screen=h('div',{id:'screen',class:'phone-screen'});
     this.status=h('div',{class:'statusbar'},
       this.sbTime=h('span',{class:'sb-time'},'9:41'),
@@ -204,7 +211,7 @@ const Phone={
       this.doneBtn=h('button',{class:'edit-done',hidden:true,onclick:()=>this.setEditing(false)},'Done'));
     this.appHost=h('div',{class:'app-host'});
     this.indicator=h('div',{class:'home-bar',role:'button','aria-label':'Home',tabindex:'0',onclick:()=>this.goHome(),onkeydown:e=>{if(e.key==='Enter')this.goHome();}});
-    this.roomBtn=h('button',{class:'room-btn',onclick:()=>this.lock(),'aria-label':'Lock screen'},icon('lock'),h('span',null,'Lock screen'));
+    this.roomBtn=h('button',{class:'room-btn',onclick:()=>this.exit(),'aria-label':'Put phone down and return to the room'},icon('back'),h('span',null,'Room'));
     this.toasts=h('div',{id:'toasts',class:'toasts'});this.bannerBox=h('div',{class:'banner-box'});
     scr.append(this.homeEl,this.appHost,this.lockEl,this.status,this.roomBtn,this.bannerBox,this.toasts,this.indicator);
     this.shell=h('div',{class:'phone-shell'},h('span',{class:'side-btn b1'}),h('span',{class:'side-btn b2'}),h('span',{class:'side-btn b3'}),h('span',{class:'side-btn pw'}),scr);
@@ -330,6 +337,7 @@ const Phone={
     this.layer.classList.remove('open');
     const done=()=>{this.layer.hidden=true;this.state='closed';};
     clearTimeout(this._ct);this._ct=setTimeout(done,380);this.state='closing';
+    if(typeof phoneClosed==='function')phoneClosed();
     const extra=this._appN||0;this._appN=0;
     if(!fromPop&&(this._hist||extra)){const k=extra+(this._hist?1:0);try{history.go(-k);}catch(e){}}
     this._hist=false;
@@ -338,8 +346,8 @@ const Phone={
     if(this.state==='closed'||this.state==='closing')return;
     if(this._skipPop>0){this._skipPop--;return;}
     if(this.app){if(this.ctx&&typeof this.ctx.onBack==='function'&&this.ctx.onBack()){try{history.pushState({lukks:'app'},'');}catch(_){}return;}this.closeApp(true);return;}
-    /* the phone is the homepage now: back on the lock or home screen stays put */
-    try{history.pushState({lukks:'phone'},'');}catch(_){}
+    if(this.state==='lock'||this.state==='home'){this.exit(true);return;}
+    this.exit(true);
   },
   goHome(){
     if(this.app){this.backTo=null;this.closeApp();}else if(this.state==='home'){this.homeScroll.scrollTo({left:0,behavior:'smooth'});this.setEditing(false);}
@@ -458,7 +466,7 @@ const Phone={
     // widgets
     this.widgetEl=h('div',{class:'widgets'},
       this.wToday=h('button',{class:'widget w-today',onclick:()=>this.openApp('calendar')},h('div',{class:'w-k'},'Today'),h('div',{class:'w-big'},new Date().getDate()),h('div',{class:'w-s'},new Date().toLocaleDateString(undefined,{weekday:'long'})),h('div',{class:'w-e'},'Loading events…')),
-      h('button',{class:'widget w-crate',onclick:()=>this.openApp('dump')},h('div',{class:'w-k'},'Photo Dump'),h('div',{class:'w-spines'},[0,1,2,3,4].map(i=>h('i',{style:{background:['#ff9500','#ffbf00','#1b2b45','#80c5a9','#e0553d'][i]}}))),h('div',{class:'w-s'},'Browse the film →')));
+      h('button',{class:'widget w-crate',onclick:()=>{this.exit();setTimeout(()=>{if(typeof goBrowse==='function'&&S.mode==='room')goBrowse();},420);}},h('div',{class:'w-k'},'Magazine crate'),h('div',{class:'w-spines'},[0,1,2,3,4].map(i=>h('i',{style:{background:['#1d3a8a','#c8372d','#e9c46a','#2a6f5c','#7d1f33'][i]}}))),h('div',{class:'w-s'},'Pull one out →')));
     page2.appendChild(this.widgetEl);
     this.loadWidgetEvent();
     const grid=h('div',{class:'home-grid'});this.order().forEach(id=>{const a=Apps.get(id);if(a)grid.appendChild(this.iconEl(a));});
@@ -486,7 +494,6 @@ const Phone={
   openApp(id,intent,fromEl,opener){
     const a=Apps.get(id);if(!a)return;
     if(a.redirect){const r=a.redirect;if(r.auth&&!Auth.user)return this.openApp('account',{mode:'signin'},fromEl,opener);return this.openApp(r.id,Object.assign({},r.intent),fromEl,opener);}
-    if(a.launch){if(this.state==='lock'){this.intentAfterUnlock={open:id,intent};this.unlock();return;}a.launch(this);return;}
     if(this.state==='lock'){this.intentAfterUnlock={open:id,intent};this.unlock();return;}
     const noPush=this._noPush;this._noPush=false;
     if(this.app){if(!opener&&this.app.id&&this.app.id!==id)opener=null;this.closeAppNow();}

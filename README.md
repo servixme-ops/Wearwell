@@ -1,4 +1,4 @@
-# Photo Dump
+# Lukks
 
 A 3D digital fashion magazine set in a Nigerian living room: pull magazines from a crate, flip the pages, tap outfits. A **phone on the coffee table** opens a full iOS-style phone with 15 apps.
 
@@ -6,11 +6,11 @@ Static site (no build step): vanilla JS + three.js r128 + Supabase. Host it on G
 
 ## Phone
 Lock screen (live clock, battery, signal, notifications, swipe up) → home screen (draggable icons, dock, widgets page) → apps:
-Photo Dump (discover, save, challenges, groups) · Profile (name, banner, shareable link) · Photo Dump Receipt · Calendar · Camera · Photos · Messages · Safari · Notes · Account · Ads
+Lukks (discover, save, challenges, groups) · Profile (name, banner, shareable link) · Lukks Receipt · Calendar · Camera · Photos · Messages · Safari · Notes · Account · Ads
 
 ## Pages
 - `index.html` the experience (PWA: `manifest.webmanifest`, `sw.js`, install banner)
-- `profile.html?u=<username>` public Photo Dump Profile (`/u/<username>` also works through `404.html`)
+- `profile.html?u=<username>` public Lukks Profile (`/u/<username>` also works through `404.html`)
 - `admin.html` admin dashboard (admin emails live in the `admin_emails` table)
 
 ## Backend (Supabase project `iybiznrvhkeimkzepyvv`)

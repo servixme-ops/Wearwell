@@ -1,3 +1,3 @@
-/* Profile lives inside the Photo Dump app. This icon opens it (or sign-in when signed out). */
+/* Profile lives inside the Lukks app. This icon opens it (or sign-in when signed out). */
 defApp({id:'profile',name:'Profile',bg:'linear-gradient(#ff7a3d,#ff2d8a)',glyph:()=>`<svg viewBox="0 0 60 60"><circle cx="30" cy="22" r="9" fill="#fff"/><path d="M13 47c1.500-9 8-14 17-14s15.500 5 17 14z" fill="#fff"/></svg>`,
-redirect:{id:'dump',intent:{me:1},auth:true},mount(){}});
+redirect:{id:'lukks',intent:{me:1},auth:true},mount(){}});

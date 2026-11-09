@@ -1,21 +1,21 @@
 {
-  "name": "Photo Dump",
-  "short_name": "Photo Dump",
-  "description": "Browse a roll of film. Tap a negative to develop the photo.",
+  "name": "Lukks",
+  "short_name": "Lukks",
+  "description": "Find Your Kind of Style. Showcase your lukks and discover others.",
   "id": "./",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0d1b17",
-  "theme_color": "#80c5a9",
-  "categories": ["photo", "social"],
+  "background_color": "#0b0710",
+  "theme_color": "#f0501e",
+  "categories": ["lifestyle", "shopping"],
   "icons": [
     {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
     {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "shortcuts": [
-    {"name": "Open Photo Dump", "url": "./?source=shortcut", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]}
+    {"name": "Open the crate", "url": "./?source=shortcut", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]}
   ]
 }
