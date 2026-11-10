@@ -32,5 +32,22 @@ const Store={
   previewUrl(theme,key){return theme&&theme.preview?publicUrl('room-images',theme.preview)+'?v='+(theme.pv||key||1):null;},
   async visit(id){try{await sb.rpc('ow_visit',{p_room:id});}catch(e){}},
   async follow(ownerId,on){const r=on?await sb.from('follows').insert({follower_id:Auth.user.id,followee_id:ownerId}):await sb.from('follows').delete().eq('follower_id',Auth.user.id).eq('followee_id',ownerId);if(r.error)throw r.error;},
-  async counts(uid){const [a,b,c]=await Promise.all([sb.from('follows').select('*',{count:'exact',head:true}).eq('followee_id',uid),sb.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',uid),Auth.user?sb.from('follows').select('*',{count:'exact',head:true}).eq('followee_id',uid).eq('follower_id',Auth.user.id):Promise.resolve({count:0})]);return{followers:a.count||0,following:b.count||0,iFollow:(c.count||0)>0};}
+  async counts(uid){const [a,b,c]=await Promise.all([sb.from('follows').select('*',{count:'exact',head:true}).eq('followee_id',uid),sb.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',uid),Auth.user?sb.from('follows').select('*',{count:'exact',head:true}).eq('followee_id',uid).eq('follower_id',Auth.user.id):Promise.resolve({count:0})]);return{followers:a.count||0,following:b.count||0,iFollow:(c.count||0)>0};},
+  /* ----- social ----- */
+  async social(room){const r=await sb.rpc('ow_room_social',{p_room:room});if(r.error)throw r.error;return r.data||{counts:{},mine:null,comments:0};},
+  async react(room,kind){if(!kind){const r=await sb.from('room_reactions').delete().eq('room_id',room).eq('user_id',Auth.user.id);if(r.error)throw r.error;return;}
+    const r=await sb.from('room_reactions').upsert({room_id:room,user_id:Auth.user.id,kind},{onConflict:'room_id,user_id'});if(r.error)throw r.error;},
+  async comments(room){const r=await sb.rpc('ow_comments',{p_room:room});if(r.error)throw r.error;return r.data||[];},
+  async comment(room,body){const r=await sb.from('room_comments').insert({room_id:room,user_id:Auth.user.id,body});if(r.error)throw r.error;},
+  async delComment(id){const r=await sb.from('room_comments').delete().eq('id',id);if(r.error)throw r.error;},
+  async report(o){const r=await sb.from('room_reports').insert(Object.assign({reporter_id:Auth.user.id},o));if(r.error)throw r.error;},
+  async block(id,on){const r=on?await sb.from('user_blocks').insert({blocker_id:Auth.user.id,blocked_id:id}):await sb.from('user_blocks').delete().eq('blocker_id',Auth.user.id).eq('blocked_id',id);if(r.error)throw r.error;},
+  async blocked(){const r=await sb.rpc('ow_blocked');if(r.error)throw r.error;return r.data||[];},
+  async conversations(){const r=await sb.rpc('ow_conversations');if(r.error)throw r.error;return r.data||[];},
+  async thread(peer){const me=Auth.user.id;const r=await sb.from('messages').select('*').or(`and(sender_id.eq.${me},recipient_id.eq.${peer}),and(sender_id.eq.${peer},recipient_id.eq.${me})`).order('created_at',{ascending:true}).limit(200);if(r.error)throw r.error;return r.data||[];},
+  async send(peer,body){const r=await sb.from('messages').insert({sender_id:Auth.user.id,recipient_id:peer,body,from_team:false});if(r.error)throw r.error;},
+  async markRead(peer){await sb.from('messages').update({read_at:new Date().toISOString()}).eq('sender_id',peer).eq('recipient_id',Auth.user.id).is('read_at',null);},
+  async notifs(){const r=await sb.from('notifications').select('*').eq('user_id',Auth.user.id).eq('app','openwalls').order('created_at',{ascending:false}).limit(60);if(r.error)throw r.error;return r.data||[];},
+  async readNotifs(){await sb.from('notifications').update({read:true}).eq('user_id',Auth.user.id).eq('app','openwalls').eq('read',false);},
+  async unread(){if(!Auth.user)return 0;try{const [a,b]=await Promise.all([sb.from('notifications').select('*',{count:'exact',head:true}).eq('user_id',Auth.user.id).eq('app','openwalls').eq('read',false),sb.from('messages').select('*',{count:'exact',head:true}).eq('recipient_id',Auth.user.id).is('read_at',null)]);return(a.count||0)+(b.count||0);}catch(e){return 0;}}
 };

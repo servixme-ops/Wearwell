@@ -8,11 +8,14 @@ Object.assign(IC,{
   cube:'<path d="M12 3l8 4.500v9L12 21l-8-4.500v-9z"/><path d="M12 12l8-4.500M12 12v9M12 12L4 7.500"/>',
   house:'<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
   inbox:'<path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>',
-  reset:'<path d="M4 12a8 8 0 108-8"/><path d="M4 4v5h5"/>'
+  reset:'<path d="M4 12a8 8 0 108-8"/><path d="M4 4v5h5"/>',
+  more:'<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>'
 });
 const $view=()=>document.getElementById('view'),$nav=()=>document.getElementById('nav');
 const App={teardown:null,route:'',visited:{}};
 const CATS=['Music','Football','Basketball','Movies','Gaming','Fashion','Travel','Photography','Books','Technology','Lifestyle','Art','Food'];
+const EMOJI={love:'❤️',fire:'🔥',wow:'😮',clap:'👏'};
+const needAuth=why=>{if(Auth.user)return true;authSheet('signin',why||'Sign in to do that');return false;};
 const roomUrl=u=>CFG.site+'#/@'+u;
 const ytId=u=>{try{const x=new URL(u);if(/youtu\.be$/.test(x.hostname))return x.pathname.slice(1);if(/youtube\.com$/.test(x.hostname)){if(x.searchParams.get('v'))return x.searchParams.get('v');const m=x.pathname.match(/\/(embed|shorts)\/([\w-]+)/);if(m)return m[2];}}catch(e){}return null;};
 const go=hash=>{if(location.hash===hash)route();else location.hash=hash;};
@@ -21,9 +24,12 @@ function teardown(){if(App.teardown){try{App.teardown();}catch(e){}App.teardown=
 
 /* ---------- navigation ---------- */
 const NAV=[['wall','Wall','house'],['discover','Discover','compass'],['create','Create','plus'],['inbox','Inbox','inbox'],['me','Me','user']];
+let unreadN=0;
 function drawNav(active){
-  $nav().replaceChildren(...NAV.map(([k,l,ic])=>h('button',{class:'nv'+(k==='create'?' plus':'')+(k===active?' on':''),'aria-label':l,'aria-current':k===active?'page':null,onclick:()=>k==='create'?create():go('#/'+k)},icon(ic),k==='create'?null:h('span',{class:'l'},l))));
+  $nav().replaceChildren(...NAV.map(([k,l,ic])=>h('button',{class:'nv'+(k==='create'?' plus':'')+(k===active?' on':''),'aria-label':l+(k==='inbox'&&unreadN?' ('+unreadN+' unread)':''),'aria-current':k===active?'page':null,onclick:()=>k==='create'?create():go('#/'+k)},icon(ic),k==='create'?null:h('span',{class:'l'},l),k==='inbox'&&unreadN?h('i',{class:'badge'},unreadN>9?'9+':String(unreadN)):null)));
 }
+async function refreshUnread(){const n=await Store.unread();if(n!==unreadN){unreadN=n;const m=App.route.split('/')[0];if(['wall','discover','inbox','me'].includes(m||'wall'))drawNav(m||'wall');}}
+setInterval(()=>{if(Auth.user&&!document.hidden)refreshUnread();},45000);
 async function create(){
   if(!Auth.user){authSheet('signup','Create an account to build your room');return;}
   go('#/edit');
@@ -69,11 +75,15 @@ function editProfileSheet(){
 }
 
 /* ---------- MAIN WALL: an exhibition of everyone's rooms ---------- */
+function rxBtn(r){
+  const b=h('button',{class:'rx'+(r.mine?' on':''),'aria-label':'React to this room'});const paint=()=>{b.className='rx'+(r.mine?' on':'');b.replaceChildren(h('span',null,r.mine?EMOJI[r.mine]:'♡'),h('span',null,r.reactions?String(r.reactions):''));};paint();
+  b.onclick=()=>{if(!needAuth('Sign in to react to rooms'))return;const was=r.mine;guard(b,async()=>{await Store.react(r.id,was?null:'love');r.mine=was?null:'love';r.reactions=Math.max(0,(+r.reactions||0)+(was?-1:1));paint();});};
+  return b;}
 function roomPiece(r,i){
   const prev=Store.previewUrl(r.theme,r.updated_at);
   const shot=prev?h('img',{class:'pshot',src:prev,alt:r.name+' by @'+r.username,loading:'lazy',decoding:'async'}):h('div',{class:'pshot ph'},r.name);
   return h('div',{class:'piece'},h('button',{class:'pframe','aria-label':'Visit '+r.name,onclick:()=>go('#/@'+r.username)},shot),
-    h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,r.name),h('span',{class:'s'},'@'+r.username)),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
+    h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,r.name),h('span',{class:'s'},'@'+r.username)),rxBtn(r),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
     r.visits?h('div',{class:'vis'},r.visits+(r.visits===1?' visit':' visits')):null);
 }
 async function wallView(){
@@ -106,10 +116,6 @@ async function discoverView(){
   sec.replaceChildren(spinner());paint();
   try{all=await Store.feed(50,0);paint();}catch(e){sec.replaceChildren(empty('Could not load rooms',friendlyError(e)));}
 }
-function inboxView(){
-  const v=setView(false);drawNav('inbox');
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Inbox'))),h('div',{class:'soon'},icon('inbox'),h('h4',null,'Messages and notifications'),h('p',null,'Messages, room reactions and comments are coming in the community update. Nothing is here to read yet.')));
-}
 /* ---------- ME ---------- */
 async function meView(){
   const v=setView(false);drawNav('me');
@@ -122,6 +128,7 @@ async function meView(){
     h('div',{class:'roomcard'},prev?h('img',{class:'pshot',src:prev,alt:'Your room'}):h('div',{class:'pshot ph'},room?room.name:'Your room is not built yet'),
       h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name)},'Share'):null)),
     h('div',{class:'list'},room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings'),h('span',{class:'f-hint'},room.visibility==='public'?'Public':'Private')):null,
+      h('button',{onclick:privacySheet},icon('lock'),h('span',{class:'grow'},'Privacy & safety')),
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
       h('button',{onclick:async()=>{await Auth.signOut();toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
@@ -277,6 +284,7 @@ async function visitView(username){
     R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null);
   v.querySelector('.rtop').replaceWith(top);
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
+  host.append(socialBar(d,o));
   setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);
   if(o.bio){/* shown in the owner sheet */}
   function openItem(it){
@@ -292,6 +300,88 @@ async function visitView(username){
     });
   }
 }
+function socialBar(d,o){
+  let soc={counts:{},mine:null,comments:0};const room=d.room;
+  const total=()=>Object.values(soc.counts).reduce((a,b)=>a+(+b||0),0);
+  const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('chat'),h('span',null,'Message')),mo=h('button',{class:'dk','aria-label':'More'},icon('more'),h('span',null,'More'));
+  const paint=()=>{rx.replaceChildren(h('span',{class:'em'},soc.mine?EMOJI[soc.mine]:'♡'),h('span',null,total()||'React'));rx.classList.toggle('on',!!soc.mine);cm.replaceChildren(icon('chat'),h('span',null,soc.comments?soc.comments+(soc.comments==1?' comment':' comments'):'Comment'));};
+  paint();Store.social(room.id).then(x=>{soc=x;paint();}).catch(()=>{});
+  const pick=async kind=>{if(!needAuth('Sign in to react'))return;const was=soc.mine;const next=was===kind?null:kind;await guard(rx,async()=>{await Store.react(room.id,next);if(was)soc.counts[was]=Math.max(0,(soc.counts[was]||0)-1);if(next)soc.counts[next]=(soc.counts[next]||0)+1;soc.mine=next;paint();});};
+  rx.onclick=e=>{const old=document.querySelector('.pop');if(old){old.remove();return;}const pop=h('div',{class:'pop'},Object.entries(EMOJI).map(([k,em])=>h('button',{class:soc.mine===k?'on':'','aria-label':k,onclick:()=>{pop.remove();pick(k);}},em)));rx.parentElement.parentElement.append(pop);setTimeout(()=>document.addEventListener('pointerdown',function f(ev){if(!pop.contains(ev.target)){pop.remove();document.removeEventListener('pointerdown',f);}}),0);};
+  cm.onclick=()=>commentsSheet(d,n=>{soc.comments=n;paint();});
+  ms.onclick=()=>{if(d.is_me){toast('This is your own room');return;}if(!needAuth('Sign in to send a message'))return;if(o.dm_policy==='nobody'){toast('@'+o.username+' is not taking messages','err');return;}go('#/chat/'+o.username);};
+  mo.onclick=()=>moreSheet(d,o);
+  if(d.is_me)ms.style.display='none';
+  return h('div',{class:'dock social'},h('div',{class:'bar'},rx,cm,ms,mo));
+}
+function reportSheet(target,done){
+  sheet('Report',(body,close)=>{
+    const reasons=['Inappropriate or adult content','Hate or harassment','Spam or scam','Impersonation','Something else'];let sel=null;const det=h('textarea',{maxlength:'500',placeholder:'Anything else we should know? (optional)'});
+    const w=h('div',{class:'chips',style:{marginBottom:'12px'}});const pc=()=>w.replaceChildren(...reasons.map(r=>h('button',{class:'chip'+(sel===r?' on':''),onclick:()=>{sel=r;pc();}},r)));pc();
+    const send=h('button',{class:'btn primary block',onclick:()=>{if(!sel){toast('Choose a reason','err');return;}guard(send,async()=>{await Store.report(Object.assign({reason:sel,details:det.value.trim()||null},target));toast('Thanks, we will review it','ok');close();done&&done();});}},'Send report');
+    body.append(h('p',{class:'tag',style:{margin:'0 0 10px'}},'Tell us what is wrong. Reports are private.'),w,field('Details',det),send);
+  });
+}
+function moreSheet(d,o){
+  sheet('@'+o.username,(body,close)=>{
+    const row=(ic,t,fn,danger)=>h('button',{class:'btn block'+(danger?' danger':''),style:{marginBottom:'8px',justifyContent:'flex-start'},onclick:fn},icon(ic),t);
+    body.append(row('share','Share this room',()=>{close();shareRoom(o.username,d.room.name);}));
+    if(!d.is_me){
+      body.append(row('flag','Report this room',()=>{close();if(needAuth('Sign in to report'))reportSheet({room_id:d.room.id});}),
+        row('lock','Block @'+o.username,async()=>{close();if(!needAuth('Sign in to block'))return;if(await confirmBox('Block @'+o.username+'?','You will no longer see each other\u2019s rooms, comments or messages.','Block',true)){await guard(null,async()=>{await Store.block(o.id,true);toast('Blocked','ok');go('#/wall');});}},true));
+    }
+  });
+}
+function commentsSheet(d,onCount){
+  sheet('Comments',(body)=>{
+    const list=h('div',{style:{marginBottom:'10px'}},spinner()),inp=h('input',{type:'text',maxlength:'300',placeholder:Auth.user?'Say something nice…':'Sign in to comment',style:{flex:1,padding:'12px 14px',borderRadius:'99px',border:'1.5px solid var(--line)',background:'#fff'}});
+    const send=h('button',{class:'btn coral small'},'Post');
+    const load=async()=>{try{const cs=await Store.comments(d.room.id);onCount&&onCount(cs.length);
+      list.replaceChildren(...(cs.length?cs.map(c=>h('div',{class:'cmt'},avatarEl(c,'sm'),h('div',{class:'cb'},h('b',null,'@'+c.username),h('span',{class:'t'},' '+timeAgo(c.created_at)),h('p',null,c.body),
+        h('div',{class:'cact'},(Auth.user&&(c.user_id===Auth.user.id||d.is_me))?h('button',{onclick:()=>guard(null,async()=>{await Store.delComment(c.id);load();})},'Delete'):null,(Auth.user&&c.user_id!==Auth.user.id)?h('button',{onclick:()=>reportSheet({comment_id:c.id,room_id:d.room.id})},'Report'):null)))):[h('p',{class:'tag',style:{textAlign:'center',padding:'18px'}},'No comments yet. Start the conversation.')]));}catch(e){list.replaceChildren(h('p',{class:'tag'},friendlyError(e)));}};
+    const post=()=>{const t=inp.value.trim();if(!t)return;if(!needAuth('Sign in to comment'))return;guard(send,async()=>{await Store.comment(d.room.id,t);inp.value='';await load();});};
+    send.onclick=post;inp.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
+    body.append(list,h('div',{style:{display:'flex',gap:'8px',alignItems:'center'}},inp,send));load();
+  });
+}
+/* ---------- INBOX: messages + activity ---------- */
+async function inboxView(){
+  const v=setView(false);drawNav('inbox');let tab='msg';
+  if(!Auth.user){v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Inbox'))),empty('Sign in to see your inbox','Messages, reactions and comments show up here.',h('button',{class:'btn coral',onclick:()=>authSheet('signin')},'Sign in')));return;}
+  const tabs=h('div',{class:'scrollx'}),body=h('div');v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Inbox'))),tabs,body);
+  const paint=async()=>{
+    tabs.replaceChildren(...[['msg','Messages'],['act','Activity']].map(([k,l])=>h('button',{class:'chip'+(tab===k?' on':''),onclick:()=>{tab=k;paint();}},l)));body.replaceChildren(spinner());
+    try{
+      if(tab==='msg'){const cs=await Store.conversations();body.replaceChildren(cs.length?h('div',{class:'list'},cs.map(c=>h('button',{onclick:()=>go('#/chat/'+c.username)},avatarEl(c),h('span',{class:'grow'},h('b',null,'@'+c.username),h('div',{class:'f-hint',style:{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'60vw'}},(c.mine?'You: ':'')+c.body)),c.unread?h('i',{class:'badge on'},String(c.unread)):h('span',{class:'f-hint'},timeAgo(c.created_at))))):empty('No messages yet','Visit a room and tap Message to say hello.'));}
+      else{const ns=await Store.notifs();body.replaceChildren(ns.length?h('div',{class:'list'},ns.map(n=>h('button',{onclick:()=>{const path=n.payload&&n.payload.path;if(path&&/^#\//.test(path))go(path);}},h('span',{class:'grow'},h('b',{style:{fontWeight:n.read?600:800}},n.title),n.body?h('div',{class:'f-hint'},n.body):null),n.read?null:h('i',{class:'badge on'},'•'),h('span',{class:'f-hint'},timeAgo(n.created_at))))):empty('Nothing yet','Reactions, comments and new followers appear here.'));Store.readNotifs().then(refreshUnread);}
+    }catch(e){body.replaceChildren(empty('Could not load',friendlyError(e)));}
+  };
+  paint();
+}
+async function chatView(username){
+  if(!Auth.user){go('#/inbox');authSheet('signin','Sign in to send messages');return;}
+  const v=setView(true);const wrap=h('div',{class:'chat'});v.append(wrap);wrap.append(spinner());
+  let d;try{d=await Store.byUsername(username);}catch(e){wrap.replaceChildren(empty('Could not open chat',friendlyError(e)));return;}
+  if(!d||!d.owner){wrap.replaceChildren(empty('Person not found','',h('button',{class:'btn',onclick:()=>go('#/inbox')},'Back')));return;}
+  const o=d.owner;const list=h('div',{class:'cl'}),inp=h('input',{type:'text',maxlength:'1000',placeholder:'Message @'+o.username}),send=h('button',{class:'btn coral small'},'Send');
+  const blocked=o.dm_policy==='nobody'&&!d.is_me;
+  wrap.replaceChildren(h('div',{class:'rtop',style:{position:'relative',background:'var(--paper)',borderBottom:'1px solid var(--line)'}},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go('#/inbox')},icon('back')),h('button',{class:'owner',onclick:()=>go('#/@'+o.username)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,o.display_name||'@'+o.username),h('span',{class:'s'},'@'+o.username)))),list,
+    blocked?h('p',{class:'tag',style:{padding:'14px',textAlign:'center'}},'@'+o.username+' is not taking messages.'):h('div',{class:'cin'},inp,send));
+  let last='';const load=async()=>{try{const ms=await Store.thread(o.id);const key=ms.length+':'+(ms[ms.length-1]||{}).id;if(key===last)return;last=key;const nearEnd=list.scrollHeight-list.scrollTop-list.clientHeight<80||!list.childNodes.length;
+    list.replaceChildren(...(ms.length?ms.map(m=>h('div',{class:'bub '+(m.sender_id===Auth.user.id?'me':'them')},m.body)):[h('p',{class:'tag',style:{textAlign:'center',padding:'20px'}},'Say hello to @'+o.username)]));if(nearEnd)list.scrollTop=list.scrollHeight;Store.markRead(o.id).then(refreshUnread);}catch(e){}};
+  const post=()=>{const t=inp.value.trim();if(!t)return;guard(send,async()=>{await Store.send(o.id,t);inp.value='';last='';await load();});};
+  send.onclick=post;inp.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
+  await load();const iv=setInterval(()=>{if(!document.hidden)load();},6000);App.teardown=()=>clearInterval(iv);
+}
+function privacySheet(){
+  sheet('Privacy & safety',(body,close)=>{
+    const dm=h('select',null,h('option',{value:'everyone'},'Anyone can message me'),h('option',{value:'nobody'},'No one can message me'));dm.value=(Auth.profile&&Auth.profile.dm_policy)||'everyone';
+    dm.onchange=()=>guard(null,async()=>{const r=await Auth.saveProfile({dm_policy:dm.value});if(r.error)throw r.error;toast('Saved','ok');});
+    const bl=h('div',null,spinner());
+    const load=async()=>{try{const xs=await Store.blocked();bl.replaceChildren(xs.length?h('div',{class:'list',style:{margin:0}},xs.map(u=>h('button',{onclick:()=>guard(null,async()=>{await Store.block(u.id,false);toast('Unblocked','ok');load();})},avatarEl(u,'sm'),h('span',{class:'grow'},'@'+u.username),h('span',{class:'f-hint'},'Unblock')))):h('p',{class:'f-hint'},'You have not blocked anyone.'));}catch(e){bl.replaceChildren(h('p',{class:'f-hint'},friendlyError(e)));}};load();
+    body.append(field('Messages',dm),h('div',{class:'f-label',style:{margin:'4px 0 8px'}},'Blocked people'),bl,h('p',{class:'f-hint',style:{marginTop:'14px'}},'Room visibility and interests are in Room settings.'));
+  });
+}
 /* simple flat view for devices without WebGL: every picture on the walls as a gallery */
 function fallback(d){
   const pics=d.items.filter(i=>i.kind==='decor'&&i.image_path);
@@ -303,14 +393,15 @@ function route(){
   document.querySelectorAll('.sheet-ov,.dlg-ov').forEach(e=>e.remove());teardown();const hs=decodeURIComponent(location.hash.replace(/^#\/?/,''));App.hadRoute=App.route!=='';App.route=hs||'wall';
   document.title="OpenWalls · Discover what's on everyone's walls";
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
+  if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
   switch(hs){case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();default:return wallView();}
 }
 window.addEventListener('hashchange',route);
 (function boot(){
   const ld=document.getElementById('ldlogo');if(ld)ld.append(logoEl(84));
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
-  Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@)/.test(App.route))route();});
-  Auth.init().then(()=>{route();}).catch(()=>route());
+  Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat)/.test(App.route))route();});
+  Auth.init().then(()=>{route();refreshUnread();}).catch(()=>route());
   window.__ready=true;const l=document.getElementById('loading');setTimeout(()=>l&&l.classList.add('gone'),250);
   try{sessionStorage.removeItem('ow_try');}catch(e){}
   PWA.init();
