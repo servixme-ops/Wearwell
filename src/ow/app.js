@@ -127,8 +127,7 @@ async function meView(){
     h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('div',null,h('b',null,cn.followers),h('span',null,'followers')),h('div',null,h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},prev?h('img',{class:'pshot',src:prev,alt:'Your room'}):h('div',{class:'pshot ph'},room?room.name:'Your room is not built yet'),
       h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name)},'Share'):null)),
-    h('div',{class:'list'},room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings'),h('span',{class:'f-hint'},room.visibility==='public'?'Public':'Private')):null,
-      h('button',{onclick:privacySheet},icon('lock'),h('span',{class:'grow'},'Privacy & safety')),
+    h('div',{class:'list'},room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
       h('button',{onclick:async()=>{await Auth.signOut();toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
@@ -140,10 +139,10 @@ async function shareRoom(username,name){
 }
 function roomSettings(room,done){
   sheet('Room settings',(body,close)=>{
-    const nm=h('input',{type:'text',maxlength:'60',value:room.name||''}),vis=h('select',null,h('option',{value:'public'},'Public: anyone with the link and on the Wall'),h('option',{value:'private'},'Private: only me'));vis.value=room.visibility==='private'?'private':'public';
+    const nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
     let cats=new Set(room.categories||[]);const cw=h('div',{class:'chips'});const pc=()=>cw.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(cats.has(c)?' on':''),onclick:()=>{cats.has(c)?cats.delete(c):cats.add(c);pc();}},c)));pc();
-    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis.value;room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),field('Who can see it',vis),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),save);
+    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),save);
   });
 }
 
@@ -232,7 +231,7 @@ async function editorView(){
       };paint();
       nm.addEventListener('change',()=>{room.name=nm.value.trim()||'My room';R.room.name=room.name;titleEl.textContent=room.name;R.changed();});
       body.append(field('Room name',nm),h('div',{class:'f-label',style:{margin:'4px 0 8px'}},'Room size'),sizes,h('div',{class:'f-label',style:{margin:'12px 0 8px'}},'Style'),themes,
-        h('button',{class:'btn block',style:{marginTop:'14px'},onclick:()=>{close();roomSettings(Object.assign(room,{name:R.room.name||room.name}),()=>{R.room.visibility=room.visibility;R.room.categories=room.categories;});}},icon('sliders'),'Visibility & interests'));
+        h('button',{class:'btn block',style:{marginTop:'14px'},onclick:()=>{close();roomSettings(Object.assign(room,{name:R.room.name||room.name}),()=>{R.room.categories=room.categories;});}},icon('sliders'),'Name & interests'));
     });
   }
   /* ----- selected item panel ----- */
@@ -303,34 +302,15 @@ async function visitView(username){
 function socialBar(d,o){
   let soc={counts:{},mine:null,comments:0};const room=d.room;
   const total=()=>Object.values(soc.counts).reduce((a,b)=>a+(+b||0),0);
-  const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('chat'),h('span',null,'Message')),mo=h('button',{class:'dk','aria-label':'More'},icon('more'),h('span',null,'More'));
+  const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('chat'),h('span',null,'Message'));
   const paint=()=>{rx.replaceChildren(h('span',{class:'em'},soc.mine?EMOJI[soc.mine]:'♡'),h('span',null,total()||'React'));rx.classList.toggle('on',!!soc.mine);cm.replaceChildren(icon('chat'),h('span',null,soc.comments?soc.comments+(soc.comments==1?' comment':' comments'):'Comment'));};
   paint();Store.social(room.id).then(x=>{soc=x;paint();}).catch(()=>{});
   const pick=async kind=>{if(!needAuth('Sign in to react'))return;const was=soc.mine;const next=was===kind?null:kind;await guard(rx,async()=>{await Store.react(room.id,next);if(was)soc.counts[was]=Math.max(0,(soc.counts[was]||0)-1);if(next)soc.counts[next]=(soc.counts[next]||0)+1;soc.mine=next;paint();});};
   rx.onclick=e=>{const old=document.querySelector('.pop');if(old){old.remove();return;}const pop=h('div',{class:'pop'},Object.entries(EMOJI).map(([k,em])=>h('button',{class:soc.mine===k?'on':'','aria-label':k,onclick:()=>{pop.remove();pick(k);}},em)));rx.parentElement.parentElement.append(pop);setTimeout(()=>document.addEventListener('pointerdown',function f(ev){if(!pop.contains(ev.target)){pop.remove();document.removeEventListener('pointerdown',f);}}),0);};
   cm.onclick=()=>commentsSheet(d,n=>{soc.comments=n;paint();});
-  ms.onclick=()=>{if(d.is_me){toast('This is your own room');return;}if(!needAuth('Sign in to send a message'))return;if(o.dm_policy==='nobody'){toast('@'+o.username+' is not taking messages','err');return;}go('#/chat/'+o.username);};
-  mo.onclick=()=>moreSheet(d,o);
+  ms.onclick=()=>{if(d.is_me){toast('This is your own room');return;}if(!needAuth('Sign in to send a message'))return;go('#/chat/'+o.username);};
   if(d.is_me)ms.style.display='none';
-  return h('div',{class:'dock social'},h('div',{class:'bar'},rx,cm,ms,mo));
-}
-function reportSheet(target,done){
-  sheet('Report',(body,close)=>{
-    const reasons=['Inappropriate or adult content','Hate or harassment','Spam or scam','Impersonation','Something else'];let sel=null;const det=h('textarea',{maxlength:'500',placeholder:'Anything else we should know? (optional)'});
-    const w=h('div',{class:'chips',style:{marginBottom:'12px'}});const pc=()=>w.replaceChildren(...reasons.map(r=>h('button',{class:'chip'+(sel===r?' on':''),onclick:()=>{sel=r;pc();}},r)));pc();
-    const send=h('button',{class:'btn primary block',onclick:()=>{if(!sel){toast('Choose a reason','err');return;}guard(send,async()=>{await Store.report(Object.assign({reason:sel,details:det.value.trim()||null},target));toast('Thanks, we will review it','ok');close();done&&done();});}},'Send report');
-    body.append(h('p',{class:'tag',style:{margin:'0 0 10px'}},'Tell us what is wrong. Reports are private.'),w,field('Details',det),send);
-  });
-}
-function moreSheet(d,o){
-  sheet('@'+o.username,(body,close)=>{
-    const row=(ic,t,fn,danger)=>h('button',{class:'btn block'+(danger?' danger':''),style:{marginBottom:'8px',justifyContent:'flex-start'},onclick:fn},icon(ic),t);
-    body.append(row('share','Share this room',()=>{close();shareRoom(o.username,d.room.name);}));
-    if(!d.is_me){
-      body.append(row('flag','Report this room',()=>{close();if(needAuth('Sign in to report'))reportSheet({room_id:d.room.id});}),
-        row('lock','Block @'+o.username,async()=>{close();if(!needAuth('Sign in to block'))return;if(await confirmBox('Block @'+o.username+'?','You will no longer see each other\u2019s rooms, comments or messages.','Block',true)){await guard(null,async()=>{await Store.block(o.id,true);toast('Blocked','ok');go('#/wall');});}},true));
-    }
-  });
+  return h('div',{class:'dock social'},h('div',{class:'bar'},rx,cm,ms));
 }
 function commentsSheet(d,onCount){
   sheet('Comments',(body)=>{
@@ -338,7 +318,7 @@ function commentsSheet(d,onCount){
     const send=h('button',{class:'btn coral small'},'Post');
     const load=async()=>{try{const cs=await Store.comments(d.room.id);onCount&&onCount(cs.length);
       list.replaceChildren(...(cs.length?cs.map(c=>h('div',{class:'cmt'},avatarEl(c,'sm'),h('div',{class:'cb'},h('b',null,'@'+c.username),h('span',{class:'t'},' '+timeAgo(c.created_at)),h('p',null,c.body),
-        h('div',{class:'cact'},(Auth.user&&(c.user_id===Auth.user.id||d.is_me))?h('button',{onclick:()=>guard(null,async()=>{await Store.delComment(c.id);load();})},'Delete'):null,(Auth.user&&c.user_id!==Auth.user.id)?h('button',{onclick:()=>reportSheet({comment_id:c.id,room_id:d.room.id})},'Report'):null)))):[h('p',{class:'tag',style:{textAlign:'center',padding:'18px'}},'No comments yet. Start the conversation.')]));}catch(e){list.replaceChildren(h('p',{class:'tag'},friendlyError(e)));}};
+        h('div',{class:'cact'},(Auth.user&&(c.user_id===Auth.user.id||d.is_me))?h('button',{onclick:()=>guard(null,async()=>{await Store.delComment(c.id);load();})},'Delete'):null)))):[h('p',{class:'tag',style:{textAlign:'center',padding:'18px'}},'No comments yet. Start the conversation.')]));}catch(e){list.replaceChildren(h('p',{class:'tag'},friendlyError(e)));}};
     const post=()=>{const t=inp.value.trim();if(!t)return;if(!needAuth('Sign in to comment'))return;guard(send,async()=>{await Store.comment(d.room.id,t);inp.value='';await load();});};
     send.onclick=post;inp.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
     body.append(list,h('div',{style:{display:'flex',gap:'8px',alignItems:'center'}},inp,send));load();
@@ -364,23 +344,13 @@ async function chatView(username){
   let d;try{d=await Store.byUsername(username);}catch(e){wrap.replaceChildren(empty('Could not open chat',friendlyError(e)));return;}
   if(!d||!d.owner){wrap.replaceChildren(empty('Person not found','',h('button',{class:'btn',onclick:()=>go('#/inbox')},'Back')));return;}
   const o=d.owner;const list=h('div',{class:'cl'}),inp=h('input',{type:'text',maxlength:'1000',placeholder:'Message @'+o.username}),send=h('button',{class:'btn coral small'},'Send');
-  const blocked=o.dm_policy==='nobody'&&!d.is_me;
-  wrap.replaceChildren(h('div',{class:'rtop',style:{position:'relative',background:'var(--paper)',borderBottom:'1px solid var(--line)'}},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go('#/inbox')},icon('back')),h('button',{class:'owner',onclick:()=>go('#/@'+o.username)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,o.display_name||'@'+o.username),h('span',{class:'s'},'@'+o.username)))),list,
-    blocked?h('p',{class:'tag',style:{padding:'14px',textAlign:'center'}},'@'+o.username+' is not taking messages.'):h('div',{class:'cin'},inp,send));
+    wrap.replaceChildren(h('div',{class:'rtop',style:{position:'relative',background:'var(--paper)',borderBottom:'1px solid var(--line)'}},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go('#/inbox')},icon('back')),h('button',{class:'owner',onclick:()=>go('#/@'+o.username)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,o.display_name||'@'+o.username),h('span',{class:'s'},'@'+o.username)))),list,
+    h('div',{class:'cin'},inp,send));
   let last='';const load=async()=>{try{const ms=await Store.thread(o.id);const key=ms.length+':'+(ms[ms.length-1]||{}).id;if(key===last)return;last=key;const nearEnd=list.scrollHeight-list.scrollTop-list.clientHeight<80||!list.childNodes.length;
     list.replaceChildren(...(ms.length?ms.map(m=>h('div',{class:'bub '+(m.sender_id===Auth.user.id?'me':'them')},m.body)):[h('p',{class:'tag',style:{textAlign:'center',padding:'20px'}},'Say hello to @'+o.username)]));if(nearEnd)list.scrollTop=list.scrollHeight;Store.markRead(o.id).then(refreshUnread);}catch(e){}};
   const post=()=>{const t=inp.value.trim();if(!t)return;guard(send,async()=>{await Store.send(o.id,t);inp.value='';last='';await load();});};
   send.onclick=post;inp.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
   await load();const iv=setInterval(()=>{if(!document.hidden)load();},6000);App.teardown=()=>clearInterval(iv);
-}
-function privacySheet(){
-  sheet('Privacy & safety',(body,close)=>{
-    const dm=h('select',null,h('option',{value:'everyone'},'Anyone can message me'),h('option',{value:'nobody'},'No one can message me'));dm.value=(Auth.profile&&Auth.profile.dm_policy)||'everyone';
-    dm.onchange=()=>guard(null,async()=>{const r=await Auth.saveProfile({dm_policy:dm.value});if(r.error)throw r.error;toast('Saved','ok');});
-    const bl=h('div',null,spinner());
-    const load=async()=>{try{const xs=await Store.blocked();bl.replaceChildren(xs.length?h('div',{class:'list',style:{margin:0}},xs.map(u=>h('button',{onclick:()=>guard(null,async()=>{await Store.block(u.id,false);toast('Unblocked','ok');load();})},avatarEl(u,'sm'),h('span',{class:'grow'},'@'+u.username),h('span',{class:'f-hint'},'Unblock')))):h('p',{class:'f-hint'},'You have not blocked anyone.'));}catch(e){bl.replaceChildren(h('p',{class:'f-hint'},friendlyError(e)));}};load();
-    body.append(field('Messages',dm),h('div',{class:'f-label',style:{margin:'4px 0 8px'}},'Blocked people'),bl,h('p',{class:'f-hint',style:{marginTop:'14px'}},'Room visibility and interests are in Room settings.'));
-  });
 }
 /* simple flat view for devices without WebGL: every picture on the walls as a gallery */
 function fallback(d){
