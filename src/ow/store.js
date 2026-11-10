@@ -8,7 +8,7 @@ const Store={
     return{room:r.data,items:i.data||[]};
   },
   async byUsername(u){const r=await sb.rpc('ow_room_by_username',{p_username:u});if(r.error)throw r.error;return r.data;},
-  async feed(limit,offset){const r=await sb.rpc('ow_wall_feed',{p_limit:limit||24,p_offset:offset||0});if(r.error)throw r.error;return r.data||[];},
+  async feed(limit,offset,seed){const r=await sb.rpc('ow_wall_feed',{p_limit:limit||24,p_offset:offset||0,p_seed:seed||''});if(r.error)throw r.error;return r.data||[];},
   async createRoom(room,items){
     const row={owner_id:Auth.user.id,name:room.name||'My room',size:room.size,width:room.width,depth:room.depth,height:room.height,theme:room.theme||{},categories:room.categories||[],visibility:room.visibility||'public'};
     const r=await sb.from('rooms').insert(row).select().single();if(r.error)throw r.error;
@@ -28,9 +28,13 @@ const Store={
     const blob=await (await fetch(dataUrl)).blob();const path=Auth.user.id+'/preview.jpg';
     const r=await sb.storage.from('room-images').upload(path,blob,{contentType:'image/jpeg',upsert:true,cacheControl:'600'});if(r.error)throw r.error;return path;
   },
-  async uploadPicture(file){const p=await prepareImage(file,{max:1280,quality:.82,maxMB:12});const path=await uploadFile('room-images',p.blob,'jpg','image/jpeg');return{path,width:p.width,height:p.height};},
+  async uploadPicture(file){const p=await prepareImage(file,{max:1024,quality:.8,maxMB:12});const path=await uploadFile('room-images',p.blob,'jpg','image/jpeg');return{path,width:p.width,height:p.height};},
   previewUrl(theme,key){return theme&&theme.preview?publicUrl('room-images',theme.preview)+'?v='+(theme.pv||key||1):null;},
-  async visit(id){try{await sb.rpc('ow_visit',{p_room:id});}catch(e){}},
+  async visit(id){let k=null;try{k=localStorage.getItem('ow_dev');if(!k){k=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2));localStorage.setItem('ow_dev',k);}}catch(e){k=null;}try{await sb.rpc('ow_visit',{p_room:id,p_key:k});}catch(e){}},
+  async trending(n){const r=await sb.rpc('ow_trending',{p_limit:n||8});if(r.error)throw r.error;return r.data||[];},
+  async featured(){const r=await sb.rpc('ow_featured');if(r.error)throw r.error;return r.data||[];},
+  async setFeatured(id,on){const r=await sb.rpc('ow_set_featured',{p_room:id,p_on:on});if(r.error)throw r.error;},
+  async followList(uid,kind){const r=await sb.rpc('ow_follow_list',{p_user:uid,p_kind:kind});if(r.error)throw r.error;return r.data||[];},
   async follow(ownerId,on){const r=on?await sb.from('follows').insert({follower_id:Auth.user.id,followee_id:ownerId}):await sb.from('follows').delete().eq('follower_id',Auth.user.id).eq('followee_id',ownerId);if(r.error)throw r.error;},
   async counts(uid){const [a,b,c]=await Promise.all([sb.from('follows').select('*',{count:'exact',head:true}).eq('followee_id',uid),sb.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',uid),Auth.user?sb.from('follows').select('*',{count:'exact',head:true}).eq('followee_id',uid).eq('follower_id',Auth.user.id):Promise.resolve({count:0})]);return{followers:a.count||0,following:b.count||0,iFollow:(c.count||0)>0};},
   /* ----- social ----- */

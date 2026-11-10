@@ -8,6 +8,9 @@ Object.assign(IC,{
   cube:'<path d="M12 3l8 4.500v9L12 21l-8-4.500v-9z"/><path d="M12 12l8-4.500M12 12v9M12 12L4 7.500"/>',
   house:'<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
   inbox:'<path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>',
+  undo:'<path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 010 12" transform="translate(0 -5)"/>',
+  redo:'<path d="M15 7l5 5-5 5"/><path d="M20 12H10a6 6 0 000 12" transform="translate(0 -5)"/>',
+  copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>',
   reset:'<path d="M4 12a8 8 0 108-8"/><path d="M4 4v5h5"/>',
   more:'<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>'
 });
@@ -16,6 +19,14 @@ const App={teardown:null,route:'',visited:{}};
 const CATS=['Music','Football','Basketball','Movies','Gaming','Fashion','Travel','Photography','Books','Technology','Lifestyle','Art','Food'];
 const EMOJI={love:'❤️',fire:'🔥',wow:'😮',clap:'👏'};
 const needAuth=why=>{if(Auth.user)return true;authSheet('signin',why||'Sign in to do that');return false;};
+function embedFor(u){
+  try{const x=new URL(u),host=x.hostname.replace(/^www\./,'');
+    const yt=ytId(u);if(yt)return{src:'https://www.youtube-nocookie.com/embed/'+yt,ratio:'16/9',kind:'video',name:'YouTube'};
+    let m;if(host==='vimeo.com'&&(m=x.pathname.match(/\/(\d+)/)))return{src:'https://player.vimeo.com/video/'+m[1],ratio:'16/9',kind:'video',name:'Vimeo'};
+    if(host==='open.spotify.com'&&(m=x.pathname.match(/\/(track|album|playlist|artist|episode|show)\/([A-Za-z0-9]+)/)))return{src:'https://open.spotify.com/embed/'+m[1]+'/'+m[2],height:m[1]==='track'||m[1]==='episode'?152:352,kind:'music',name:'Spotify'};
+    if(host==='soundcloud.com')return{src:'https://w.soundcloud.com/player/?auto_play=false&url='+encodeURIComponent(u),height:166,kind:'music',name:'SoundCloud'};
+    if(host==='music.apple.com')return{src:'https://embed.music.apple.com'+x.pathname+x.search,height:x.pathname.includes('/song/')||x.search.includes('i=')?175:352,kind:'music',name:'Apple Music'};
+  }catch(e){}return null;}
 const roomUrl=u=>CFG.site+'#/@'+u;
 const ytId=u=>{try{const x=new URL(u);if(/youtu\.be$/.test(x.hostname))return x.pathname.slice(1);if(/youtube\.com$/.test(x.hostname)){if(x.searchParams.get('v'))return x.searchParams.get('v');const m=x.pathname.match(/\/(embed|shorts)\/([\w-]+)/);if(m)return m[2];}}catch(e){}return null;};
 const go=hash=>{if(location.hash===hash)route();else location.hash=hash;};
@@ -82,39 +93,47 @@ function rxBtn(r){
 function roomPiece(r,i){
   const prev=Store.previewUrl(r.theme,r.updated_at);
   const shot=prev?h('img',{class:'pshot',src:prev,alt:r.name+' by @'+r.username,loading:'lazy',decoding:'async'}):h('div',{class:'pshot ph'},r.name);
-  return h('div',{class:'piece'},h('button',{class:'pframe','aria-label':'Visit '+r.name,onclick:()=>go('#/@'+r.username)},shot),
+  return h('div',{class:'piece'},r.featured?h('span',{class:'star'},'★ Featured'):null,h('button',{class:'pframe','aria-label':'Visit '+r.name,onclick:()=>go('#/@'+r.username)},shot),
     h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,r.name),h('span',{class:'s'},'@'+r.username)),rxBtn(r),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
     r.visits?h('div',{class:'vis'},r.visits+(r.visits===1?' visit':' visits')):null);
 }
+const WALL_SEED=Math.random().toString(36).slice(2,8);
 async function wallView(){
   const v=setView(false);drawNav('wall');
-  const ex=h('div',{class:'exhibit'},h('div',{class:'pg-head'},h('div',{class:'brand'},logoEl(38),h('b',null,'OpenWalls')),h('p',{class:'tag'},'Discover what’s on everyone’s walls.')),h('div',{class:'ex-body'},spinner()));
-  v.append(ex);const body=ex.querySelector('.ex-body');
-  try{
-    const rows=await Store.feed(30,0);
-    if(!rows.length){body.replaceChildren(empty('The wall is empty','Be the first to hang your room here.',h('button',{class:'btn coral',onclick:create},'Build my room')));return;}
-    /* keep it varied: no one creator takes over (feed is already scored on freshness and visits) */
-    body.replaceChildren(h('div',{class:'ex-grid'},rows.map(roomPiece)));
-  }catch(e){body.replaceChildren(empty('Could not load the wall',friendlyError(e),h('button',{class:'btn',onclick:wallView},'Try again')));}
+  const grid=h('div',{class:'ex-grid'}),more=h('div',{class:'ex-more'}),ex=h('div',{class:'exhibit'},h('div',{class:'pg-head'},h('div',{class:'brand'},logoEl(38),h('b',null,'OpenWalls')),h('p',{class:'tag'},'Discover what\u2019s on everyone\u2019s walls.')),h('div',{class:'ex-body'},grid,more));
+  v.append(ex);let offset=0,done=false,busy=false,count=0;const PAGE=16;
+  more.append(spinner());
+  const load=async()=>{if(busy||done)return;busy=true;
+    try{const rows=await Store.feed(PAGE,offset,WALL_SEED);offset+=rows.length;if(rows.length<PAGE)done=true;rows.forEach(r=>{grid.append(roomPiece(r,count++));});
+      if(!count){more.replaceChildren(empty('The wall is empty','Hang a picture in your room and it shows up here.',h('button',{class:'btn coral',onclick:create},'Build my room')));return;}
+      more.replaceChildren(done?h('div',{class:'ex-end'},'You have seen every room'):h('div',{class:'ex-sent'}));
+    }catch(e){more.replaceChildren(empty('Could not load the wall',friendlyError(e),h('button',{class:'btn',onclick:()=>{busy=false;more.replaceChildren(spinner());load();}},'Try again')));busy=false;return;}
+    busy=false;watch();};
+  let io=null;const watch=()=>{const s=more.querySelector('.ex-sent');if(!s)return;if('IntersectionObserver' in window){io&&io.disconnect();io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))load();},{root:v,rootMargin:'600px'});io.observe(s);}else{const b=h('button',{class:'btn',onclick:load},'Load more');more.replaceChildren(b);}};
+  App.teardown=()=>{io&&io.disconnect();};
+  load();
 }
 /* ---------- DISCOVER ---------- */
 async function discoverView(){
-  const v=setView(false);drawNav('discover');let all=[],cat=null;
+  const v=setView(false);drawNav('discover');let feed=[],trend=[],feat=[],cat=null;
   const chips=h('div',{class:'scrollx'}),sec=h('div');
   v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.')),chips,sec);
+  const ok=r=>!cat||(r.categories||[]).includes(cat);
+  const tcard=r=>{const p=Store.previewUrl(r.theme,r.updated_at);return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},p?h('img',{src:p,alt:'',loading:'lazy'}):h('div',{class:'pshot ph'},r.name),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,r.name),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
   const paint=()=>{
     chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();}},c||'All')));
-    const rows=cat?all.filter(r=>(r.categories||[]).includes(cat)):all;
-    if(!rows.length){sec.replaceChildren(empty(cat?'No '+cat+' rooms yet':'No rooms yet',cat?'Rooms can pick interests in their room settings.':'Check back soon.'));return;}
-    const trend=[...rows].sort((a,b)=>b.visits-a.visits).slice(0,8),fresh=[...rows].sort((a,b)=>new Date(b.created_at||b.updated_at)-new Date(a.created_at||a.updated_at));
+    const f=feat.filter(ok),t=trend.filter(ok),rows=feed.filter(ok);
+    if(!f.length&&!t.length&&!rows.length){sec.replaceChildren(empty(cat?'No '+cat+' rooms yet':'No rooms yet',cat?'Rooms can pick interests in Room settings.':'Check back soon.'));return;}
     const seen={},creators=[...rows].sort((a,b)=>b.visits-a.visits).filter(r=>!seen[r.username]&&(seen[r.username]=1)).slice(0,12);
+    const fresh=[...rows].sort((a,b)=>new Date(b.created_at||b.updated_at)-new Date(a.created_at||a.updated_at));
     sec.replaceChildren(
-      h('h2',{class:'sec'},'Trending rooms'),h('div',{class:'trend'},trend.map(r=>{const p=Store.previewUrl(r.theme,r.updated_at);return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},p?h('img',{src:p,alt:'',loading:'lazy'}):h('div',{class:'pshot ph'},r.name),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,r.name),h('span',{class:'s'},'@'+r.username+' · '+r.visits+' visits'))));})),
-      h('h2',{class:'sec'},'Popular creators'),h('div',{class:'creators'},creators.map(r=>h('button',{class:'creator',onclick:()=>go('#/@'+r.username)},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username}),'@'+r.username))),
-      h('h2',{class:'sec'},'New rooms'),h('div',{class:'ex-grid',style:{background:'none'}},fresh.map(roomPiece)));
+      f.length?[h('h2',{class:'sec'},'Featured rooms'),h('div',{class:'trend'},f.map(tcard))]:null,
+      t.length?[h('h2',{class:'sec'},'Trending rooms'),h('div',{class:'trend'},t.map(tcard))]:null,
+      creators.length?[h('h2',{class:'sec'},'Popular creators'),h('div',{class:'creators'},creators.map(r=>h('button',{class:'creator',onclick:()=>go('#/@'+r.username)},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username}),'@'+r.username)))]:null,
+      rows.length?[h('h2',{class:'sec'},'New rooms'),h('div',{class:'ex-grid',style:{background:'none'}},fresh.map(roomPiece))]:null);
   };
-  sec.replaceChildren(spinner());paint();
-  try{all=await Store.feed(50,0);paint();}catch(e){sec.replaceChildren(empty('Could not load rooms',friendlyError(e)));}
+  sec.replaceChildren(spinner());
+  try{[feed,trend,feat]=await Promise.all([Store.feed(50,0,WALL_SEED),Store.trending(10).catch(()=>[]),Store.featured().catch(()=>[])]);paint();}catch(e){sec.replaceChildren(empty('Could not load rooms',friendlyError(e)));}
 }
 /* ---------- ME ---------- */
 async function meView(){
@@ -124,13 +143,25 @@ async function meView(){
   let mine=null,cn={followers:0,following:0};try{[mine,cn]=await Promise.all([Store.mine(),Store.counts(Auth.user.id)]);}catch(e){console.warn(e);}
   const room=mine&&mine.room,prev=room&&Store.previewUrl(room.theme,room.updated_at);
   v.replaceChildren(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Me'))),
-    h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('div',null,h('b',null,cn.followers),h('span',null,'followers')),h('div',null,h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
+    h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},prev?h('img',{class:'pshot',src:prev,alt:'Your room'}):h('div',{class:'pshot ph'},room?room.name:'Your room is not built yet'),
       h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name)},'Share'):null)),
     h('div',{class:'list'},room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
       h('button',{onclick:async()=>{await Auth.signOut();toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
+}
+function followSheet(uid,kind){
+  sheet(kind==='followers'?'Followers':'Following',(body,close)=>{
+    body.append(spinner());
+    Store.followList(uid,kind).then(xs=>{body.replaceChildren(xs.length?h('div',{class:'list',style:{margin:0}},xs.map(u=>h('button',{onclick:()=>{close();go('#/@'+u.username);}},avatarEl(u,'sm'),h('span',{class:'grow'},h('b',null,u.display_name||'@'+u.username),h('div',{class:'f-hint'},'@'+u.username))))):empty(kind==='followers'?'No followers yet':'Not following anyone yet',''));}).catch(e=>body.replaceChildren(empty('Could not load',friendlyError(e))));
+  });
+}
+function ownerSheet(o,cn){
+  sheet('@'+o.username,(body,close)=>{
+    body.append(h('div',{style:{textAlign:'center'}},h('div',{style:{display:'flex',justifyContent:'center'}},avatarEl(o,'lg')),h('h3',{style:{margin:'10px 0 2px',font:'800 22px var(--disp)'}},o.display_name||'@'+o.username),o.bio?h('p',null,o.bio):null,
+      h('div',{class:'counts'},h('button',{onclick:()=>{close();followSheet(o.id,'followers');}},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>{close();followSheet(o.id,'following');}},h('b',null,cn.following),h('span',null,'following')))));
+  });
 }
 async function shareRoom(username,name){
   const url=roomUrl(username);
@@ -157,6 +188,9 @@ function starterRoom(){
   return{room,items};
 }
 
+/* every account gets a room of its own the first time it signs in (it only reaches the Wall once a picture is hung) */
+let ensuring=false;
+async function ensureRoom(){if(ensuring||!Auth.user)return;ensuring=true;try{const m=await Store.mine();if(!m){const st=starterRoom();await Store.createRoom(st.room,st.items);if(App.route==='me')route();}}catch(e){console.warn('ensureRoom',e);}ensuring=false;}
 /* ---------- ROOM EDITOR ---------- */
 async function editorView(){
   if(!Auth.user){go('#/me');authSheet('signin','Sign in to edit your room');return;}
@@ -164,30 +198,40 @@ async function editorView(){
   if(!OWRoom.supported()){host.append(empty('3D is not available on this device','Try another browser or device to build your room.',h('button',{class:'btn',onclick:()=>go('#/me')},'Back')));return;}
   host.append(spinner('Opening your room…'));
   let data;try{data=await Store.mine();}catch(e){host.replaceChildren(empty('Could not open your room',friendlyError(e),h('button',{class:'btn',onclick:()=>go('#/me')},'Back')));return;}
-  let fresh=false;if(!data){const s=starterRoom();data={room:s.room,items:s.items};fresh=true;}
+  let fresh=false;if(!data){const st=starterRoom();data={room:st.room,items:st.items};fresh=true;}
   host.replaceChildren();
   let room=data.room,dirty=fresh,saving=false,savedIds=new Set(fresh?[]:data.items.map(i=>i.id)),timer=0,panel=null,statusEl=h('span',{class:'save'},fresh?'Not saved yet':'Saved'),titleEl=h('b',null,room.name||'My room');
-  const R=new OWRoom(host,{edit:true,onSelect:it=>showPanel(it),onChange:()=>{dirty=true;statusEl.textContent='Unsaved changes';clearTimeout(timer);timer=setTimeout(()=>save(),2200);}});
+  const R=new OWRoom(host,{edit:true,onHistory:()=>{try{hist();}catch(e){}},onSelect:it=>showPanel(it),onChange:()=>{dirty=true;statusEl.textContent='Unsaved changes';clearTimeout(timer);timer=setTimeout(()=>save(),2200);}});
   window.__room=R;
   R.load(room,data.items);
+  let previewTimer=0,stale=!room.theme||!room.theme.preview;
+  async function persist(rm,items,withPreview,ui){
+    const say=t=>{if(ui)statusEl.textContent=t;};
+    try{
+      if(!rm.id){const r=await Store.createRoom(rm,items);Object.assign(rm,r);if(R&&R.room)R.room.id=rm.id;room.id=rm.id;}
+      else{const ids=new Set(items.map(i=>i.id));const removed=[...savedIds].filter(i=>!ids.has(i));await Store.saveRoom(rm);await Store.saveItems(rm.id,items,removed);}
+      savedIds=new Set(items.map(i=>i.id));
+      if(withPreview){say('Saving preview…');try{const url=await OWRoom.preview(rm,items,480,360);const path=await Store.uploadPreview(url);rm.theme=Object.assign({},rm.theme,{preview:path,pv:Date.now()});if(R&&R.alive)R.room.theme=rm.theme;room.theme=rm.theme;await Store.saveRoom(rm);stale=false;}catch(e){console.warn('preview',e);}}
+      say('Saved');return true;
+    }catch(e){console.error(e);say('Could not save');if(ui)toast(friendlyError(e),'err');return false;}
+  }
   async function save(withPreview){
     clearTimeout(timer);if(saving){timer=setTimeout(()=>save(withPreview),800);return;}
     if(!dirty&&!withPreview)return;saving=true;statusEl.textContent='Saving…';
-    try{
-      room=Object.assign(room,R.room);const items=R.items;
-      if(!room.id){const r=await Store.createRoom(room,items);room=Object.assign(room,r);}
-      else{const ids=new Set(items.map(i=>i.id));const removed=[...savedIds].filter(i=>!ids.has(i));await Store.saveRoom(room);await Store.saveItems(room.id,items,removed);}
-      savedIds=new Set(items.map(i=>i.id));dirty=false;
-      if(withPreview){statusEl.textContent='Saving preview…';try{const url=await OWRoom.preview(R.room,items,480,360);const path=await Store.uploadPreview(url);room.theme=Object.assign({},room.theme,{preview:path,pv:Date.now()});R.room.theme=room.theme;await Store.saveRoom(room);}catch(e){console.warn('preview',e);}}
-      statusEl.textContent='Saved';
-    }catch(e){console.error(e);statusEl.textContent='Could not save';toast(friendlyError(e),'err');dirty=true;}
+    room=Object.assign(room,R.room);const ok=await persist(room,R.items.map(i=>({...i})),withPreview,true);if(ok){dirty=false;if(!withPreview){stale=true;clearTimeout(previewTimer);previewTimer=setTimeout(()=>{if(R.alive&&!dirty)save(true);},12000);}}else dirty=true;
     saving=false;
   }
   const finish=async()=>{statusEl.textContent='Saving…';await save(true);go('#/me');};
   const onHide=()=>{if(document.visibilityState==='hidden'&&dirty)save();};document.addEventListener('visibilitychange',onHide);
-  App.teardown=()=>{clearTimeout(timer);document.removeEventListener('visibilitychange',onHide);R.destroy();window.__room=null;};
+  App.teardown=()=>{clearTimeout(timer);clearTimeout(previewTimer);document.removeEventListener('visibilitychange',onHide);clearInterval(loadIv);
+    /* leaving any other way (browser back, a nav tab): still save the latest room and refresh its preview */
+    const rm=Object.assign(room,R.room),items=R.items.map(i=>({...i})),need=dirty||stale;R.destroy();window.__room=null;if(need&&room.id!==undefined)persist(rm,items,true,false);else if(need)persist(rm,items,true,false);};
+  /* loading bar while pictures arrive */
+  const lb=h('div',{class:'loadbar'},h('i'));host.append(lb);let loadIv=setInterval(()=>{lb.classList.toggle('on',R.loading>0);},250);
+  const undoB=h('button',{class:'rbtn','aria-label':'Undo',onclick:()=>R.undo()},icon('undo')),redoB=h('button',{class:'rbtn','aria-label':'Redo',onclick:()=>R.redo()},icon('redo'));
   host.append(h('div',{class:'rtop'},h('button',{class:'rbtn','aria-label':'Back',onclick:finish},icon('back')),h('div',{class:'rtitle'},titleEl,statusEl),
-    h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')),h('button',{class:'rbtn dark',onclick:finish},'Done')));
+    undoB,redoB,h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')),h('button',{class:'rbtn dark',onclick:finish},'Done')));
+  const hist=()=>{undoB.disabled=!R.canUndo();redoB.disabled=!R.canRedo();};hist();
   const tabs={};let active=null;
   const dock=h('div',{class:'dock'},h('div',{class:'bar'},
     ...[['furn','Furniture','sofa',()=>catalogue('living')],['wall','Wall','frame',()=>wallSheet()],['room','Room','house',()=>roomSheet()],['share','Share','share',async()=>{await save();if(!room.id){toast('Save your room first','err');return;}shareRoom(Auth.profile.username,room.name);}]].map(([k,l,ic,fn])=>h('button',{class:'dk',onclick:fn},icon(ic),h('span',null,l)))));
@@ -219,7 +263,11 @@ async function editorView(){
     sheet('Decorate a wall',(body,close)=>{
       body.append(h('p',{class:'tag',style:{margin:'0 0 8px'}},'Choose a wall to look at, then add pictures. Drag them around the wall.'),
         h('div',{class:'chips',style:{marginBottom:'14px'}},...[['back','Back wall'],['left','Left wall'],['right','Right wall'],['front','Front wall']].map(([k,l])=>h('button',{class:'chip',onclick:()=>{R.focusWall(k);}},l))),
-        h('button',{class:'btn coral block',onclick:()=>{close();catalogue('wall',true);}},icon('frame'),'Add a picture, poster or decoration'));
+        h('button',{class:'btn coral block',onclick:()=>{close();catalogue('wall',true);}},icon('frame'),'Add a picture, poster or decoration'),
+        h('div',{class:'f-label',style:{margin:'18px 0 8px'}},'Tidy the wall you are facing'),
+        (()=>{const gap=h('input',{type:'range',min:'3',max:'40',value:'12',style:{width:'100%',accentColor:'var(--violet)'}});const lab=h('span',{class:'f-hint'},'Spacing: 12 cm');gap.oninput=()=>{lab.textContent='Spacing: '+gap.value+' cm';};
+          const run=mode=>{const w=R.facing(),n=R.arrangeWall(w,mode,gap.value/100);toast(n?'Arranged '+n+' on the '+w+' wall':'No pictures on the '+w+' wall to arrange',n?'ok':'err');};
+          return h('div',null,lab,gap,h('div',{style:{display:'flex',gap:'8px',marginTop:'8px'}},h('button',{class:'btn',style:{flex:1},onclick:()=>{run('grid');}},'Grid'),h('button',{class:'btn',style:{flex:1},onclick:()=>{run('row');}},'Single row')),h('p',{class:'f-hint',style:{marginTop:'8px'}},'You can also pinch a selected picture to resize it.'));})());
     });
   }
   function roomSheet(){
@@ -246,6 +294,8 @@ async function editorView(){
       const fr=h('div',{class:'chips',style:{width:'100%'}});const pf=()=>fr.replaceChildren(...Object.entries(OW.FRAMES).map(([k,l])=>h('button',{class:'chip'+((it.frame||'none')===k?' on':''),onclick:()=>{R.update(it.id,{frame:k});pf();}},l)));pf();acts.append(fr);}
     if(it.type==='neon'||it.type==='curtains'||it.kind==='furniture'&&def.col){const cols=['#ff3d81','#3ddc97','#ffd23f','#6c4bff','#ff5a3c','#2d7bff','#c4532d','#2f6b4f','#d9a441','#e8d5b9','#1c1f2e','#f4f1ea'];const sw=h('div',{class:'swatches',style:{width:'100%'}});const pc=()=>sw.replaceChildren(...cols.map(c=>h('button',{class:'sw'+((it.color||def.col)===c?' on':''),style:{background:c},'aria-label':'Colour '+c,onclick:()=>{R.update(it.id,{color:c});pc();}})));pc();acts.append(sw);}
     const info=OW.INTERACT_HINT[def.hint]||(def.link?'Add a link and description':'');
+    if(it.type==='collage'){acts.append(h('button',{class:'btn',onclick:async()=>{const have=((it.props&&it.props.images)||[]).length;if(have>=6){toast('The board holds 6 photos');return;}const fs=await pickFiles('image/jpeg,image/png,image/webp',6-have);if(!fs||!fs.length)return;await guard(null,async()=>{toast('Uploading…');const out=[...((it.props&&it.props.images)||[])];for(const f of fs.slice(0,6-have)){const up=await Store.uploadPicture(f);out.push(up.path);}R.update(it.id,{props:Object.assign({},it.props,{images:out})});});}},icon('image'),'Add photos'),((it.props&&it.props.images)||[]).length?h('button',{class:'btn',onclick:()=>R.update(it.id,{props:Object.assign({},it.props,{images:[]})})},'Clear photos'):null);}
+    acts.append(h('button',{class:'btn',onclick:()=>R.duplicate(it.id)},icon('copy'),'Duplicate'));
     acts.append(h('button',{class:'btn',onclick:()=>detailsSheet(it,def)},icon('link'),it.kind==='decor'&&!def.img?'Text & link':'Details & link'));
     acts.append(h('button',{class:'btn danger',onclick:async()=>{if(await confirmBox('Remove this?','It will be taken out of your room.','Remove',true)){R.remove(it.id);}}},icon('trash'),'Remove'));
     panel=h('div',{class:'panel'},h('div',{class:'ph'},h('b',null,def.name),h('button',{class:'icon-btn','aria-label':'Close',onclick:()=>R.select(null)},icon('close'))),rows,acts,info?h('div',{class:'f-hint',style:{marginTop:'6px'}},info):null);
@@ -253,9 +303,9 @@ async function editorView(){
   }
   function detailsSheet(it,def){
     sheet('Details',(body,close)=>{
-      const ti=h('input',{type:'text',maxlength:'80',value:it.title||'',placeholder:it.type==='neon'?'Text on the sign':'e.g. Artist, song, player or team'}),
-        ds=h('textarea',{maxlength:'500',placeholder:it.type==='noticeboard'?'One note per line':'Tell visitors about it'}),li=h('input',{type:'url',maxlength:'500',value:it.link||'',placeholder:'https://…'});ds.value=it.description||'';
-      body.append(field(it.type==='neon'?'Sign text':'Title',ti),field(it.type==='noticeboard'?'Notes':'Description',ds),it.type==='neon'?null:field('Link',li,'Music, video, website, book or any web link. Visitors can tap the object to open it.'),
+      const ph=def.ph||OW.FPH[it.type]||{},ti=h('input',{type:'text',maxlength:'80',value:it.title||'',placeholder:it.type==='neon'?'Text on the sign':ph.t||'Title'}),
+        ds=h('textarea',{maxlength:'500',placeholder:it.type==='noticeboard'?'One note per line':ph.d||'Tell visitors about it'}),li=h('input',{type:'url',maxlength:'500',value:it.link||'',placeholder:ph.l||'https://…'});ds.value=it.description||'';
+      body.append(field(it.type==='neon'?'Sign text':'Title',ti),field(it.type==='noticeboard'?'Notes':'Description',ds),it.type==='neon'?null:field('Link',li,'YouTube, Vimeo, Spotify, SoundCloud and Apple Music links play right inside the room. Any other link opens in the browser.'),
         h('button',{class:'btn primary block',onclick:()=>{let l=li.value.trim();if(l&&!safeUrl(l)){const s=safeUrl('https://'+l);if(!s){toast('That link does not look right','err');return;}l=s;}R.update(it.id,{title:ti.value.trim()||null,description:ds.value.trim()||null,link:l||null});close();}},'Save'));
     });
   }
@@ -277,7 +327,7 @@ async function visitView(username){
   let cn={followers:0,following:0,iFollow:false};try{cn=await Store.counts(o.id);}catch(e){}
   const fol=h('button',{class:'rbtn '+(cn.iFollow?'':'coral'),onclick:()=>{if(!Auth.user){authSheet('signin','Sign in to follow '+o.username);return;}guard(fol,async()=>{await Store.follow(o.id,!cn.iFollow);cn.iFollow=!cn.iFollow;fol.textContent=cn.iFollow?'Following':'Follow';fol.classList.toggle('coral',!cn.iFollow);});}},cn.iFollow?'Following':'Follow');
   const top=h('div',{class:'rtop'},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go(d.is_me?'#/me':'#/wall')},icon('back')),
-    h('div',{class:'owner'},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
+    h('button',{class:'owner',onclick:()=>ownerSheet(o,cn)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
     h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>shareRoom(o.username,d.room.name)},icon('share')),
     R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null);
@@ -285,16 +335,18 @@ async function visitView(username){
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
   host.append(socialBar(d,o));
   setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);
-  if(o.bio){/* shown in the owner sheet */}
+  if(Auth.isAdmin&&!d.is_me){let on=!!d.room.featured;const fb=h('button',{class:'rbtn dark',style:{position:'absolute',left:'12px',top:'calc(64px + var(--sat))',zIndex:5},onclick:()=>guard(fb,async()=>{await Store.setFeatured(d.room.id,!on);on=!on;fb.textContent=on?'★ Featured (tap to remove)':'☆ Feature this room';})},on?'★ Featured (tap to remove)':'☆ Feature this room');host.append(fb);}
+  if(R){const lb=h('div',{class:'loadbar'},h('i'));host.append(lb);const iv=setInterval(()=>{lb.classList.toggle('on',R.loading>0);},250);const old=App.teardown;App.teardown=()=>{clearInterval(iv);old&&old();};}
   function openItem(it){
-    const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path;if(!hasInfo)return;
+    const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path||(it.props&&it.props.images&&it.props.images.length);if(!hasInfo)return;
     sheet(it.title||def.name,(body)=>{
-      const wrap=h('div',{class:'viewer'});
+      const wrap=h('div',{class:'viewer'});if(def.hint==='book_stack'&&it.title)wrap.append(h('div',{class:'bookcard'},h('b',null,it.title)));
       if(it.image_path)wrap.append(h('img',{src:publicUrl('room-images',it.image_path),alt:it.title||def.name}));
-      const yt=it.link&&ytId(it.link);if(yt)wrap.append(h('iframe',{src:'https://www.youtube-nocookie.com/embed/'+yt,allow:'accelerometer; encrypted-media; picture-in-picture',allowfullscreen:'',title:it.title||'Video',loading:'lazy'}));
+      const ci=it.type==='collage'&&it.props&&it.props.images;if(ci&&ci.length)wrap.append(h('div',{class:'cgrid'},ci.map(pth=>h('img',{src:publicUrl('room-images',pth),alt:'',loading:'lazy'}))));
+      const em=it.link&&embedFor(it.link);if(em)wrap.append(h('iframe',{src:em.src,allow:'autoplay; encrypted-media; picture-in-picture; clipboard-write',allowfullscreen:'',title:it.title||em.name,loading:'lazy',style:em.height?{aspectRatio:'auto',height:em.height+'px'}:{aspectRatio:em.ratio}}));
       if(it.type==='noticeboard'&&it.description)wrap.append(h('div',{class:'chips',style:{marginBottom:'12px'}},it.description.split('\n').filter(Boolean).map(n=>h('span',{class:'chip'},n))));
       else if(it.description)wrap.append(h('p',null,it.description));
-      if(it.link){const info=identifyLink(it.link);wrap.append(h('button',{class:'btn coral block',onclick:()=>openExternal(it.link)},icon('link'),info&&info.key!=='link'?'Open on '+info.name:'Open link'));}
+      if(it.link){const info=identifyLink(it.link);wrap.append(h('button',{class:'btn coral block',onclick:()=>openExternal(it.link)},icon('link'),(def.hint==='book_stack'?'Read or buy':info&&info.key!=='link'?'Open on '+info.name:'Open link')));}
       body.append(wrap);
     });
   }
@@ -371,7 +423,8 @@ window.addEventListener('hashchange',route);
   const ld=document.getElementById('ldlogo');if(ld)ld.append(logoEl(84));
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat)/.test(App.route))route();});
-  Auth.init().then(()=>{route();refreshUnread();}).catch(()=>route());
+  Auth.init().then(()=>{route();refreshUnread();ensureRoom();}).catch(()=>route());
+  Auth.on(ev=>{if(ev==='signin')ensureRoom();});
   window.__ready=true;const l=document.getElementById('loading');setTimeout(()=>l&&l.classList.add('gone'),250);
   try{sessionStorage.removeItem('ow_try');}catch(e){}
   PWA.init();

@@ -19,6 +19,28 @@ class OWRoom{
     this.lights();this.buildShell();this.resetCamera(true);this.resize();
     this.loop=this.loop.bind(this);requestAnimationFrame(this.loop);
   }
+  /* ----- undo / redo ----- */
+  snap(){return JSON.stringify({r:{size:this.room.size,width:this.room.width,depth:this.room.depth,height:this.room.height,theme:this.room.theme},i:this.items});}
+  pushHist(){const now=Date.now();if(this.lastPush&&now-this.lastPush<700){this.lastPush=now;return;}this.lastPush=now;this.hist=this.hist||[];this.hist.push(this.snap());if(this.hist.length>40)this.hist.shift();this.redoS=[];this.cb.onHistory&&this.cb.onHistory();}
+  canUndo(){return !!(this.hist&&this.hist.length);}canRedo(){return !!(this.redoS&&this.redoS.length);}
+  undo(){if(!this.canUndo())return;this.redoS=this.redoS||[];this.redoS.push(this.snap());this.restore(this.hist.pop());}
+  redo(){if(!this.canRedo())return;this.hist.push(this.snap());this.restore(this.redoS.pop());}
+  restore(js){const o=JSON.parse(js);const sel=this.sel;const shellChanged=['size','width','depth','height'].some(k=>this.room[k]!==o.r[k])||JSON.stringify(this.room.theme)!==JSON.stringify(o.r.theme);
+    this.select(null,true);this.nodes.forEach(n=>this.disposeNode(n));this.nodes.clear();Object.assign(this.room,o.r);if(shellChanged)this.buildShell();this.items=o.i;this.items.forEach(i=>this.mount(i));this.lastPush=0;
+    if(sel&&this.get(sel))this.select(sel);else this.cb.onSelect&&this.cb.onSelect(null);this.cb.onHistory&&this.cb.onHistory();this.changed();}
+  duplicate(id){const it=this.get(id);if(!it)return;this.pushHist();const c=JSON.parse(JSON.stringify(it));c.id=uuid();
+    if(c.kind==='furniture'){c.x+=.45;c.z+=.45;this.items.push(c);this.mount(c);this.settle(c);}
+    else{c.x+=.18;c.y-=.18;c.z_index=this.items.reduce((a,i)=>Math.max(a,i.z_index||0),0)+1;this.items.push(c);this.mount(c);this.clampD(c);this.place(c);}
+    this.changed();this.select(c.id);return c;}
+  /* tidy the pictures on one wall into a neat row or grid with a chosen gap */
+  arrangeWall(wall,mode,gap){
+    const skip=['curtains','door','window','wall_light','wall_clock','neon'];const list=this.items.filter(i=>i.kind==='decor'&&(i.wall||'back')===wall&&!skip.includes(i.type));if(!list.length)return 0;
+    this.pushHist();const L=this.wf()[wall].len-.5,H=this.H;const dim=i=>{const n=this.nodes.get(i.id);return{w:n?n.w:.5,h:n?n.h:.5};};
+    list.sort((a,b)=>a.x-b.x);const rows=[];
+    if(mode==='row'){rows.push(list);}else{let cur=[],w=0;list.forEach(i=>{const d=dim(i);if(cur.length&&w+d.w+gap>L){rows.push(cur);cur=[];w=0;}cur.push(i);w+=d.w+gap;});if(cur.length)rows.push(cur);}
+    const rh=rows.map(r=>Math.max(...r.map(i=>dim(i).h))),total=rh.reduce((a,b)=>a+b,0)+gap*(rows.length-1);let y=H*.52+total/2;
+    rows.forEach((r,ri)=>{const tw=r.reduce((a,i)=>a+dim(i).w,0)+gap*(r.length-1);let x=-tw/2;y-=rh[ri]/2;r.forEach((i,k)=>{const d=dim(i);i.x=x+d.w/2;i.y=y;i.rot=0;x+=d.w+gap;this.clampD(i);this.place(i);});y-=rh[ri]/2+gap;});
+    this.refreshHelper();this.changed();return list.length;}
   get W(){return this.room.width}get D(){return this.room.depth}get H(){return this.room.height}
   get th(){return Object.assign({},OW.THEMES.lagos,OW.THEMES[this.room.theme&&this.room.theme.key]||{})}
   /* ----- lights ----- */
@@ -85,6 +107,7 @@ class OWRoom{
     else{
       if(!this.edit&&def.img&&!it.image_path)return;
       const b=OW.buildDecor(it,def,this.th);const outer=new THREE.Group(),spin=new THREE.Group();spin.add(b.group);outer.add(spin);outer.userData.itemId=it.id;node={group:outer,spin,def,w:b.w,h:b.h,pic:b.pic};
+      if(b.tiles)b.tiles.forEach(m=>this.setPic({pic:m},publicUrl('room-images',m.userData.path)));
       if(b.pic){const url=it.image_path?publicUrl('room-images',it.image_path):null;if(url)this.setPic(node,url);else if(this.edit){b.pic.material.map=this.ph||(this.ph=OW.placeholder());b.pic.material.needsUpdate=true;}}
     }
     if(!this.edit&&(it.link||it.title||it.description||def.hint&&it.kind==='furniture'&&def.link))this.hotspot(node,it);
@@ -117,19 +140,19 @@ class OWRoom{
   /* free spot for a new piece */
   freeSpot(it){const d=OW.furn(it.type);const tries=[[0,0],[1.4,0],[-1.4,0],[0,1.3],[0,-1.3],[1.8,1.3],[-1.8,1.3],[1.8,-1.3],[-1.8,-1.3],[2.6,0],[-2.6,0]];
     for(const[a,b]of tries){it.x=a;it.z=b;this.clampF(it);if(d.surface){const y=this.supportY(it,it.x,it.z);if(y>0)return;}else if(!this.collides(it,it.x,it.z))return;}}
-  addFurniture(type,props){const d=OW.furn(type);const it=Object.assign({id:uuid(),kind:'furniture',type,x:0,y:0,z:0,rot:0,scale:1,color:d.col||null,z_index:0,props:{}},props||{});this.items.push(it);this.mount(it);this.freeSpot(it);this.settle(it);this.changed();this.select(it.id);return it;}
-  addDecor(type,props){const d=OW.decor(type);const k=this.facing();const top=this.items.reduce((a,i)=>Math.max(a,i.z_index||0),0)+1;
-    const it=Object.assign({id:uuid(),kind:'decor',type,wall:k,x:0,y:d.id==='curtains'?this.H/2-.1:Math.min(1.5,this.H*.55),z:0,rot:0,scale:1,width:d.w,height:d.h,frame:d.frame||null,color:d.id==='neon'?'#ff3d81':null,z_index:top,props:{}},props||{});
+  addFurniture(type,props){this.pushHist();const d=OW.furn(type);const it=Object.assign({id:uuid(),kind:'furniture',type,x:0,y:0,z:0,rot:0,scale:1,color:d.col||null,z_index:0,props:{}},props||{});this.items.push(it);this.mount(it);this.freeSpot(it);this.settle(it);this.changed();this.select(it.id);return it;}
+  addDecor(type,props){this.pushHist();const d=OW.decor(type);const isDoor=type==='door';const k=this.facing();const top=this.items.reduce((a,i)=>Math.max(a,i.z_index||0),0)+1;
+    const it=Object.assign({id:uuid(),kind:'decor',type,wall:k,x:0,y:d.id==='curtains'?this.H/2-.1:isDoor?d.h/2+.05:Math.min(1.5,this.H*.55),z:0,rot:0,scale:1,width:d.w,height:d.h,frame:d.frame||null,color:d.id==='neon'?'#ff3d81':null,z_index:top,props:{}},props||{});
     this.items.push(it);this.mount(it);this.clampD(it);this.place(it);this.changed();this.select(it.id);return it;}
   facing(){const a=((this.az%(2*Math.PI))+2*Math.PI)%(2*Math.PI);let best='back',bd=9;for(const k of OW.WALLS){let t=WALL_AZ[k];t=((t%(2*Math.PI))+2*Math.PI)%(2*Math.PI);const d=Math.min(Math.abs(a-t),2*Math.PI-Math.abs(a-t));if(d<bd){bd=d;best=k;}}return best;}
   get(id){return this.items.find(i=>i.id===id);}
-  update(id,patch){const it=this.get(id);if(!it)return;Object.assign(it,patch);
-    if(patch.image_path!==undefined||patch.frame!==undefined||patch.width!==undefined||patch.height!==undefined||patch.scale!==undefined&&it.kind==='decor'||patch.color!==undefined||patch.title!==undefined&&it.type==='neon'||patch.description!==undefined&&it.type==='noticeboard'){this.remount(it);}
+  update(id,patch){const it=this.get(id);if(!it)return;this.pushHist();Object.assign(it,patch);
+    if(patch.image_path!==undefined||patch.frame!==undefined||patch.width!==undefined||patch.height!==undefined||patch.scale!==undefined&&it.kind==='decor'||patch.color!==undefined||patch.title!==undefined&&it.type==='neon'||patch.description!==undefined&&it.type==='noticeboard'||patch.props!==undefined){this.remount(it);}
     if(it.kind==='furniture'){if(patch.scale!==undefined||patch.rot!==undefined)this.remount(it);this.settle(it);this.riders(it);}else{this.clampD(it);this.place(it);}
     this.refreshHelper();this.changed();}
   remount(it){const sel=this.sel===it.id,o=this.nodes.get(it.id);if(o){this.disposeNode(o);this.nodes.delete(it.id);}this.mount(it);if(sel)this.select(it.id,true);}
   riders(){}
-  remove(id){const n=this.nodes.get(id);if(n){this.disposeNode(n);this.nodes.delete(id);}const i=this.items.findIndex(x=>x.id===id);if(i>=0){const it=this.items[i];this.items.splice(i,1);
+  remove(id){this.pushHist();const n=this.nodes.get(id);if(n){this.disposeNode(n);this.nodes.delete(id);}const i=this.items.findIndex(x=>x.id===id);if(i>=0){const it=this.items[i];this.items.splice(i,1);
     if(it.kind==='furniture'){const d=OW.furn(it.type);if(d.top)this.items.filter(o=>o.kind==='furniture'&&OW.furn(o.type).surface).forEach(o=>{if(o.y>0){o.y=this.supportY(o,o.x,o.z);this.place(o);}});}}
     if(this.sel===id){this.sel=null;this.cb.onSelect&&this.cb.onSelect(null);}this.changed();}
   select(id,quiet){this.sel=id;this.nodes.forEach(n=>{if(n.helper){this.scene.remove(n.helper);n.helper.geometry.dispose();n.helper=null;}});
@@ -137,8 +160,8 @@ class OWRoom{
     this.markDirty();if(!quiet)this.cb.onSelect&&this.cb.onSelect(id?this.get(id):null);}
   refreshHelper(){const n=this.sel&&this.nodes.get(this.sel);if(n&&n.helper)n.helper.update();}
   changed(){this.markDirty(true);this.cb.onChange&&this.cb.onChange();}
-  setTheme(key){this.room.theme=Object.assign({},this.room.theme,{key});this.buildShell();this.items.forEach(i=>{if(i.kind==='furniture'&&(i.type==='rug'||i.type==='rug_round'))this.remount(i);});this.changed();}
-  setSize(key,dims){const s=dims||OW.SIZES[key];this.room.size=key;this.room.width=s.w;this.room.depth=s.d;this.room.height=s.h;this.buildShell();
+  setTheme(key){this.pushHist();this.room.theme=Object.assign({},this.room.theme,{key});this.buildShell();this.items.forEach(i=>{if(i.kind==='furniture'&&(i.type==='rug'||i.type==='rug_round'))this.remount(i);});this.changed();}
+  setSize(key,dims){this.pushHist();const s=dims||OW.SIZES[key];this.room.size=key;this.room.width=s.w;this.room.depth=s.d;this.room.height=s.h;this.buildShell();
     this.items.forEach(i=>{if(i.kind==='furniture')this.settle(i);else{this.clampD(i);this.place(i);}});this.refreshHelper();this.resetCamera();this.changed();}
   /* ----- camera ----- */
   setCam(az,el,dist){this.az=az;this.el=Math.max(.18,Math.min(1.3,el));this.dist=dist;const c=this.cam,ty=this.H*.38,ce=Math.cos(this.el);c.position.set(Math.sin(this.az)*ce*this.dist,ty+Math.sin(this.el)*this.dist,Math.cos(this.az)*ce*this.dist);c.lookAt(0,ty,0);if(this.caps){const wf=this.wf();this.caps.forEach(({m,k})=>{const f=wf[k];m.visible=f.n[0]*(c.position.x-f.o[0])+f.n[2]*(c.position.z-f.o[2])>0;});}this.markDirty();}
@@ -158,7 +181,7 @@ class OWRoom{
   pickItem(e){this.ray.setFromCamera(this.ndc(e),this.cam);const hits=this.ray.intersectObjects(this.root.children,true);for(const h of hits){let o=h.object;while(o&&!o.userData.itemId)o=o.parent;if(o)return this.get(o.userData.itemId);}return null;}
   down(e){
     this.canvas.setPointerCapture(e.pointerId);this.camT=null;this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(this.ptrs.size===2){const[a,b]=[...this.ptrs.values()];this.pinch={d:Math.hypot(a.x-b.x,a.y-b.y),dist:this.dist};this.drag=null;this.tapOk=false;return;}
+    if(this.ptrs.size===2){const[a,b]=[...this.ptrs.values()];const si=this.edit&&this.sel&&this.tapItem&&this.tapItem.id===this.sel?this.get(this.sel):null;this.pinch={d:Math.hypot(a.x-b.x,a.y-b.y),dist:this.dist,item:si,s0:si?(si.scale||1):1};this.drag=null;this.tapOk=false;return;}
     this.tapOk=true;this.sx=e.clientX;this.sy=e.clientY;const it=this.pickItem(e);this.tapItem=it;
     if(it&&this.edit){if(this.sel!==it.id)this.select(it.id);this.startDrag(it,e);}else this.drag=null;
   }
@@ -168,7 +191,7 @@ class OWRoom{
   }
   move(e){
     const p=this.ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
-    if(this.pinch&&this.ptrs.size>=2){const[a,b]=[...this.ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);this.setCam(this.az,this.el,Math.max(this.minD(),Math.min(this.cam0.dist*1.5,this.pinch.dist*this.pinch.d/Math.max(20,d))));return;}
+    if(this.pinch&&this.ptrs.size>=2){const[a,b]=[...this.ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(this.pinch.item){const k=Math.max(.4,Math.min(2.4,this.pinch.s0*d/Math.max(20,this.pinch.d)));if(Math.abs(k-(this.pinch.item.scale||1))>.02&&!this.pinchBusy){this.pinchBusy=1;requestAnimationFrame(()=>{this.pinchBusy=0;if(this.pinch&&this.pinch.item){this.update(this.pinch.item.id,{scale:+k.toFixed(2)});}});}return;}this.setCam(this.az,this.el,Math.max(this.minD(),Math.min(this.cam0.dist*1.5,this.pinch.dist*this.pinch.d/Math.max(20,d))));return;}
     if(Math.hypot(e.clientX-this.sx,e.clientY-this.sy)>6)this.tapOk=false;
     if(this.drag){if(!this.tapOk||this.drag.moved)this.dragTo(e);return;}
     if(!this.tapOk){this.setCam(this.az-dx*.007,this.el+dy*.005,this.dist);}
@@ -177,9 +200,9 @@ class OWRoom{
     const d=this.drag,it=d.it;this.ray.setFromCamera(this.ndc(e),this.cam);
     if(it.kind==='furniture'){const p=new THREE.Vector3();if(!this.ray.ray.intersectPlane(d.pl,p))return;const ox=it.x,oz=it.z;let x=p.x+d.ox,z=p.z+d.oz;const t={...it,x,z};this.clampF(t);x=t.x;z=t.z;
       if(this.collides(it,x,z)){if(!this.collides(it,x,oz))z=oz;else if(!this.collides(it,ox,z))x=ox;else return;}
-      d.moved=true;it.x=x;it.z=z;it.y=this.supportY(it,x,z);d.riders.forEach(r=>{r.o.x=x+r.dx;r.o.z=z+r.dz;r.o.y=it.y?r.o.y:(OW.furn(it.type).top||0)*(it.scale||1);this.clampF(r.o);this.place(r.o);});this.place(it);}
+      if(!d.moved)this.pushHist();d.moved=true;it.x=x;it.z=z;it.y=this.supportY(it,x,z);d.riders.forEach(r=>{r.o.x=x+r.dx;r.o.z=z+r.dz;r.o.y=it.y?r.o.y:(OW.furn(it.type).top||0)*(it.scale||1);this.clampF(r.o);this.place(r.o);});this.place(it);}
     else{const h=this.ray.intersectObjects(this.picks,false)[0];if(!h)return;const k=h.object.userData.wall,f=this.wf()[k];if(k!==it.wall){it.wall=k;d.ou=0;d.ov=0;}
-      it.x=(h.point.x-f.o[0])*f.u[0]+(h.point.z-f.o[2])*f.u[2]+d.ou;it.y=h.point.y+d.ov;this.clampD(it);d.moved=true;this.place(it);}
+      it.x=(h.point.x-f.o[0])*f.u[0]+(h.point.z-f.o[2])*f.u[2]+d.ou;it.y=h.point.y+d.ov;this.clampD(it);if(!d.moved)this.pushHist();d.moved=true;this.place(it);}
     this.refreshHelper();this.markDirty(true);
   }
   up(e){

@@ -10,7 +10,8 @@ OW.THEMES={
   forest:{name:'Forest',wall:'#9bc4a8',floor:'#8b6b4a',trim:'#f4efe2',ceil:'#e9f2e8',rug:['#2f6b4f','#f1e2c4','#d9a441']}
 };
 OW.CATS=[['bedroom','Bedroom'],['living','Living'],['gaming','Gaming'],['decor','Decoration'],['wall','Wall decoration']];
-OW.INTERACT_HINT={tv:'Add a video link',laptop:'Link to a website or project',record_player:'Link to a song or album',book_stack:'Book info or reading link',poster:'Artist, song, player or team + link',album:'Song or album + music link',noticeboard:'Pinned notes (one per line)',frame:'Tap shows the full photo'};
+OW.INTERACT_HINT={tv:'Add a YouTube or Vimeo link, it plays for visitors',laptop:'Link to a website or project',record_player:'Link a song or album (Spotify, YouTube, SoundCloud, Apple Music) and visitors can listen',book_stack:'Book title, author and a reading link',poster:'Artist, song, player or team + link',music:'Artist or song + a music link',sports:'Player or team + a link',movie:'Movie or show + a trailer link',album:'Song or album + music link',noticeboard:'Pinned notes (one per line)',frame:'Tap shows the full photo',collage:'Add up to 6 photos to the board'};
+OW.FPH={tv:{t:'What is on?',d:'About this video',l:'YouTube or Vimeo link'},laptop:{t:'Project or site name',d:'What visitors will find',l:'https://…'},record_player:{t:'Song or album',d:'Artist, why it matters to you',l:'Spotify, Apple Music, YouTube or SoundCloud link'},book_stack:{t:'Book title',d:'Author and what you thought',l:'Link to read or buy'}};
 OW.FRAMES={none:'None',black:'Black',white:'White',wood:'Wood',gold:'Gold',polaroid:'Polaroid'};
 OW.WALLS=['back','left','right','front'];
 (function(){
@@ -93,6 +94,9 @@ const D=(id,cat,name,w,h,o)=>Object.assign({id,cat,name,w,h,deco:true},o||{});
 OW.DECOR=[
 D('frame','wall','Picture frame',.6,.8,{img:1,frame:'wood'}),
 D('poster','wall','Poster',.6,.9,{img:1,frame:'none',hint:'poster'}),
+D('music_poster','wall','Music poster',.6,.9,{img:1,frame:'none',hint:'music',ph:{t:'Artist or song',d:'Why you love it',l:'Spotify, Apple Music, YouTube or SoundCloud link'}}),
+D('sports_poster','wall','Football / sports poster',.6,.9,{img:1,frame:'none',hint:'sports',ph:{t:'Player or team',d:'Club, position, favourite moment…',l:'Link to their page or highlights'}}),
+D('movie_poster','wall','Movie / TV poster',.6,.9,{img:1,frame:'none',hint:'movie',ph:{t:'Movie or show',d:'What it is about, why you love it',l:'Trailer or streaming link'}}),
 D('photo_frame','wall','Photo frame',.28,.34,{img:1,frame:'white'}),
 D('artwork','wall','Artwork',.9,.7,{img:1,frame:'black'}),
 D('album','wall','Album cover',.4,.4,{img:1,frame:'black',hint:'album'}),
@@ -101,6 +105,8 @@ D('wall_light','wall','Wall light',.2,.28),
 D('noticeboard','wall','Noticeboard',.9,.6,{hint:'noticeboard'}),
 D('collage','wall','Collage board',1.2,.9),
 D('curtains','decor','Curtains',1.5,2.2),
+D('window','decor','Window',1.2,1.3),
+D('door','decor','Door',.95,2.05),
 D('wall_clock','decor','Wall clock',.42,.42),
 D('neon','decor','Neon sign',.9,.3,{text:1})
 ];
@@ -119,7 +125,7 @@ function placeholderTex(){const c=canvas(128,160),g=c.getContext('2d'),gr=g.crea
 OW.placeholder=placeholderTex;
 /* returns {group (face = +z), pic (mesh to put the picture on), w, h} in wall metres, already scaled */
 OW.buildDecor=(item,def,theme)=>{
-  const s=item.scale||1,w=(item.width||def.w)*s,h=(item.height||def.h)*s,g=new T.Group();let pic=null;const id=def.id;
+  const s=item.scale||1,w=(item.width||def.w)*s,h=(item.height||def.h)*s,g=new T.Group();let pic=null,tiles=null;const id=def.id;
   const fr=item.frame||def.frame||'none';
   if(def.img){
     const bd=fr==='none'?0:fr==='polaroid'?.03:.035,dep=.03;
@@ -130,10 +136,18 @@ OW.buildDecor=(item,def,theme)=>{
   }else if(id==='wall_shelf'){bx(g,w,.035,.2*s,'#8a5a34',0,-.1*s+.0,.1*s);bx(g,.03,.1,.16,'#6e4f35',-w/2+.08,-.07*s,.08);bx(g,.03,.1,.16,'#6e4f35',w/2-.08,-.07*s,.08);
     ['#b8322a','#14284b','#d9a441'].forEach((c,i)=>bx(g,.035,.16*s,.12,c,-w/2+.18+i*.04,.0+.075*s+.0,.1*s));sp(g,.05*s,'#2f8a4f',w/2-.2,.07*s,.1*s,1,1,1);cy(g,.04*s,.03*s,.07*s,'#c4532d',w/2-.2,.035*s-.0,.1*s);}
   else if(id==='wall_light'){cy(g,.07*s,.07*s,.02,'#222',0,0,.01).rotation.x=Math.PI/2;bx(g,.04*s,.04*s,.1*s,'#444',0,0,.06*s);const sh=cy(g,.04*s,.1*s,.14*s,'#f6e7c8',0,.0,.13*s,{mat:new T.MeshStandardMaterial({color:'#ffe9b8',emissive:'#ffcf7a',emissiveIntensity:.9})});sh.rotation.x=Math.PI/2;}
-  else if(id==='noticeboard'||id==='collage'){const kind=id==='noticeboard'?'cork':'paper';bx(g,w+.06,h+.06,.03,'#6e4f35',0,0,.015);pic=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:boardTex(kind,id==='noticeboard'?(item.description||'').split('\n').filter(Boolean):[])}));pic.position.z=.032;g.add(pic);pic.userData.keep=1;}
+  else if(id==='collage'){bx(g,w+.06,h+.06,.03,'#6e4f35',0,0,.015);const bg=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:boardTex('paper',[])}));bg.position.z=.032;g.add(bg);tiles=[];const imgs=((item.props&&item.props.images)||[]).slice(0,6),cols=imgs.length>4?3:2,rows=Math.ceil(imgs.length/cols)||1,cw=w/cols,ch=h/rows;
+    imgs.forEach((path,i)=>{const cx=-w/2+cw*(i%cols)+cw/2,cy=h/2-ch*Math.floor(i/cols)-ch/2,tw=cw*.82,th=ch*.82;const gt=new T.Group();gt.position.set(cx,cy,.04+i*.002);gt.rotation.z=(((i*53)%9)-4)*.025;bx(gt,tw+.025,th+.025,.006,'#fff',0,0,0,{cast:false});const m=new T.Mesh(new T.PlaneGeometry(tw,th),new T.MeshBasicMaterial({color:'#ffffff'}));m.position.z=.0045;m.userData.path=path;gt.add(m);g.add(gt);tiles.push(m);});}
+  else if(id==='noticeboard'){const kind='cork';bx(g,w+.06,h+.06,.03,'#6e4f35',0,0,.015);pic=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:boardTex(kind,id==='noticeboard'?(item.description||'').split('\n').filter(Boolean):[])}));pic.position.z=.032;g.add(pic);pic.userData.keep=1;}
   else if(id==='wall_clock'){bx(g,.01,.01,.01,'#000',0,0,0);const rim=cy(g,w/2+.015,w/2+.015,.04,'#222',0,0,.02);rim.rotation.x=Math.PI/2;const f=new T.Mesh(new T.CircleGeometry(w/2,32),new T.MeshBasicMaterial({map:clockTex()}));f.position.z=.042;g.add(f);}
   else if(id==='neon'){const p=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:neonTex(item.title,item.color||'#ff3d81'),transparent:true,depthWrite:false}));p.position.z=.02;g.add(p);bx(g,w*.9,h*.8,.01,'#101018',0,0,.004,{cast:false}).material=new T.MeshBasicMaterial({color:'#12121c',transparent:true,opacity:.55});}
+  else if(id==='window'){const fc=item.color||'#fffaf0',c=OW.mat(fc,.5);bx(g,w+.12,.06,.07,fc,0,h/2+.03,.035);bx(g,w+.12,.06,.07,fc,0,-h/2-.03,.035);bx(g,.06,h,.07,fc,-w/2-.03,0,.035);bx(g,.06,h,.07,fc,w/2+.03,0,.035);
+    const sc=canvas(8,128),sx=sc.getContext('2d'),gr=sx.createLinearGradient(0,0,0,128);gr.addColorStop(0,'#6fbaff');gr.addColorStop(1,'#fff1c9');sx.fillStyle=gr;sx.fillRect(0,0,8,128);
+    const p=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tex(sc)}));p.position.z=.008;g.add(p);bx(g,.03,h,.04,fc,0,0,.03);bx(g,w,.03,.04,fc,0,0,.03);bx(g,w+.2,.04,.14,fc,0,-h/2-.07,.07);}
+  else if(id==='door'){const dm=item.color||'#8a5a34';bx(g,w+.1,.06,.06,'#f6efe4',0,h/2+.03,.03);bx(g,.06,h,.06,'#f6efe4',-w/2-.03,0,.03);bx(g,.06,h,.06,'#f6efe4',w/2+.03,0,.03);bx(g,w,h,.05,dm,0,0,.025);
+    for(const y of[h*.2,-h*.22])bx(g,w*.68,h*.34,.012,'#7a4a28',0,y,.055);
+    const hd=new T.Mesh(new T.SphereGeometry(.035,10,8),OW.mat('#d4a82e',.3,.8));hd.position.set(w*.38,-.05,.07);g.add(hd);}
   else if(id==='curtains'){const t=curtainTex(item.color||'#c4532d');for(const sx of[-1,1]){const m=new T.Mesh(new T.PlaneGeometry(w/2-.02,h),new T.MeshStandardMaterial({map:t,roughness:1,side:T.DoubleSide}));m.position.set(sx*(w/4),0,.05);m.castShadow=true;g.add(m);}cy(g,.015,.015,w+.1,'#8a6a4a',0,h/2+.03,.07).rotation.z=Math.PI/2;}
-  return{group:g,pic,w,h};
+  return{group:g,pic,tiles,w,h};
 };
 })();

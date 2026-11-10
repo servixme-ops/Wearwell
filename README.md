@@ -19,3 +19,9 @@ Static site, no build step: vanilla JS + three.js r128 + Supabase (auth, Postgre
 2. Room experience: richer interactions, preview generation, visitor mode (basics done)
 3. Social discovery: ranking, reactions, visits, featured rooms
 4. Community: comments, messages, notifications, privacy, reporting
+
+## Custom domain (openwalls.com/@username)
+1. Buy the domain, then in GitHub: Settings > Pages > Custom domain, enter it and turn on "Enforce HTTPS". Point your DNS at GitHub Pages as GitHub shows.
+2. Set `CFG.site` in `src/config.js` to `https://openwalls.com/`. Shared links then look like `https://openwalls.com/#/@username`.
+3. Visiting `https://openwalls.com/@username` also works: GitHub Pages serves `404.html`, which forwards to the room.
+4. In Supabase > Authentication > URL Configuration, set the Site URL and add the domain to the redirect URLs.
