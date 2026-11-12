@@ -128,4 +128,5 @@ P.walkTick=function(dt){
   /* camera follows */
   const tgt=this.wTarget,ty=this.seat&&this.seat.lie?.9:1.05;tgt.x+=(m.x-tgt.x)*Math.min(1,dt*8);tgt.z+=(m.z-tgt.z)*Math.min(1,dt*8);tgt.y+=((m.y||0)+ty-tgt.y)*Math.min(1,dt*6);
   if(this.camT){}this.setCam(this.az,this.el,this.dist);this.markDirty();};
+P._fig=makeFigure;
 })();

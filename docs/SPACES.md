@@ -21,5 +21,8 @@ Audio rooms for OpenWalls, on the official LiveKit SDK (`livekit-client` 2.5.7 i
 ## Safety
 Report space / participant, block (hides chat, unsubscribes their audio, stops them joining your spaces), host remove (cannot rejoin), speak-request limits (5 per 10 min, 60 s cool-down after a denial), chat limits (5 per 10 s), report limit (10/day). Reports are stored in `space_reports` for review via the service role.
 
-## Not in Phase 1
-Recording, seated-avatar 3D stage, push notifications for invites beyond the in-app notification.
+## Podcast stage
+A space plays out in the host's own room (falls back to a plain studio if the room is private or missing). The host and up to 3 speakers (4 seats total) sit at a desk with mics; avatars come from each person's saved avatar. The camera zooms to whoever is speaking (LiveKit active-speaker events) and returns to a wide shot when it is quiet; the menu has a switch for staying wide. Files: `src/ow/podcast.js` (3D stage) and `src/ow/spaces.js`.
+
+## Not yet built
+Recording (save/discard), push notifications for invites beyond the in-app notification.

@@ -150,17 +150,17 @@ async function room(id){
   const v=setView(true);v.classList.add('sp-view');
   let D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
-  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'});
+  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl);let R=null,camAuto=true;
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
   const chatBox=h('div',{class:'sp-chat'},msgs,h('div',{class:'cin'},inp,sendB));
   const top=h('div',{class:'sp-topbar'});
-  v.append(top,banner,h('div',{class:'sp-scroll'},titleEl,metaEl,reqBox,h('h4',{class:'sp-h'},'On stage'),stage,h('h4',{class:'sp-h',id:'sp-lh'},'Listening'),crowd),floats,chatBox,bar);
+  v.append(top,banner,tbox,h('div',{class:'sp-scroll'},reqBox,h('h4',{class:'sp-h sp-hstage'},'On stage'),stage,h('h4',{class:'sp-h',id:'sp-lh'},'Listening'),crowd),floats,chatBox,bar);
   const me=()=>D&&D.me;const role=()=>(me()&&me().role)||'listener';const isHost=()=>role()==='host';const onStage=()=>role()==='host'||role()==='speaker';
   const user=u=>({id:u.id,username:u.username,display_name:u.display_name,avatar_url:u.avatar_url});
 
   const ev=(k,a,b)=>{
     if(dead)return;
-    if(k==='speaking'){speaking=a;paintSpeaking();}
+    if(k==='speaking'){speaking=a;paintSpeaking();R&&R.stageSpeaking(a);}
     else if(k==='mics')paintStage();
     else if(k==='playback'){playbackOk=a;paintBanner();}
     else if(k==='state'){connState=a;paintBanner();if(a==='disconnected'&&!dead&&!connecting&&D&&D.space.status==='live'&&me()&&me().status==='active')setTimeout(()=>reconnect(),1500);}
@@ -214,10 +214,28 @@ async function room(id){
   function paintStage(){
     if(!D)return;const ps=D.participants.filter(p=>!p.blocked||p.role==='host');
     const on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
-    stage.replaceChildren(...on.map(p=>tile(p,true)));
+    if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},'No listeners yet. Share the link to invite people.')]));
     metaEl.replaceChildren(...[h('span',{class:'sp-live'},h('i'),'LIVE'),h('span',{class:'sp-cat'},catLabel(D.space.category)),D.space.visibility==='private'&&h('span',{class:'sp-lock'},icon('lock')),h('span',{class:'sp-count'},icon('mic'),String(on.length),' · ',icon('people'),String(ls.length))].filter(Boolean));
   }
+  const avCfg=p=>{try{if(p.avatar)return OWA.migrate(p.avatar);}catch(e){}let n=0;for(const c of p.id)n=(n*31+c.charCodeAt(0))|0;return OWA.def(n&1?'m':'f');};
+  function syncStage(on){
+    const seated=on.slice(0,4),ids=new Set(seated.map(p=>p.id));
+    R.stage.map.forEach((e,u)=>{if(!ids.has(u))R.stageRemove(u);});
+    seated.forEach(p=>{R.stageAdd(p.id,avCfg(p));R.stageInfo(p.id,{name:person(p).split(' ')[0]+(p.id===Auth.user.id?' (you)':''),role:p.role==='host'?'Host':'',mic:!(p.muted||(audio.room&&!audio.isMicOn(p.id)))});});
+  }
+  async function initStage(){
+    if(!OWRoom.supported())return;
+    try{
+      let d=null;try{d=await Store.byUsername(D.host.username);}catch(e){}
+      const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
+      const r=new OWRoom(box,{edit:false});r.load(d&&d.room?d.room:{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}},d&&d.room?d.items:[]);
+      await r.whenLoaded(3500);if(dead){r.destroy();return;}
+      r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}});R=r;v.classList.add('sp-has3d');
+      paintStage();R.stageSpeaking(speaking);
+    }catch(e){console.error(e);R=null;}
+  }
+  function killStage(){if(R){try{R.stageStop();R.destroy();}catch(e){}R=null;}}
   function paintSpeaking(){
     document.querySelectorAll('.sp-view [data-uid]').forEach(el=>{const r=el.querySelector('.sp-ring');if(r)r.classList.toggle('on',speaking.has(el.dataset.uid));});
   }
@@ -248,6 +266,7 @@ async function room(id){
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:()=>{close();cb();}},icon(ic),l);
       b.append(...[D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
         row('Share link','share',async()=>{const u=CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
+        R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
         isHost()?row('Invite people','people',()=>inviteSheet(D.space)):null,
         isHost()?row('End space for everyone','close',endSpace,true):null,
         !isHost()?row('Report this space','flag',()=>reportSheet(id,null),true):null].filter(Boolean));
@@ -278,12 +297,12 @@ async function room(id){
   }
   async function leave(){
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);
-    try{await audio.close();}catch(e){}
+    killStage();try{await audio.close();}catch(e){}
     try{await rpc('space_leave',{p_space:id});}catch(e){}
     go('#/spaces');
   }
   async function finish(msg){
-    dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);try{await audio.close();}catch(e){}
+    dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();try{await audio.close();}catch(e){}
     v.replaceChildren(h('div',{class:'sp-ended'},h('h2',null,'This space has ended'),h('p',{class:'tag'},msg||'Thanks for listening.'),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces')));
   }
 
@@ -322,7 +341,7 @@ async function room(id){
   v.append(h('div',{class:'sp-joining'},spinner('Joining…')));
   try{
     connecting=true;await audio.connect(id);connecting=false;connState='connected';
-    await tick();v.querySelector('.sp-joining')&&v.querySelector('.sp-joining').remove();
+    await tick();v.querySelector('.sp-joining')&&v.querySelector('.sp-joining').remove();await initStage();
     pollT=setInterval(()=>{if(!document.hidden)tick();},3000);hbT=setInterval(hb,15000);chatT=setInterval(()=>{if(!document.hidden)chat();},3000);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!dead){tick();chat();hb();if(audio.room)audio.startPlayback();}});
     await chat();await syncMic();paintBanner();
@@ -332,7 +351,7 @@ async function room(id){
     v.replaceChildren(h('div',{class:'sp-ended'},h('h2',null,/not configured/i.test(m)?'Live audio is not set up yet':'Could not join'),h('p',{class:'tag'},m),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces')));
     return;
   }
-  App.teardown=()=>{if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
+  App.teardown=()=>{if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
 }
 
 return{discover,room,createSheet};
