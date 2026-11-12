@@ -81,6 +81,7 @@ function build(cfg){
     geo.hipsH=(root.worldToLocal(bones.Hips.getWorldPosition(new T.Vector3())).y-floor)*rs;
     geo.thigh=bones.LeftUpLeg.position.length()*0;
     const wp=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3()));
+    {const f=wp('LeftFoot'),t=wp('LeftToeBase'),d=t.sub(f).normalize();geo.toeDir={x:0,y:d.y,z:Math.max(.3,d.z)};}
     geo.thigh=wp('LeftUpLeg').distanceTo(wp('LeftLeg'))*rs;geo.shin=(wp('LeftLeg').y-floor)*rs;
   }
   function apply(c){
@@ -128,7 +129,7 @@ function build(cfg){
   function placeHips(yMeters,zMeters){const b=bones.Hips;root.updateMatrixWorld(true);const cur=root.worldToLocal(b.getWorldPosition(new T.Vector3()));
     _t.set(cur.x,floor+yMeters/rs,cur.z+zMeters/rs);root.localToWorld(_t);b.parent.worldToLocal(_t);b.position.copy(_t);b.updateMatrixWorld(true);}
   const arm=(s,ux,uy,uz,fx,fy,fz)=>{const S=s==='L'?'Left':'Right',sg=s==='L'?1:-1;aim(S+'Arm',S+'ForeArm',sg*ux,uy,uz);aim(S+'ForeArm',S+'Hand',sg*fx,fy,fz);};
-  const leg=(s,tx,ty,tz,sx,sy,sz)=>{const S=s==='L'?'Left':'Right',sg=s==='L'?1:-1;aim(S+'UpLeg',S+'Leg',sg*tx,ty,tz);aim(S+'Leg',S+'Foot',sg*sx,sy,sz);aim(S+'Foot',S+'ToeBase',0,-.18,1);};
+  const leg=(s,tx,ty,tz,sx,sy,sz)=>{const S=s==='L'?'Left':'Right',sg=s==='L'?1:-1;aim(S+'UpLeg',S+'Leg',sg*tx,ty,tz);aim(S+'Leg',S+'Foot',sg*sx,sy,sz);const d=geo.toeDir||{x:0,y:-.18,z:1};aim(S+'Foot',S+'ToeBase',d.x,d.y,d.z);};
   function pose(dt,spd){
     for(const n in bones){const b=bones[n];if(home[n])b.quaternion.copy(home[n].q);}bones.Hips.position.copy(home.Hips.p);
     root.updateMatrixWorld(true);const w=clamp(spd,0,1),t=st.t,P=st.pose,br=Math.sin(t*1.7);
