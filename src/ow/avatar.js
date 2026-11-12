@@ -62,7 +62,7 @@ function build(cfg){
   function tintMat(m,hex){if(!m)return;if(!hex){m.color.set(0xffffff);return;}m.color.copy(tintFor(hex,m.userData.avg||new T.Color(.4,.4,.4)));}
   function applyBody(c){
     const P=Object.assign({},c),mp=M.prop;if(mp)for(const k in mp)P[k]=clamp((P[k]||0)+mp[k],-1.2,1.2);
-    for(const n in bones){const b=bones[n],r=rest[n];b.position.copy(r.p);b.scale.copy(r.s);}
+    for(const n in bones){const b=bones[n],r=rest[n];b.position.copy(r.p);b.scale.copy(r.s);b.quaternion.copy(r.q);}
     const mul=(n,f)=>{if(bones[n])bones[n].position.multiplyScalar(f);};
     const af=1+.12*P.arms,lf=1+.1*P.legs,nf=1+.3*P.neck;
     for(const s of['Left','Right']){mul(s+'ForeArm',af);mul(s+'Hand',af);mul(s+'Leg',lf);mul(s+'Foot',lf);
@@ -217,7 +217,7 @@ function build(cfg){
   /* eyes drift and dart about a little, so a face never looks frozen */
   function gaze(dt){
     const fx=(OWA.EYEFIX&&OWA.EYEFIX[av.cfg.g])||0,z=st.gz||(st.gz={x:0,y:0,tx:0,ty:0,t:1});
-    z.t-=dt;if(z.t<=0){z.t=.7+Math.random()*2.2;const far=Math.random()<.3;z.tx=(Math.random()-.5)*(far?.4:.1);z.ty=(Math.random()-.5)*(far?.2:.06);}
+    z.t-=dt;if(z.t<=0){z.t=.7+Math.random()*2.2;const far=Math.random()<.3;z.tx=(Math.random()-.5)*(far?.16:.06);z.ty=(Math.random()-.5)*(far?.07:.03);}
     const k=Math.min(1,dt*12);z.x+=(z.tx-z.x)*k;z.y+=(z.ty-z.y)*k;
     for(const n of['LeftEye','RightEye']){rot(n,0,1,0,z.x);rot(n,1,0,0,fx+z.y);}
   }
