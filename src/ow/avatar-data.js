@@ -62,7 +62,7 @@ OWA.LOOKS=[
 ];
 OWA.def=function(g){
   g=g==='m'?'m':'f';
-  return {v:2,g,skin:g==='f'?5:6,hc:0,eyec:1,hair:'short',glasses:true,glc:null,topc:null,botc:null,shoec:null,bare:false,
+  return {v:2,g,skin:g==='f'?5:6,hc:0,eyec:1,hair:'short',glasses:true,glc:null,topc:null,botc:null,shoec:null,hatc:null,bare:false,
     h:0,sh:0,chest:0,waist:0,hips:0,arms:0,legs:0,neck:0,hd:0,hands:0,feet:0,ex:'neutral',mx:{},extras:{}};
 };
 OWA.pick=(arr,id)=>arr.find(x=>x.id===id)||arr[0];

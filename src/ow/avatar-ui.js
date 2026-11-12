@@ -110,6 +110,7 @@ async function avatarView(){
     let pushed=false;inp.oninput=()=>{if(!pushed){push();pushed=true;}val.textContent=String(Math.round(inp.value*100));set(+inp.value);pv.set(cfg);};inp.onchange=()=>{pushed=false;undoBtn.disabled=!hist.length;};
     return h('div',{class:'av-slider'},h('div',{class:'av-lab'},label,val),inp,l1?h('div',{class:'av-ends'},h('span',null,l1),h('span',null,l2)):null);};
   const chips=(list,cur,fn)=>h('div',{class:'av-chips'},list.map(([k,l])=>h('button',{class:'chip'+(cur===k?' on':''),onclick:()=>fn(k)},l)));
+  const setX=(slot,k)=>{const ex=Object.assign({},cfg.extras);if(k)ex[slot]=k;else delete ex[slot];apply({extras:ex});};
   const note=t=>h('p',{class:'f-hint',style:{margin:'8px 2px'}},t);
   function paint(){
     tabs.replaceChildren(...TABS.map(([k,l,ic])=>h('button',{class:'av-tab'+(tab===k?' on':''),onclick:()=>{tab=k;content.scrollTop=0;paint();}},icon(ic),h('span',null,l))));
@@ -123,9 +124,9 @@ async function avatarView(){
       out.push(note('Facial structure (nose, jaw, lips shape) is fixed by the supplied model. These sliders move its real face morph targets.'));}
     else if(tab==='hair'){out.push(swatches(OWA.HAIRC,cfg.hc,(c,i)=>apply({hc:i}),'Hair colour'));
       out.push(chips(OWA.HAIR,cfg.hair,k=>apply({hair:k})));
-      const cat=(OWA.catalog&&OWA.catalog.items||[]).filter(i=>i.slot==='hair');
-      if(cat.length)out.push(h('div',{class:'av-lab'},'More styles'),chips([['','Default']].concat(cat.map(i=>[i.id,i.name])),(cfg.extras||{}).hair||'',k=>{const ex=Object.assign({},cfg.extras);if(k)ex.hair=k;else delete ex.hair;apply({extras:ex});}));
-      else out.push(note('Only one hairstyle ships with the model. More styles plug in as extra GLB files (see docs/AVATARS.md).'));}
+      out.push(h('div',{class:'av-lab',style:{marginTop:'10px'}},'Styles'),chips([['','Default bob']].concat(OWA.WEAR.hair),(cfg.extras||{}).hair||'',k=>setX('hair',k)));
+      const cat=(OWA.catalog&&OWA.catalog.items||[]).filter(i=>i.slot==='hair');if(cat.length)out.push(chips(cat.map(i=>[i.id,i.name]),(cfg.extras||{}).hair||'',k=>setX('hair',k)));
+      out.push(note('Extra styles are simple stylised pieces built on your avatar. Professionally modelled styles can be dropped in as GLB files (docs/AVATARS.md).'));}
     else if(tab==='skin'){out.push(h('div',{class:'av-swgrid'},OWA.SKIN.map((c,i)=>h('button',{class:'sw big'+(cfg.skin===i?' on':''),style:{background:c},'aria-label':'Skin tone '+(i+1),onclick:()=>apply({skin:i})}))));}
     else if(tab==='body'){
       out.push(h('div',{class:'av-gender'},[['f','Woman'],['m','Man']].map(([k,l])=>h('button',{class:cfg.g===k?'on':'',onclick:()=>{if(cfg.g===k)return;push();const keepc={skin:cfg.skin,hc:cfg.hc,eyec:cfg.eyec};cfg=Object.assign(OWA.def(k),keepc);pv.set(cfg);paint();}},l))));
@@ -133,11 +134,15 @@ async function avatarView(){
       for(const[k,l,a,b]of OWA.BODYSL)out.push(slider(l,()=>cfg[k]||0,x=>{cfg[k]=x;},-1,1,.05,a,b));
       out.push(note('Muscle definition needs body morph targets, which the supplied model does not have.'));}
     else{
+      const X=cfg.extras||{};
       out.push(h('div',{class:'av-lab'},'Looks'),chips(OWA.LOOKS.map((l,i)=>[i,l.n]),-1,i=>apply(OWA.LOOKS[i].p)));
-      out.push(swatches(OWA.COLORS,cfg.topc,c=>apply({topc:c}),'Top'),swatches(OWA.COLORS,cfg.botc,c=>apply({botc:c}),'Bottom'),swatches(OWA.COLORS,cfg.shoec,c=>apply({shoec:c}),'Shoes'));
+      out.push(h('div',{class:'av-lab'},'Top'),chips([['','Original']].concat(OWA.WEAR.top),X.top||'',k=>setX('top',k)),swatches(OWA.COLORS,cfg.topc,c=>apply({topc:c})));
+      out.push(h('div',{class:'av-lab'},'Bottom'),chips([['','Original']].concat(OWA.WEAR.bottom),X.bottom||'',k=>setX('bottom',k)),swatches(OWA.COLORS,cfg.botc,c=>apply({botc:c})));
+      out.push(h('div',{class:'av-lab'},'Hat'),chips([['','None']].concat(OWA.WEAR.hat),X.hat||'',k=>setX('hat',k)));if(X.hat)out.push(swatches(OWA.COLORS,cfg.hatc,c=>apply({hatc:c})));
+      out.push(swatches(OWA.COLORS,cfg.shoec,c=>apply({shoec:c}),'Shoes'));
       out.push(chips([['shoes','Shoes'],['bare','Barefoot']],cfg.bare?'bare':'shoes',k=>apply({bare:k==='bare'})));
       out.push(h('div',{class:'av-lab'},'Club colours'),chips(Object.entries(OWA.CLUBS).map(([k,c])=>[k,c.n]),'',k=>{const c=OWA.CLUBS[k];apply({topc:c.b,botc:c.sh,shoec:c.k});}));
-      out.push(note('Colours only: the supplied outfit is tinted. New garments and accessories plug in as extra GLB files.'));}
+      out.push(note('Extra garments are simple stylised pieces fitted to your avatar. Club colours only tint colours; no badges or sponsors.'));}
     content.replaceChildren(...out);content.scrollTop=keep;undoBtn.disabled=!hist.length;
   }
   paint();OWA.loadCatalog&&OWA.loadCatalog().then(()=>{if(tab==='hair')paint();});

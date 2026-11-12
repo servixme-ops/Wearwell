@@ -14,11 +14,13 @@ Avatars are the supplied rigged GLB (`assets/avatars/female.glb`), driven in pla
 | Face expressions and fine-tune | Works (ARKit morph targets, 8 presets + 11 sliders, blinking) |
 | Eye colour | Works (iris recoloured in the eye texture) |
 | Hair colour | Works |
-| Hairstyle | Only the built-in bob, or none. More need extra GLBs |
+| Hairstyle | Built-in bob, none, plus 4 simple built-in styles (buzz, afro, bun, long) from `src/ow/avatar-wear.js`. Stylised, not professional models |
 | Body proportions | Works via bones: height, shoulders, chest, waist, hips, arm/leg/neck length, head/hand/foot size |
 | Clothing and shoe colours, glasses, barefoot | Works (tint / hide) |
 | Facial shape (nose, jaw, lips), muscle definition | NOT supported (no such morph targets) |
-| New garments, hairstyles, accessories | Not shipped. `av.attach(slot,url,opts)` accepts GLBs authored on the same skeleton; list them in `assets/avatars/catalog.json` |
+| Garments and hats | Built-in simple pieces: tee, tank, sweater, shorts, skirt, cap, beanie. Made from the model's own top/bottom meshes (same skin weights) or small procedural meshes on the skeleton. Real garments: `av.attach(slot,url,opts)` accepts GLBs authored on the same skeleton; list them in `assets/avatars/catalog.json` |
+
+Note: the supplied body has no legs of its own (the leggings are the legs) and no upper arms, so bare legs/arms are skin-coloured shells of the same meshes (flat colour, no skin texture).
 | Male | Same rig with male proportions (`OWA.MODELS.m`). Drop in `male.glb` and set `proxy:false` for a true male |
 
 `Nova-11.glb` is a static, unrigged scan: it cannot walk or be customised, so it is not used.

@@ -5,7 +5,7 @@
  * Interface used by the room (walk.js): {group,height,scale,lift,seatTop,update(dt,speed),setPose(name),pose,dispose()}. */
 (function(){
 const T=THREE,PI=Math.PI,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,t)=>a+(b-a)*t;
-const bufCache={};
+const bufCache={};OWA._lin=hex=>{const c=new THREE.Color(hex);c.convertSRGBToLinear();return c;};
 function fetchBuf(url){return bufCache[url]||(bufCache[url]=fetch(url).then(r=>{if(!r.ok)throw new Error('avatar model '+r.status);return r.arrayBuffer();}).catch(e=>{delete bufCache[url];throw e;}));}
 const lin=hex=>{const c=new T.Color(hex);c.convertSRGBToLinear();return c;};
 /* average linear colour of a texture image (used so a tint hits its target on average and keeps the painted detail) */
@@ -27,7 +27,7 @@ function eyeTexture(img,hex){
 function build(cfg){
   cfg=OWA.migrate(cfg);const M=OWA.MODELS[cfg.g]||OWA.MODELS.f;
   const group=new T.Group();group.name='avatar';
-  const st={pose:'stand',t:Math.random()*10,walk:0,blink:2+Math.random()*3,bl:0,w:{},ready:false,disposed:false};
+  const st={pose:'stand',t:Math.random()*10,walk:0,blink:2+Math.random()*3,bl:0,w:{},ready:false,disposed:false,wear:{}};
   const av={group,cfg,height:M.height,scale:M.height/1.68,lift:0,seatTop:null,ready:null,A:null,
     update,setPose(p){st.pose=p;},get pose(){return st.pose;},apply,dispose,attach,detach,morphNames:[],slots:{}};
   let A=null,root=null,bones={},rest={},home={},skin={},eyeImg=null,eyeKey='',rs=1,floor=0,ankle=0,geo={},baseHidden={};
@@ -43,10 +43,15 @@ function build(cfg){
     const fh=ext(G.skinned.Wolf3D_Outfit_Footwear||G.skinned.Wolf3D_Body),hh=ext(G.skinned.Wolf3D_Hair||G.skinned.Wolf3D_Head),hd=ext(G.skinned.Wolf3D_Head);
     geo.H0=Math.max(hh[1],hd[1])-fh[0];geo.foot0=fh[0];
     const wy=n=>bones[n].getWorldPosition(new T.Vector3()).y;
+    /* the GLB's meshes are stored in a normalised per-mesh space: D (per axis) maps raw -> model space. Wear pieces are modelled in model space and converted. */
+    for(const k in G.skinned){const m=G.skinned[k],P=m.geometry.attributes.position,t=new T.Vector3(),a=[1e9,1e9,1e9],b=[-1e9,-1e9,-1e9],ra=[1e9,1e9,1e9],rb=[-1e9,-1e9,-1e9];
+      for(let i=0;i<P.count;i++){m.boneTransform(i,t);t.applyMatrix4(m.matrixWorld);const v=[t.x,t.y,t.z];for(let q=0;q<3;q++){const r=P.array[i*3+q];a[q]=Math.min(a[q],v[q]);b[q]=Math.max(b[q],v[q]);ra[q]=Math.min(ra[q],r);rb[q]=Math.max(rb[q],r);}}
+      const sc=[0,1,2].map(q=>(rb[q]-ra[q])>1e-9?(b[q]-a[q])/(rb[q]-ra[q]):1);m._D={s:sc,t:[0,1,2].map(q=>a[q]-sc[q]*ra[q])};}
+    geo.bw={};for(const n in bones){const v=bones[n].getWorldPosition(new T.Vector3());geo.bw[n]={x:v.x,y:v.y,z:v.z};}
     geo.ankle0=Math.min(wy('LeftFoot'),wy('RightFoot'))-geo.foot0;
     Object.values(G.materials).forEach(m=>{if(m.map&&m.map.image)m.userData.avg=avgLinear(m.map.image);});
     for(const m of G.materials)skin[m.name]=m;eyeImg=skin.Wolf3D_Eye&&skin.Wolf3D_Eye.map?skin.Wolf3D_Eye.map.image:null;
-    av.morphNames=G.morphs.slice();
+    av.morphNames=G.morphs.slice();av._geo=geo;
     Object.values(G.meshes).forEach(m=>{m.castShadow=false;});
     apply(cfg);st.ready=true;av.onReady&&av.onReady(av);
   }
@@ -88,7 +93,7 @@ function build(cfg){
     c=av.cfg=OWA.migrate(c);if(!A)return;
     setSkin(OWA.SKIN[clamp(c.skin|0,0,OWA.SKIN.length-1)]);
     const hm=skin.Wolf3D_Hair;if(hm)hm.color.copy(lin(OWA.HAIRC[clamp(c.hc|0,0,OWA.HAIRC.length-1)]));
-    if(parts().Wolf3D_Hair)parts().Wolf3D_Hair.visible=c.hair!=='none'&&!st.hairSlot;
+    
     if(parts().Wolf3D_Glasses){parts().Wolf3D_Glasses.visible=!!c.glasses;if(c.glc&&skin.Wolf3D_Glasses)skin.Wolf3D_Glasses.color.copy(lin(c.glc));}
     tintMat(skin.Wolf3D_Outfit_Top,c.topc);tintMat(skin.Wolf3D_Outfit_Bottom,c.botc);tintMat(skin.Wolf3D_Outfit_Footwear,c.shoec);
     if(parts().Wolf3D_Outfit_Footwear)parts().Wolf3D_Outfit_Footwear.visible=!c.bare;
@@ -96,10 +101,25 @@ function build(cfg){
     const ek=OWA.EYEC[clamp(c.eyec|0,0,OWA.EYEC.length-1)];
     if(eyeImg&&skin.Wolf3D_Eye&&ek!==eyeKey){eyeKey=ek;const old=skin.Wolf3D_Eye.map,t=eyeTexture(eyeImg,ek);skin.Wolf3D_Eye.map=t;skin.Wolf3D_Eye.needsUpdate=true;if(old&&old!==t&&old._own)old.dispose();t._own=true;}
     applyBody(c);
-    for(const slot in c.extras||{})if(!av.slots[slot]||av.slots[slot].id!==c.extras[slot])loadExtra(slot,c.extras[slot]);
+    applyWear(c);
+    for(const slot in c.extras||{})if(!isWear(slot,c.extras[slot])&&(!av.slots[slot]||av.slots[slot].id!==c.extras[slot]))loadExtra(slot,c.extras[slot]);
     for(const slot in av.slots)if(!(c.extras&&c.extras[slot]))detach(slot);
     av.dirty&&av.dirty();
   }
+  /* built-in extra hairstyles / garments / hats (avatar-wear.js), made from the model's own meshes and skeleton */
+  const isWear=(slot,id)=>!!(OWA.WEAR&&OWA.WEAR[slot]&&Array.isArray(OWA.WEAR[slot])&&OWA.WEAR[slot].some(x=>x[0]===id));
+  function wearCtx(){if(geo.wctx)return geo.wctx;const bt=parts().Wolf3D_Outfit_Bottom,P=OWA._wpos(bt),hy=geo.bw.Hips.y,tol=geo.H0*.02;let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;
+    for(let i=0;i<P.length/3;i++)if(Math.abs(P[i*3+1]-hy)<tol){x0=Math.min(x0,P[i*3]);x1=Math.max(x1,P[i*3]);z0=Math.min(z0,P[i*3+2]);z1=Math.max(z1,P[i*3+2]);}
+    return geo.wctx={parts:parts(),bones,H0:geo.H0,bw:geo.bw,skirtRx:(x1-x0)/2,skirtRz:(z1-z0)/2,skirtCz:(z0+z1)/2};}
+  function applyWear(c){
+    const W=OWA.WEAR;if(!W||!W.make)return;const ex=c.extras||{},def=W.defaults,hid=new Set();
+    for(const slot of['hair','top','bottom','hat']){const id=isWear(slot,ex[slot])?ex[slot]:null,cur=st.wear[slot];
+      if(cur&&cur.id!==id){cur.meshes.forEach(m=>{m.parent&&m.parent.remove(m);m.geometry.dispose();m.material.dispose();});delete st.wear[slot];}
+      if(id&&!st.wear[slot]){try{const r=W.make(slot,id,wearCtx());if(r){const par=parts().Wolf3D_Head.parent||A.scene;r.meshes.forEach(m=>par.add(m));st.wear[slot]={id,meshes:r.meshes,hide:r.hide,color:r.color,skin:r.skin};}}catch(e){console.warn('wear',slot,id,e);}}
+      const w=st.wear[slot];if(w){w.hide.forEach(n=>hid.add(n));
+        const hex=slot==='hair'?OWA.HAIRC[clamp(c.hc|0,0,OWA.HAIRC.length-1)]:slot==='top'?(c.topc||def.top):slot==='bottom'?(c.botc||def.bottom):(c.hatc||def.hat);w.color.color.copy(lin(hex));if(w.skin)w.skin.color.copy(lin(OWA.SKIN[clamp(c.skin|0,0,OWA.SKIN.length-1)]));}}
+    const P=parts();if(P.Wolf3D_Hair)P.Wolf3D_Hair.visible=c.hair!=='none'&&!hid.has('Wolf3D_Hair')&&!st.hairSlot;
+    if(P.Wolf3D_Outfit_Top)P.Wolf3D_Outfit_Top.visible=!hid.has('Wolf3D_Outfit_Top');if(P.Wolf3D_Outfit_Bottom)P.Wolf3D_Outfit_Bottom.visible=!hid.has('Wolf3D_Outfit_Bottom');}
   function loadExtra(slot,id){const cat=OWA.catalog&&OWA.catalog.items.find(i=>i.id===id);if(!cat)return;attach(slot,OWA.BASE+cat.url,cat).catch(e=>console.warn('avatar extra',id,e.message));}
 
   /* extra skinned garments / hair: any GLB authored on the same skeleton. The base mesh listed in opts.hide is hidden. */
@@ -170,7 +190,7 @@ function build(cfg){
         const v=Math.abs(want-cur)<.002?want:cur+(want-cur)*k;if(v!==cur)m.morphTargetInfluences[i]=v;}}
   }
   function update(dt,spd){if(!st.ready)return;st.t+=dt;pose(dt,spd||0);face(dt);}
-  function dispose(){st.disposed=true;if(!A)return;for(const s in av.slots)detach(s);
+  function dispose(){st.disposed=true;if(!A)return;for(const k in st.wear){st.wear[k].meshes.forEach(m=>{m.geometry.dispose();m.material.dispose();});}st.wear={};for(const s in av.slots)detach(s);
     A.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();});A.materials.forEach(m=>{['map','roughnessMap','metalnessMap','normalMap','emissiveMap'].forEach(k=>{if(m[k])m[k].dispose();});m.dispose();});}
   return av;
 }
