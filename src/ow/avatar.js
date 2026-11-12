@@ -27,9 +27,9 @@ function eyeTexture(img,hex){
 function build(cfg){
   cfg=OWA.migrate(cfg);const M=OWA.MODELS[cfg.g]||OWA.MODELS.f;
   const group=new T.Group();group.name='avatar';
-  const st={pose:'stand',t:Math.random()*10,walk:0,blink:2+Math.random()*3,bl:0,w:{},ready:false,disposed:false,wear:{}};
+  const st={pose:'stand',t:Math.random()*10,walk:0,blink:2+Math.random()*3,bl:0,talk:0,talkS:0,syl:0,gR:0,gL:0,w:{},ready:false,disposed:false,wear:{}};
   const av={group,cfg,height:M.height,scale:M.height/1.68,lift:0,seatTop:null,ready:null,A:null,
-    update,setPose(p){st.pose=p;},get pose(){return st.pose;},apply,dispose,attach,detach,morphNames:[],slots:{}};
+    update,setPose(p){st.pose=p;},get pose(){return st.pose;},apply,dispose,attach,detach,setTalk(v){st.talk=clamp(+v||0,0,1);},get talking(){return st.talkS>.05;},morphNames:[],slots:{}};
   let A=null,root=null,bones={},rest={},home={},skin={},eyeImg=null,eyeKey='',rs=1,floor=0,ankle=0,geo={},baseHidden={};
   const parts=()=>A.skinned;
 
@@ -150,6 +150,21 @@ function build(cfg){
     _t.set(cur.x,floor+yMeters/rs,cur.z+zMeters/rs);root.localToWorld(_t);b.parent.worldToLocal(_t);b.position.copy(_t);b.updateMatrixWorld(true);}
   const arm=(s,ux,uy,uz,fx,fy,fz)=>{const S=s==='L'?'Left':'Right',sg=s==='L'?1:-1;aim(S+'Arm',S+'ForeArm',sg*ux,uy,uz);aim(S+'ForeArm',S+'Hand',sg*fx,fy,fz);};
   const leg=(s,tx,ty,tz,sx,sy,sz)=>{const S=s==='L'?'Left':'Right',sg=s==='L'?1:-1;aim(S+'UpLeg',S+'Leg',sg*tx,ty,tz);aim(S+'Leg',S+'Foot',sg*sx,sy,sz);const d=geo.toeDir||{x:0,y:-.18,z:1};aim(S+'Foot',S+'ToeBase',d.x,d.y,d.z);};
+  /* seated: arms rest on the desk, lift into natural hand gestures while talking, head nods and sways */
+  const mixv=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];
+  function sitUpper(dt){
+    const t=st.t,ts=st.talkS,k=Math.min(1,dt*4);
+    const tR=ts*Math.pow(Math.max(0,Math.sin(t*.85+1)),.5),tL=ts*Math.pow(Math.max(0,Math.sin(t*.63+3.6)),.5);
+    st.gR+=(tR-st.gR)*k;st.gL+=(tL-st.gL)*k;
+    const sd=(g,ph)=>{const be=Math.sin(t*4.4+ph),b2=Math.sin(t*2.9+ph*2);
+      return{u:mixv([.15,-.9,.35],[.36+.08*b2,-.55,.5],g),f:mixv([.1,-.35,1],[.05+.22*b2,.4+.28*be,1],g)};};
+    const R=sd(st.gR,0),L=sd(st.gL,2.1);
+    arm('R',R.u[0],R.u[1],R.u[2],R.f[0],R.f[1],R.f[2]);arm('L',L.u[0],L.u[1],L.u[2],L.f[0],L.f[1],L.f[2]);
+    if(st.gR>.05)rot('RightHand',0,0,1,Math.sin(t*5.2)*.3*st.gR);if(st.gL>.05)rot('LeftHand',0,0,1,-Math.sin(t*4.7)*.3*st.gL);
+    rot('Head',1,0,0,.04+Math.sin(t*.8)*.02+ts*(.05*Math.sin(t*3.3)+.03*Math.sin(t*5.7)));
+    rot('Head',0,1,0,Math.sin(t*.5)*.07+ts*Math.sin(t*1.7)*.12);rot('Head',0,0,1,Math.sin(t*.6+1)*.025);
+    rot('Spine1',0,1,0,Math.sin(t*.4)*.03+ts*Math.sin(t*1.1)*.05);rot('Spine2',0,0,1,Math.sin(t*.33)*.02);
+  }
   function pose(dt,spd){
     for(const n in bones){const b=bones[n];if(home[n])b.quaternion.copy(home[n].q);}bones.Hips.position.copy(home.Hips.p);
     root.updateMatrixWorld(true);const w=clamp(spd,0,1),t=st.t,P=st.pose,br=Math.sin(t*1.7);
@@ -157,7 +172,7 @@ function build(cfg){
       const top=av.seatTop==null?.46:av.seatTop,hp=top+.11,S=Math.max(.25,geo.shin),L=Math.max(.25,geo.thigh),kt=top+.07,al=Math.asin(clamp((hp-Math.max(S,kt))/L,-.9,.9));
       placeHips(hp,.14);leg('L',.09,-Math.sin(al),Math.cos(al),.02,-1,.12);leg('R',.09,-Math.sin(al),Math.cos(al),.02,-1,.12);
       rot('Spine1',1,0,0,.06);rot('Spine2',1,0,0,-.02+br*.01);
-      if(P==='sit'){arm('L',.15,-.9,.35,.1,-.35,1);arm('R',.15,-.9,.35,.1,-.35,1);rot('Head',1,0,0,.04);}
+      if(P==='sit'){sitUpper(dt);}
       else{arm('L',.2,-.7,.55,.06,-.2,1);arm('R',.2,-.7,.55,.06,-.2,1);rot('Head',1,0,0,.16);rot('LeftHand',1,0,0,Math.sin(t*14)*.1);rot('RightHand',1,0,0,Math.sin(t*13+1)*.1);}
     }else if(P==='lie'){
       arm('L',.3,-1,.0,.2,-1,.05);arm('R',.3,-1,.0,.2,-1,.05);leg('L',.06,-1,0,.04,-1,0);leg('R',.06,-1,0,.04,-1,0);
@@ -181,15 +196,32 @@ function build(cfg){
   function face(dt){
     const c=av.cfg,tgt={},ex=(OWA.EXPR.find(e=>e[0]===c.ex)||OWA.EXPR[0])[2];
     for(const k in ex)tgt[k]=ex[k];for(const k in c.mx||{})tgt[k]=Math.max(tgt[k]||0,c.mx[k]);
-    st.blink-=dt;if(st.blink<0){st.bl=.16;st.blink=2.4+Math.random()*3.2;}
-    let b=0;if(st.bl>0){st.bl-=dt;b=Math.sin(clamp(st.bl/.16,0,1)*PI);}
+    /* blinking, sometimes twice in a row */
+    st.blink-=dt;if(st.blink<0){st.bl=.17;st.blink=Math.random()<.2?.22:2.2+Math.random()*3.4;}
+    let b=0;if(st.bl>0){st.bl-=dt;b=Math.sin(clamp(st.bl/.17,0,1)*PI);}
     tgt.eyeBlinkLeft=Math.max(tgt.eyeBlinkLeft||0,b);tgt.eyeBlinkRight=Math.max(tgt.eyeBlinkRight||0,b*(c.ex==='wink'?0:1));
-    const k=Math.min(1,dt*14);
-    for(const m of [parts().Wolf3D_Head,parts().Wolf3D_EyeLeft,parts().Wolf3D_EyeRight,parts().Wolf3D_Teeth]){if(!m||!m.morphTargetDictionary)continue;
-      for(const name in m.morphTargetDictionary){const i=m.morphTargetDictionary[name],key=name,want=tgt[key]||0,cur=m.morphTargetInfluences[i];
+    /* talking: syllable-like mouth shapes, a little brow and cheek life */
+    const ts=st.talkS;
+    if(ts>.03){
+      st.syl+=dt*(8+3*Math.sin(st.t*.9));const ph=st.syl,amp=ts*(.3+.7*Math.abs(Math.sin(ph))*(.65+.35*Math.abs(Math.sin(ph*.41+1))));
+      const V=['viseme_aa','viseme_O','viseme_E','viseme_U','viseme_I','viseme_aa','viseme_FF','viseme_O'],vi=V[Math.floor(ph/PI)%V.length];
+      tgt.jawOpen=Math.max(tgt.jawOpen||0,amp*.5);tgt.mouthOpen=Math.max(tgt.mouthOpen||0,amp*.35);tgt[vi]=Math.max(tgt[vi]||0,amp*.75);
+      if(vi==='viseme_O'||vi==='viseme_U')tgt.mouthFunnel=Math.max(tgt.mouthFunnel||0,amp*.4);
+      tgt.browInnerUp=Math.max(tgt.browInnerUp||0,ts*(.12+.1*Math.sin(st.t*1.3)));tgt.mouthSmileLeft=Math.max(tgt.mouthSmileLeft||0,ts*.12);tgt.mouthSmileRight=Math.max(tgt.mouthSmileRight||0,ts*.12);
+    }
+    const k=Math.min(1,dt*16);
+    for(const key in parts()){const m=parts()[key];if(!m||!m.morphTargetDictionary)continue;
+      for(const name in m.morphTargetDictionary){const i=m.morphTargetDictionary[name],want=tgt[name]||0,cur=m.morphTargetInfluences[i];
         const v=Math.abs(want-cur)<.002?want:cur+(want-cur)*k;if(v!==cur)m.morphTargetInfluences[i]=v;}}
   }
-  function update(dt,spd){if(!st.ready)return;st.t+=dt;pose(dt,spd||0);face(dt);}
+  /* eyes drift and dart about a little, so a face never looks frozen */
+  function gaze(dt){
+    const fx=(OWA.EYEFIX&&OWA.EYEFIX[av.cfg.g])||0,z=st.gz||(st.gz={x:0,y:0,tx:0,ty:0,t:1});
+    z.t-=dt;if(z.t<=0){z.t=.7+Math.random()*2.2;const far=Math.random()<.3;z.tx=(Math.random()-.5)*(far?.4:.1);z.ty=(Math.random()-.5)*(far?.2:.06);}
+    const k=Math.min(1,dt*12);z.x+=(z.tx-z.x)*k;z.y+=(z.ty-z.y)*k;
+    for(const n of['LeftEye','RightEye']){rot(n,0,1,0,z.x);rot(n,1,0,0,fx+z.y);}
+  }
+  function update(dt,spd){if(!st.ready)return;st.t+=dt;st.talkS+=(st.talk-st.talkS)*Math.min(1,dt*7);pose(dt,spd||0);gaze(dt);face(dt);}
   function dispose(){st.disposed=true;if(!A)return;for(const k in st.wear){st.wear[k].meshes.forEach(m=>{m.geometry.dispose();m.material.dispose();});}st.wear={};for(const s in av.slots)detach(s);
     A.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();});A.materials.forEach(m=>{['map','roughnessMap','metalnessMap','normalMap','emissiveMap'].forEach(k=>{if(m[k])m[k].dispose();});m.dispose();});}
   return av;
