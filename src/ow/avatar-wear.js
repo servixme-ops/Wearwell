@@ -41,9 +41,14 @@ function merge(gs){let n=0,ni=0;gs.forEach(g=>{n+=g.attributes.position.count;ni
 /* a procedural piece: geometry from three.js, rigidly weighted to one bone */
 function rigid(g,bone){g=g.index?g:g.toNonIndexed();if(!g.index){const n=g.attributes.position.count,ix=new Uint32Array(n);for(let i=0;i<n;i++)ix[i]=i;g.setIndex(new T.BufferAttribute(ix,1));}
   if(!g.attributes.normal)g.computeVertexNormals();setSkin(g,g.attributes.position.count,()=>[bone,1]);return g;}
+const ss=(a,b,x)=>{x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x);};
+/* scalp cap: a smooth hairline (high at the front, above the ears at the sides, down to the nape at the back) */
 function scalp(parts,F,infl,hb){
-  const src=parts.Wolf3D_Head,P=F.P;
-  return shell(src,(bn,i)=>{const y=P[i*3+1],z=P[i*3+2];return y>(z>F.cz+F.r*.15?F.yE+F.hh*.62:F.yE+F.hh*.12);},infl,null);}
+  const src=parts.Wolf3D_Head,P=F.P,dz=Math.max(1e-4,F.front-F.cz);
+  return shell(src,(bn,i)=>{const x=P[i*3],y=P[i*3+1],z=P[i*3+2];
+    const sx=Math.abs(x-F.cx)/F.r,fz=Math.max(-1,Math.min(1,(z-F.cz)/dz));
+    const f=ss(-.2,.5,fz),base=.08+.38*f,w=ss(.55,.9,sx)*ss(-.8,-.4,fz),t=base*(1-w)+Math.max(base,.44)*w;
+    return y>F.yE+F.hh*t;},infl,null);}
 function lumpy(g,amp,seed){const P=g.attributes.position;for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),k=1+amp*(Math.sin(x*37+seed)*Math.sin(y*29)*Math.sin(z*41+seed*2));P.setXYZ(i,x*k,y*k,z*k);}g.computeVertexNormals();}
 
 const MAKE={

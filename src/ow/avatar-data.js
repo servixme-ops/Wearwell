@@ -63,7 +63,7 @@ OWA.LOOKS=[
 OWA.def=function(g){
   g=g==='m'?'m':'f';
   return {v:2,g,skin:g==='f'?5:6,hc:0,eyec:1,hair:'short',glasses:true,glc:null,topc:null,botc:null,shoec:null,hatc:null,bare:false,
-    h:0,sh:0,chest:0,waist:0,hips:0,arms:0,legs:0,neck:0,hd:0,hands:0,feet:0,ex:'neutral',mx:{},extras:{}};
+    h:0,sh:0,chest:0,waist:0,hips:0,arms:0,legs:0,neck:0,hd:0,hands:0,feet:0,ex:'neutral',mx:{},extras:g==='m'?{hair:'buzz'}:{}};
 };
 OWA.pick=(arr,id)=>arr.find(x=>x.id===id)||arr[0];
 /* old saved procedural avatars: keep their gender, skin and hair colour; everything else resets */
@@ -77,7 +77,7 @@ OWA.migrate=function(c){const d=OWA.def(c&&c.g==='m'?'m':'f');if(!c)return d;
 OWA.random=function(g){
   const r=a=>a[Math.floor(Math.random()*a.length)];g=g||r(['f','m']);const c=OWA.def(g);
   c.skin=3+Math.floor(Math.random()*13);c.hc=Math.random()<.7?Math.floor(Math.random()*3):Math.floor(Math.random()*OWA.HAIRC.length);c.eyec=Math.floor(Math.random()*OWA.EYEC.length);
-  Object.assign(c,r(OWA.LOOKS).p);c.ex=r(['neutral','smile','grin']);c.glasses=Math.random()<.5;
+  Object.assign(c,r(OWA.LOOKS).p);c.ex='neutral';c.glasses=Math.random()<.5;
   for(const k of ['h','sh','chest','waist','hips','arms','legs'])c[k]=+(Math.random()*.8-.4).toFixed(2);
   return c;
 };
