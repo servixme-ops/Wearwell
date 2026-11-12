@@ -223,3 +223,15 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .sp-floats{position:absolute;left:0;right:0;bottom:84px;height:0;pointer-events:none}.sp-float{position:absolute;bottom:0;font-size:30px;animation:spf 2.3s ease-out forwards}@keyframes spf{to{transform:translateY(-240px);opacity:0}}
 .sp-ended,.sp-joining{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:30px}.sp-ended h2{font:800 24px var(--disp);margin:0}.sp-joining{background:rgba(21,35,44,.9);color:#fff}
 .sp-view .sp-chat .cin input{background:rgba(255,255,255,.12)!important;color:#fff;border:0!important;outline:0}.sp-view .sp-chat .cin input::placeholder{color:rgba(255,255,255,.5)}
+/* podcast stage */
+.sp-titlebox{padding:0 18px 4px}.sp-titlebox h2{margin:4px 0 8px;font:800 22px/1.15 var(--disp)}
+.sp-3d{position:absolute;inset:0;background:radial-gradient(900px 600px at 50% 30%,#2a2142,#15232c)}
+.sp-has3d .sp-topbar{position:absolute;top:0;left:0;right:0;z-index:4;background:linear-gradient(rgba(15,10,30,.75),transparent);padding-bottom:22px}
+.sp-has3d .sp-titlebox{position:absolute;top:calc(58px + var(--sat));left:0;right:0;z-index:4;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.6)}.sp-has3d .sp-titlebox h2{font-size:19px;margin-bottom:6px}
+.sp-has3d .sp-banner,.sp-has3d>.sp-ban{position:relative;z-index:4}
+.sp-has3d .sp-scroll{position:absolute;left:0;right:0;bottom:76px;max-height:34%;z-index:3;padding:26px 14px 8px;background:linear-gradient(transparent,rgba(15,10,30,.9) 30%)}
+.sp-has3d .sp-hstage,.sp-has3d .sp-stage{display:none}.sp-has3d .sp-crowd{grid-template-columns:repeat(5,1fr)}
+.sp-has3d .sp-bar,.sp-has3d .sp-chat,.sp-has3d .sp-floats{z-index:5}
+.sp-lbls{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.sp-lbl{position:absolute;left:0;top:0;pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:0;padding:4px 10px;border-radius:12px;background:rgba(15,10,30,.62);color:#fff;font-size:12px;line-height:1.2;backdrop-filter:blur(4px);border:1.5px solid transparent;transition:border-color .15s,box-shadow .15s,opacity .2s;white-space:nowrap}
+.sp-lbl b{font-weight:800}.sp-lbl span{font-size:10.5px;opacity:.8}.sp-lbl.speak{border-color:var(--mint);box-shadow:0 0 12px rgba(61,220,151,.6)}
