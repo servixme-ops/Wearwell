@@ -7,9 +7,9 @@
 const T=THREE,PI=Math.PI;
 OWA.WEAR={
   hair:[['buzz','Buzz cut'],['afro','Afro'],['bun','Bun'],['long','Long straight']],
-  top:[['tee','T-shirt'],['tank','Tank top'],['sweater','Sweater']],
-  bottom:[['shorts','Shorts'],['skirt','Skirt']],
-  hat:[['cap','Cap'],['beanie','Beanie']],
+  top:[['sweater','Sweater']],
+  bottom:[['shorts','Shorts']],
+  hat:[['beanie','Beanie']],
   defaults:{hair:null,top:'#e8e6df',bottom:'#3b3f46',hat:'#14284b'}
 };
 function wpos(m){const P=m.geometry.attributes.position,D=m._D,o=new Float32Array(P.count*3);for(let i=0;i<P.count;i++)for(let k=0;k<3;k++)o[i*3+k]=P.array[i*3+k]*D.s[k]+D.t[k];return o;}
@@ -66,24 +66,12 @@ const MAKE={
       return{meshes:[s,skinOf(c.ref,g,m,true)],hide:['Wolf3D_Hair'],color:m};}
   },
   top:{
-    tee(c){return garment(c,'Wolf3D_Outfit_Top',n=>!/ForeArm|Hand/.test(n),c.H0*.007,'#e8e6df');},
-    tank(c){const r=garment(c,'Wolf3D_Outfit_Top',n=>!/Arm|Hand/.test(n),c.H0*.007,'#e8e6df'),sm=mat('#c58a60',.7);r.meshes.push(shell(c.parts.Wolf3D_Outfit_Top,n=>/^(Left|Right)(Arm|ForeArm|Hand)$/.test(n),0,sm));r.skin=sm;return r;},
     sweater(c){return garment(c,'Wolf3D_Outfit_Top',n=>true,c.H0*.014,'#7a8f5a');}
   },
   bottom:{
-    shorts(c){return garment(c,'Wolf3D_Outfit_Bottom',n=>!/^(Left|Right)(Leg|Foot|ToeBase)$/.test(n),c.H0*.007,'#3b3f46');},
-    skirt(c){const B=c.bones,ref=c.ref,m=mat('#3b3f46',.9),wy=n=>c.bw[n].y,yw=wy('Hips')+c.H0*.02,yk=wy('LeftLeg')+c.H0*.06,rx=c.skirtRx,rz=c.skirtRz;
-      const hb=boneIdx(ref,'Hips'),lb=boneIdx(ref,'LeftUpLeg'),rb=boneIdx(ref,'RightUpLeg'),cols=20,rows=8,pos=[],ix=[],si=[];
-      for(let j=0;j<=rows;j++){const f=j/rows,y=yw+(yk-yw)*f,k=1+.55*f;for(let i=0;i<=cols;i++){const a=2*PI*i/cols,x=Math.sin(a)*rx*k*1.04,z=c.skirtCz+Math.cos(a)*rz*k*1.1;pos.push(x,y,z);
-          const side=Math.max(-1,Math.min(1,x/(rx*.5))),wl=f*.9*(.5+.5*side),wr=f*.9*(.5-.5*side);si.push([hb,1-wl-wr,lb,wl,rb,wr,0,0]);}}
-      for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=j*(cols+1)+i,b=a+1,c2=a+cols+1,d=c2+1;ix.push(a,b,c2,b,d,c2);}
-      const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setIndex(ix);g.computeVertexNormals();setSkin(g,pos.length/3,i=>si[i]);
-      const r={meshes:[skinOf(ref,g,m,true)],hide:['Wolf3D_Outfit_Bottom'],color:m};legs(c,r);return r;}
+    shorts(c){return garment(c,'Wolf3D_Outfit_Bottom',n=>!/^(Left|Right)(Leg|Foot|ToeBase)$/.test(n),c.H0*.007,'#3b3f46');}
   },
   hat:{
-    cap(c){const F=c.F,m=mat('#14284b',.8),hb=boneIdx(c.ref,'Head'),R=F.r*1.13,d=new T.SphereGeometry(R,24,14,0,PI*2,0,PI*.5);d.scale(1,.95,1.08);d.translate(F.cx,F.yE+F.hh*.5,F.cz-F.r*.02);
-      const br=new T.CylinderGeometry(F.r*.95,F.r*.95,F.hh*.04,20,1,false,-PI*.5,PI);br.scale(1,1,.9);br.translate(F.cx,F.yE+F.hh*.52,F.cz+F.r*.95);
-      return{meshes:[skinOf(c.ref,merge([rigid(d,hb),rigid(br,hb)]),m,true)],hide:[],color:m};},
     beanie(c){const F=c.F,m=mat('#14284b',.95),hb=boneIdx(c.ref,'Head'),d=new T.SphereGeometry(F.r*1.14,24,16,0,PI*2,0,PI*.58);d.scale(1,1.05,1.1);d.translate(F.cx,F.yE+F.hh*.66,F.cz-F.r*.02);
       return{meshes:[skinOf(c.ref,rigid(d,hb),m,true)],hide:[],color:m};}
   }

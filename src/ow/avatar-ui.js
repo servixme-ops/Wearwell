@@ -116,11 +116,11 @@ async function avatarView(){
     tabs.replaceChildren(...TABS.map(([k,l,ic])=>h('button',{class:'av-tab'+(tab===k?' on':''),onclick:()=>{tab=k;content.scrollTop=0;paint();}},icon(ic),h('span',null,l))));
     const keep=content.scrollTop,out=[];
     if(tab==='face'){
+      out.push(h('div',{class:'av-lab'},'Eyeglasses'),chips([['on','Glasses on'],['off','Glasses off']],cfg.glasses?'on':'off',k=>apply({glasses:k==='on'})));
       out.push(h('div',{class:'av-lab'},'Expression'),chips(OWA.EXPR.map(e=>[e[0],e[1]]),cfg.ex,k=>apply({ex:k})));
       out.push(swatches(OWA.EYEC,cfg.eyec,(c,i)=>apply({eyec:i}),'Eye colour'));
       out.push(h('div',{class:'av-lab',style:{marginTop:'10px'}},'Fine-tune face'));
       for(const[k,l]of OWA.FACEMORPH)out.push(slider(l,()=>cfg.mx[k]||0,x=>{cfg.mx[k]=x;},0,1,.05));
-      out.push(chips([['on','Glasses on'],['off','Glasses off']],cfg.glasses?'on':'off',k=>apply({glasses:k==='on'})));
       out.push(note('Facial structure (nose, jaw, lips shape) is fixed by the supplied model. These sliders move its real face morph targets.'));}
     else if(tab==='hair'){out.push(swatches(OWA.HAIRC,cfg.hc,(c,i)=>apply({hc:i}),'Hair colour'));
       out.push(chips(OWA.HAIR,cfg.hair,k=>apply({hair:k})));
@@ -140,7 +140,6 @@ async function avatarView(){
       out.push(h('div',{class:'av-lab'},'Bottom'),chips([['','Original']].concat(OWA.WEAR.bottom),X.bottom||'',k=>setX('bottom',k)),swatches(OWA.COLORS,cfg.botc,c=>apply({botc:c})));
       out.push(h('div',{class:'av-lab'},'Hat'),chips([['','None']].concat(OWA.WEAR.hat),X.hat||'',k=>setX('hat',k)));if(X.hat)out.push(swatches(OWA.COLORS,cfg.hatc,c=>apply({hatc:c})));
       out.push(swatches(OWA.COLORS,cfg.shoec,c=>apply({shoec:c}),'Shoes'));
-      out.push(chips([['shoes','Shoes'],['bare','Barefoot']],cfg.bare?'bare':'shoes',k=>apply({bare:k==='bare'})));
       out.push(h('div',{class:'av-lab'},'Club colours'),chips(Object.entries(OWA.CLUBS).map(([k,c])=>[k,c.n]),'',k=>{const c=OWA.CLUBS[k];apply({topc:c.b,botc:c.sh,shoec:c.k});}));
       out.push(note('Extra garments are simple stylised pieces fitted to your avatar. Club colours only tint colours; no badges or sponsors.'));}
     content.replaceChildren(...out);content.scrollTop=keep;undoBtn.disabled=!hist.length;

@@ -68,7 +68,7 @@ OWA.def=function(g){
 OWA.pick=(arr,id)=>arr.find(x=>x.id===id)||arr[0];
 /* old saved procedural avatars: keep their gender, skin and hair colour; everything else resets */
 OWA.migrate=function(c){const d=OWA.def(c&&c.g==='m'?'m':'f');if(!c)return d;
-  if(c.v===2)return Object.assign(d,c,{mx:Object.assign({},c.mx),extras:Object.assign({},c.extras)});
+  if(c.v===2){const o=Object.assign(d,c,{mx:Object.assign({},c.mx),extras:Object.assign({},c.extras)});const ok={hair:['buzz','afro','bun','long'],top:['sweater'],bottom:['shorts'],hat:['beanie']};for(const k in o.extras)if(ok[k]&&!ok[k].includes(o.extras[k]))delete o.extras[k];o.bare=false;return o;}
   if(typeof c.skin==='number')d.skin=Math.max(0,Math.min(OWA.SKIN.length-1,c.skin));
   if(typeof c.hc==='number')d.hc=Math.max(0,Math.min(OWA.HAIRC.length-1,c.hc));
   if(typeof c.eyec==='number')d.eyec=Math.max(0,Math.min(OWA.EYEC.length-1,c.eyec));
