@@ -30,7 +30,7 @@ function embedFor(u){
 const roomUrl=u=>CFG.site+'#/@'+u;
 const ytId=u=>{try{const x=new URL(u);if(/youtu\.be$/.test(x.hostname))return x.pathname.slice(1);if(/youtube\.com$/.test(x.hostname)){if(x.searchParams.get('v'))return x.searchParams.get('v');const m=x.pathname.match(/\/(embed|shorts)\/([\w-]+)/);if(m)return m[2];}}catch(e){}return null;};
 const go=hash=>{if(location.hash===hash)route();else location.hash=hash;};
-function setView(full){const v=$view();v.classList.toggle('full',!!full);v.scrollTop=0;v.replaceChildren();$nav().classList.toggle('hide',!!full);return v;}
+function setView(full){const v=$view();v.classList.toggle('full',!!full);v.classList.remove('sp-view');v.scrollTop=0;v.replaceChildren();$nav().classList.toggle('hide',!!full);return v;}
 function teardown(){if(App.teardown){try{App.teardown();}catch(e){}App.teardown=null;}}
 
 /* ---------- navigation ---------- */
@@ -117,7 +117,7 @@ async function wallView(){
 async function discoverView(){
   const v=setView(false);drawNav('discover');let feed=[],trend=[],feat=[],cat=null;
   const chips=h('div',{class:'scrollx'}),sec=h('div');
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.')),chips,sec);
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now'))),chips,sec);
   const ok=r=>!cat||(r.categories||[]).includes(cat);
   const tcard=r=>{const p=Store.previewUrl(r.theme,r.updated_at);return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},p?h('img',{src:p,alt:'',loading:'lazy'}):h('div',{class:'pshot ph'},r.name),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,r.name),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
   const paint=()=>{
@@ -424,13 +424,14 @@ function route(){
   document.title="OpenWalls · Discover what's on everyone's walls";
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
-  switch(hs){case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();default:return wallView();}
+  if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
+  switch(hs){case'spaces':return Spaces.discover();case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();default:return wallView();}
 }
 window.addEventListener('hashchange',route);
 (function boot(){
   const ld=document.getElementById('ldlogo');if(ld)ld.append(logoEl(84));
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
-  Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat)/.test(App.route))route();});
+  Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
   Auth.init().then(()=>{route();refreshUnread();ensureRoom();}).catch(()=>route());
   Auth.on(ev=>{if(ev==='signin')ensureRoom();});
   window.__ready=true;const l=document.getElementById('loading');setTimeout(()=>l&&l.classList.add('gone'),250);
