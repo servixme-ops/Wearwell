@@ -133,8 +133,8 @@ function build(cfg){
     for(const n in bones){const b=bones[n];if(home[n])b.quaternion.copy(home[n].q);}bones.Hips.position.copy(home.Hips.p);
     root.updateMatrixWorld(true);const w=clamp(spd,0,1),t=st.t,P=st.pose,br=Math.sin(t*1.7);
     if(P==='sit'||P==='play'||P==='type'){
-      const top=av.seatTop==null?.46:av.seatTop,hp=top+.11,S=Math.max(.25,geo.shin),L=Math.max(.25,geo.thigh),al=Math.asin(clamp((hp-S)/L,-.9,.9));
-      placeHips(hp,-.05);leg('L',.09,-Math.sin(al),Math.cos(al),.02,-1,.12);leg('R',.09,-Math.sin(al),Math.cos(al),.02,-1,.12);
+      const top=av.seatTop==null?.46:av.seatTop,hp=top+.11,S=Math.max(.25,geo.shin),L=Math.max(.25,geo.thigh),kt=top+.07,al=Math.asin(clamp((hp-Math.max(S,kt))/L,-.9,.9));
+      placeHips(hp,.14);leg('L',.09,-Math.sin(al),Math.cos(al),.02,-1,.12);leg('R',.09,-Math.sin(al),Math.cos(al),.02,-1,.12);
       rot('Spine1',1,0,0,.06);rot('Spine2',1,0,0,-.02+br*.01);
       if(P==='sit'){arm('L',.15,-.9,.35,.1,-.35,1);arm('R',.15,-.9,.35,.1,-.35,1);rot('Head',1,0,0,.04);}
       else{arm('L',.2,-.7,.55,.06,-.2,1);arm('R',.2,-.7,.55,.06,-.2,1);rot('Head',1,0,0,.16);rot('LeftHand',1,0,0,Math.sin(t*14)*.1);rot('RightHand',1,0,0,Math.sin(t*13+1)*.1);}
