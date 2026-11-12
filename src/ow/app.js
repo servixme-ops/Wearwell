@@ -146,7 +146,7 @@ async function meView(){
     h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},prev?h('img',{class:'pshot',src:prev,alt:'Your room'}):h('div',{class:'pshot ph'},room?room.name:'Your room is not built yet'),
       h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name)},'Share'):null)),
-    h('div',{class:'list'},room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
+    h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
       h('button',{onclick:async()=>{await Auth.signOut();toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
@@ -321,7 +321,9 @@ async function visitView(username){
   if(!d.room){host.replaceChildren(empty('@'+o.username+' has not built a room yet',d.is_me?'Build yours now.':'Check back soon.',d.is_me?h('button',{class:'btn coral',onclick:()=>go('#/edit')},'Build my room'):h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
   host.replaceChildren();document.title=d.room.name+' · @'+o.username+' · OpenWalls';
   let R=null;
-  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem});R.load(d.room,d.items);App.teardown=()=>{R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};}
+  let hud=null;
+  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+username;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
+    const oav=d.room.theme&&d.room.theme.avatar;if(oav&&!d.is_me)R.addResident(OWA.migrate(oav),()=>ownerSheet(o,cn));}
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}
   let cn={followers:0,following:0,iFollow:false};try{cn=await Store.counts(o.id);}catch(e){}
@@ -330,9 +332,15 @@ async function visitView(username){
     h('button',{class:'owner',onclick:()=>ownerSheet(o,cn)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
     h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>shareRoom(o.username,d.room.name)},icon('share')),
-    R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null);
+    R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null,
+    R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk()},icon('walk')):null);
   v.querySelector('.rtop').replaceWith(top);
+  const walkBtn=()=>v.querySelector('.walkbtn');
+  async function enterWalk(){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){App.avBack='#/@'+username;chooseAvatar();return;}R.startWalk(cfg);hud=walkHud(host,R);const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
+    const hn=host.querySelector('.hint');hn&&hn.remove();host.append(h('div',{class:'hint'},'Joystick to walk · tap the floor to go there · drag to look'));setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);}
+  function leaveWalk(){if(!hud)return;hud.destroy();hud=null;R.stopWalk();const b=walkBtn();b&&b.classList.remove('on');host.classList.remove('walking');}
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
+  if(R)enterWalk();
   host.append(socialBar(d,o));
   setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);
   if(Auth.isAdmin&&!d.is_me){let on=!!d.room.featured;const fb=h('button',{class:'rbtn dark',style:{position:'absolute',left:'12px',top:'calc(64px + var(--sat))',zIndex:5},onclick:()=>guard(fb,async()=>{await Store.setFeatured(d.room.id,!on);on=!on;fb.textContent=on?'★ Featured (tap to remove)':'☆ Feature this room';})},on?'★ Featured (tap to remove)':'☆ Feature this room');host.append(fb);}
@@ -416,7 +424,7 @@ function route(){
   document.title="OpenWalls · Discover what's on everyone's walls";
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
-  switch(hs){case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();default:return wallView();}
+  switch(hs){case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();default:return wallView();}
 }
 window.addEventListener('hashchange',route);
 (function boot(){

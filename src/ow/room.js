@@ -164,7 +164,9 @@ class OWRoom{
   setSize(key,dims){this.pushHist();const s=dims||OW.SIZES[key];this.room.size=key;this.room.width=s.w;this.room.depth=s.d;this.room.height=s.h;this.buildShell();
     this.items.forEach(i=>{if(i.kind==='furniture')this.settle(i);else{this.clampD(i);this.place(i);}});this.refreshHelper();this.resetCamera();this.changed();}
   /* ----- camera ----- */
-  setCam(az,el,dist){this.az=az;this.el=Math.max(.18,Math.min(1.3,el));this.dist=dist;const c=this.cam,ty=this.H*.38,ce=Math.cos(this.el);c.position.set(Math.sin(this.az)*ce*this.dist,ty+Math.sin(this.el)*this.dist,Math.cos(this.az)*ce*this.dist);c.lookAt(0,ty,0);if(this.caps){const wf=this.wf();this.caps.forEach(({m,k})=>{const f=wf[k];m.visible=f.n[0]*(c.position.x-f.o[0])+f.n[2]*(c.position.z-f.o[2])>0;});}this.markDirty();}
+  setCam(az,el,dist){this.az=az;this.el=Math.max(this.wTarget?.05:.18,Math.min(this.wTarget?1.2:1.3,el));this.dist=dist;const c=this.cam,tg=this.wTarget,ty=tg?tg.y:this.H*.38,ce=Math.cos(this.el);
+    if(tg){const hx=this.W/2-.14,hz=this.D/2-.14;c.position.set(Math.max(-hx,Math.min(hx,tg.x+Math.sin(this.az)*ce*this.dist)),Math.max(.3,Math.min(this.H-.15,ty+Math.sin(this.el)*this.dist)),Math.max(-hz,Math.min(hz,tg.z+Math.cos(this.az)*ce*this.dist)));c.lookAt(tg.x,ty,tg.z);}
+    else{c.position.set(Math.sin(this.az)*ce*this.dist,ty+Math.sin(this.el)*this.dist,Math.cos(this.az)*ce*this.dist);c.lookAt(0,ty,0);}if(this.caps){const wf=this.wf();this.caps.forEach(({m,k})=>{const f=wf[k];m.visible=f.n[0]*(c.position.x-f.o[0])+f.n[2]*(c.position.z-f.o[2])>0;});}this.markDirty();}
   setInset(px){this.inset=px||0;this.applyView();}
   applyView(){if(!this.host)return;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;if(this.inset)this.cam.setViewOffset(w,h,0,this.inset,w,h);else this.cam.clearViewOffset();this.cam.updateProjectionMatrix();this.markDirty();}
   resetCamera(now){this.camT={az:this.cam0.az,el:this.cam0.el,dist:this.cam0.dist,t:0};if(now)this.setCam(this.cam0.az,this.cam0.el,this.cam0.dist),this.camT=null;}
@@ -174,9 +176,10 @@ class OWRoom{
     cv.style.touchAction='none';
     cv.addEventListener('pointerdown',e=>this.down(e));cv.addEventListener('pointermove',e=>this.move(e));
     const up=e=>this.up(e);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-    cv.addEventListener('wheel',e=>{e.preventDefault();this.camT=null;this.setCam(this.az,this.el,Math.max(this.minD(),Math.min(this.cam0.dist*1.5,this.dist*(1+e.deltaY*.001))));},{passive:false});
+    cv.addEventListener('wheel',e=>{e.preventDefault();this.camT=null;this.setCam(this.az,this.el,Math.max(this.minD(),Math.min(this.maxD(),this.dist*(1+e.deltaY*.001))));},{passive:false});
   }
-  minD(){return Math.max(1.6,Math.max(this.W,this.D)*.28);}
+  minD(){return this.wTarget?1.4:Math.max(1.6,Math.max(this.W,this.D)*.28);}
+  maxD(){return this.wTarget?5:this.cam0.dist*1.5;}
   ndc(e){const r=this.canvas.getBoundingClientRect();return new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);}
   pickItem(e){this.ray.setFromCamera(this.ndc(e),this.cam);const hits=this.ray.intersectObjects(this.root.children,true);for(const h of hits){let o=h.object;while(o&&!o.userData.itemId)o=o.parent;if(o)return this.get(o.userData.itemId);}return null;}
   down(e){
@@ -191,7 +194,7 @@ class OWRoom{
   }
   move(e){
     const p=this.ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
-    if(this.pinch&&this.ptrs.size>=2){const[a,b]=[...this.ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(this.pinch.item){const k=Math.max(.4,Math.min(2.4,this.pinch.s0*d/Math.max(20,this.pinch.d)));if(Math.abs(k-(this.pinch.item.scale||1))>.02&&!this.pinchBusy){this.pinchBusy=1;requestAnimationFrame(()=>{this.pinchBusy=0;if(this.pinch&&this.pinch.item){this.update(this.pinch.item.id,{scale:+k.toFixed(2)});}});}return;}this.setCam(this.az,this.el,Math.max(this.minD(),Math.min(this.cam0.dist*1.5,this.pinch.dist*this.pinch.d/Math.max(20,d))));return;}
+    if(this.pinch&&this.ptrs.size>=2){const[a,b]=[...this.ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(this.pinch.item){const k=Math.max(.4,Math.min(2.4,this.pinch.s0*d/Math.max(20,this.pinch.d)));if(Math.abs(k-(this.pinch.item.scale||1))>.02&&!this.pinchBusy){this.pinchBusy=1;requestAnimationFrame(()=>{this.pinchBusy=0;if(this.pinch&&this.pinch.item){this.update(this.pinch.item.id,{scale:+k.toFixed(2)});}});}return;}this.setCam(this.az,this.el,Math.max(this.minD(),Math.min(this.maxD(),this.pinch.dist*this.pinch.d/Math.max(20,d))));return;}
     if(Math.hypot(e.clientX-this.sx,e.clientY-this.sy)>6)this.tapOk=false;
     if(this.drag){if(!this.tapOk||this.drag.moved)this.dragTo(e);return;}
     if(!this.tapOk){this.setCam(this.az-dx*.007,this.el+dy*.005,this.dist);}
@@ -208,14 +211,14 @@ class OWRoom{
   up(e){
     const was=this.ptrs.has(e.pointerId);this.ptrs.delete(e.pointerId);if(this.ptrs.size<2)this.pinch=null;if(!was)return;
     if(this.drag&&this.drag.moved){this.drag=null;this.changed();return;}this.drag=null;
-    if(this.tapOk&&this.ptrs.size===0){const it=this.tapItem;if(!this.edit){if(it&&this.cb.onOpen)this.cb.onOpen(it);}else if(!it)this.select(null);}
+    if(this.tapOk&&this.ptrs.size===0){const it=this.tapItem;if(!this.edit){if(this.walkOn||this.res)this.walkTap(it,e);else if(it&&this.cb.onOpen)this.cb.onOpen(it);}else if(!it)this.select(null);}
   }
   /* ----- loop ----- */
   markDirty(sh){this.dirty=true;if(sh)this.shadowDirty=true;}
   resize(){if(!this.host)return;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;this.r.setSize(w,h,false);this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';this.cam.aspect=w/h;this.cam.fov=w/h<.8?52:40;this.cam.updateProjectionMatrix();this.applyView();}
   loop(){
-    if(!this.alive)return;requestAnimationFrame(this.loop);
-    if(this.camT){const c=this.camT;c.t=Math.min(1,c.t+.06);const k=c.t*c.t*(3-2*c.t);this.setCam(this.az+(c.az-this.az)*(k>.99?1:.16),this.el+(c.el-this.el)*.16,this.dist+(c.dist-this.dist)*.16);if(Math.abs(c.az-this.az)<.004&&Math.abs(c.el-this.el)<.004&&Math.abs(c.dist-this.dist)<.02){this.setCam(c.az,c.el,c.dist);this.camT=null;}}
+    if(!this.alive)return;requestAnimationFrame(this.loop);const now=performance.now(),dt=Math.min(.05,(now-(this.t0||now))/1000);this.t0=now;if(this.walkTick)this.walkTick(dt);
+    if(this.camT&&!this.walkOn){const c=this.camT;c.t=Math.min(1,c.t+.06);const k=c.t*c.t*(3-2*c.t);this.setCam(this.az+(c.az-this.az)*(k>.99?1:.16),this.el+(c.el-this.el)*.16,this.dist+(c.dist-this.dist)*.16);if(Math.abs(c.az-this.az)<.004&&Math.abs(c.el-this.el)<.004&&Math.abs(c.dist-this.dist)<.02){this.setCam(c.az,c.el,c.dist);this.camT=null;}}
     if(this.dirty){this.dirty=false;if(this.shadowDirty){this.r.shadowMap.needsUpdate=true;this.shadowDirty=false;}this.r.render(this.scene,this.cam);}
   }
   destroy(){this.alive=false;if(this.ro)this.ro.disconnect();this.clearItems();this.shell.traverse(o=>{if(o.geometry)o.geometry.dispose();});this.r.dispose();try{this.r.forceContextLoss();}catch(e){}this.canvas.remove();}
