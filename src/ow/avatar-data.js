@@ -4,11 +4,10 @@
  * so they are not offered: see docs/AVATARS.md for the capability report and how extra assets plug in. */
 const OWA=window.OWA={};
 OWA.BASE='assets/avatars/';
-/* models: f = the supplied rigged GLB. m = the same rig with male proportions until a male rigged GLB is supplied
-   (put it at assets/avatars/male.glb and set url + proxy:false here). */
+/* models: f = the supplied rigged GLB. m = the supplied male rigged GLB (assets/avatars/male.glb). */
 OWA.MODELS={
   f:{url:OWA.BASE+'female.glb',height:1.68,label:'Woman',proxy:false},
-  m:{url:OWA.BASE+'female.glb',height:1.80,label:'Man',proxy:true,prop:{sh:.35,chest:.2,waist:-.1,hips:-.3,arms:.1,legs:.05,hd:.0,hands:.15,feet:.15,neck:.1}}
+  m:{url:OWA.BASE+'male.glb',height:1.80,label:'Man',proxy:false}
 };
 OWA.SKIN=['#f6dcc8','#f1cfb4','#e8bd9b','#deac85','#d29b72','#c58a60','#b97b52','#a96d45','#9a5f3b','#8c5233','#7d462b','#6f3c25','#62331f','#552b1a','#472315','#3a1c11'];
 OWA.HAIRC=['#14100e','#2a1b14','#4a2c1d','#7b4a2a','#a8672b','#c9a469','#e8d9b0','#8f3a1f','#b0102a','#9a9a9a','#e58bb5','#6b2d8f','#3b6fe0','#2f9e6a'];

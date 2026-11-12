@@ -21,9 +21,9 @@ Avatars are the supplied rigged GLB (`assets/avatars/female.glb`), driven in pla
 | Garments and hats | Built-in simple pieces: tee, tank, sweater, shorts, skirt, cap, beanie. Made from the model's own top/bottom meshes (same skin weights) or small procedural meshes on the skeleton. Real garments: `av.attach(slot,url,opts)` accepts GLBs authored on the same skeleton; list them in `assets/avatars/catalog.json` |
 
 Note: the supplied body has no legs of its own (the leggings are the legs) and no upper arms, so bare legs/arms are skin-coloured shells of the same meshes (flat colour, no skin texture).
-| Male | Same rig with male proportions (`OWA.MODELS.m`). Drop in `male.glb` and set `proxy:false` for a true male |
+| Male | Supplied male Ready Player Me GLB (`assets/avatars/male.glb`), same structure and features as the female (60 face morphs; his moustache and beard are baked into the face texture) |
 
-`Nova-11.glb` is a static, unrigged scan: it cannot walk or be customised, so it is not used.
+`tools/glb/meshopt-to-plain.js` also handles the OCTAHEDRAL filter used by newer exports. `Nova-11.glb` is a static, unrigged scan: it cannot walk or be customised, so it is not used.
 
 ## Not tested
 Real Android phone, live Supabase, performance on low-end GPUs. Tested headless (swiftshader): walk, sit, lie, wave, editor.
