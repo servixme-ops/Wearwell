@@ -20,7 +20,8 @@
     return { json, bin };
   }
 
-  function parse(buf) {
+  function parse(buf, opts) {
+    opts = opts || {};
     const T = g.THREE, { json: J, bin } = split(buf);
     const ext = (J.extensionsRequired || []).filter(e => e !== 'EXT_texture_webp');
     if (ext.length) throw new Error('GLB needs unsupported extensions: ' + ext.join(','));
@@ -108,12 +109,14 @@
         mesh.morphTargetDictionary = {}; names.forEach((x, k) => { mesh.morphTargetDictionary[x] = k; });
         mesh.updateMorphTargets && mesh.updateMorphTargets();
       }
-      nodes[i].add(mesh);
+      if (isSkin && opts.gltfSkin) mesh.userData.free = true; else nodes[i].add(mesh);
       meshes[mesh.name] = mesh;
       if (isSkin) { skinned[mesh.name] = mesh; pendingSkin.push([mesh, J.skins[n.skin]]); }
     });
     J.nodes.forEach((n, i) => (n.children || []).forEach(c => nodes[i].add(nodes[c])));
     const scene = new T.Group(); scene.name = 'avatar';
+    /* glTF semantics: a skinned mesh ignores its node transform (some exporters, e.g. Sketchfab/FBX, put a 100x armature above it) */
+    Object.values(skinned).forEach(m => { if (m.userData.free) scene.add(m); });
     (J.scenes[J.scene || 0].nodes || []).forEach(i => scene.add(nodes[i]));
     scene.updateMatrixWorld(true);
     pendingSkin.forEach(([mesh, s]) => {
