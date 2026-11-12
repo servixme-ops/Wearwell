@@ -81,6 +81,16 @@ function decodeTriangles(src, count, stride, starts) {
   return Buffer.from(out.buffer, out.byteOffset, out.byteLength);
 }
 
+/* EXT_meshopt_compression OCTAHEDRAL filter (unit vectors packed as x,y,one,w in int8 or int16) */
+function octFilter(d, count, stride) {
+  const bits = stride === 4 ? 8 : 16, mx = (1 << (bits - 1)) - 1, dv = new DataView(d.buffer, d.byteOffset, d.byteLength), cs = bits / 8;
+  const get = o => bits === 8 ? dv.getInt8(o) : dv.getInt16(o, true), set = (o, v) => bits === 8 ? dv.setInt8(o, v) : dv.setInt16(o, v, true);
+  for (let i = 0; i < count; i++) {
+    const o = i * stride; let x = get(o), y = get(o + cs); const one = get(o + 2 * cs); x /= one; y /= one; const z = 1 - Math.abs(x) - Math.abs(y);
+    const t = z >= 0 ? 0 : z; x += x >= 0 ? t : -t; y += y >= 0 ? t : -t; const h = mx / Math.sqrt(x * x + y * y + z * z);
+    set(o, Math.round(x * h)); set(o + cs, Math.round(y * h)); set(o + 2 * cs, Math.round(z * h));
+  }
+}
 /* ---------- main ---------- */
 const NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
 const CS = { 5120: 1, 5121: 1, 5122: 2, 5123: 2, 5125: 4, 5126: 4 };
@@ -91,8 +101,8 @@ function convert(inp, outp) {
     const e = bv.extensions && bv.extensions.EXT_meshopt_compression;
     if (!e) return bin.subarray(bv.byteOffset || 0, (bv.byteOffset || 0) + bv.byteLength);
     const src = bin.subarray(e.byteOffset || 0, (e.byteOffset || 0) + e.byteLength);
-    if (e.filter && e.filter !== 'NONE') throw new Error('filter ' + e.filter + ' not implemented');
-    if (e.mode === 'ATTRIBUTES') return decodeVertex(src, e.count, e.byteStride);
+    if (e.filter && e.filter !== 'NONE' && e.filter !== 'OCTAHEDRAL') throw new Error('filter ' + e.filter + ' not implemented');
+    if (e.mode === 'ATTRIBUTES') { const d = decodeVertex(src, e.count, e.byteStride); if (e.filter === 'OCTAHEDRAL') octFilter(d, e.count, e.byteStride); return d; }
     if (e.mode === 'TRIANGLES') { const st = new Set(j.accessors.filter(a => a.bufferView === bi).map(a => (a.byteOffset || 0) / e.byteStride)); return decodeTriangles(src, e.count, e.byteStride, st); }
     throw new Error('mode ' + e.mode);
   });
