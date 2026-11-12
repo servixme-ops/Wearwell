@@ -66,7 +66,7 @@ P.stageSpeaking=function(set){
 P.stageTick=function(dt){
   const st=this.stage;if(!st)return;st.t+=dt;st.acc+=dt;let dirty=false;
   if(st.hold>0){st.hold-=dt;if(st.hold<=0&&!st.speaking.size)st.focus=null;}
-  if(st.acc>.07){st.map.forEach((e,u)=>{e.f.av.update(st.acc,0);const sp=st.speaking.has(u);e.f.holder.rotation.y=e.f.yaw+(sp?Math.sin(st.t*2.2+e.idx)*.05:0);});st.acc=0;dirty=true;}
+  if(st.acc>.045){st.map.forEach((e,u)=>{const sp=st.speaking.has(u);e.f.av.setTalk(sp?1:0);e.f.av.update(st.acc,0);e.f.holder.rotation.y=e.f.yaw;});st.acc=0;dirty=true;}
   st.mics.forEach((m,i)=>{const u=st.seats[i],on=u&&st.speaking.has(u),h=m.userData.head,tgt=on?.9:0;if(Math.abs(h.emissiveIntensity-tgt)>.01){h.emissiveIntensity+=(tgt-h.emissiveIntensity)*Math.min(1,dt*10);dirty=true;}});
   /* camera: wide shot of all four, or in on the speaker and their mic */
   const asp=this.cam.aspect||.6,tanH=Math.tan(this.cam.fov*Math.PI/360)*asp,c=st.cur;

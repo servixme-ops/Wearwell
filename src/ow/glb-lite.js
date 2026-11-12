@@ -107,7 +107,6 @@
       if (morph) {
         mesh.morphTargetInfluences = new Array(p.targets.length).fill(0);
         mesh.morphTargetDictionary = {}; names.forEach((x, k) => { mesh.morphTargetDictionary[x] = k; });
-        mesh.updateMorphTargets && mesh.updateMorphTargets();
       }
       if (isSkin && opts.gltfSkin) mesh.userData.free = true; else nodes[i].add(mesh);
       meshes[mesh.name] = mesh;

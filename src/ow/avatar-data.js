@@ -26,6 +26,7 @@ OWA.CLUBS={
   madrid:{n:'Real Madrid',b:'#ffffff',sh:'#ffffff',k:'#ffffff'}
 };
 /* face expressions = real morph targets on the head (ARKit blendshape names present in the GLB) */
+OWA.EYEFIX={m:-.1,f:0}; // eye-bone pitch (rad) that centres the pupils for each base model
 OWA.EXPR=[
   ['neutral','Neutral',{}],
   ['smile','Smile',{mouthSmileLeft:.7,mouthSmileRight:.7,cheekSquintLeft:.35,cheekSquintRight:.35}],
