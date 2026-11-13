@@ -212,7 +212,7 @@ async function editorView(){
       if(!rm.id){const r=await Store.createRoom(rm,items);Object.assign(rm,r);if(R&&R.room)R.room.id=rm.id;room.id=rm.id;}
       else{const ids=new Set(items.map(i=>i.id));const removed=[...savedIds].filter(i=>!ids.has(i));await Store.saveRoom(rm);await Store.saveItems(rm.id,items,removed);}
       savedIds=new Set(items.map(i=>i.id));
-      if(withPreview){say('Saving preview…');try{const url=await OWRoom.preview(rm,items,480,360);const path=await Store.uploadPreview(url);rm.theme=Object.assign({},rm.theme,{preview:path,pv:Date.now()});if(R&&R.alive)R.room.theme=rm.theme;room.theme=rm.theme;await Store.saveRoom(rm);stale=false;}catch(e){console.warn('preview',e);}}
+      if(false){say('Saving preview…');try{const url=await OWRoom.preview(rm,items,480,360);const path=await Store.uploadPreview(url);rm.theme=Object.assign({},rm.theme,{preview:path,pv:Date.now()});if(R&&R.alive)R.room.theme=rm.theme;room.theme=rm.theme;await Store.saveRoom(rm);stale=false;}catch(e){console.warn('preview',e);}}
       say('Saved');return true;
     }catch(e){console.error(e);say('Could not save');if(ui)toast(friendlyError(e),'err');return false;}
   }
