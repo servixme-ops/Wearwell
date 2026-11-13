@@ -73,6 +73,7 @@ const OWTv=(()=>{
       if(p.k==='hello'){if(got||S.q.length){setTimeout(()=>{if(alive)send(snap());},Math.random()*400);}}
       else if(p.k==='state'&&p.s){got=true;lead=false;apply(p.s);}
       else if(p.k==='react'&&EM.includes(p.e))float(p.e);
+      else if(p.k==='cm'){const v=S.q[S.i];if(v&&p.v===v.id){if(box.classList.contains('cm-on'))loadC();else refreshCount();}}
     }
 
     /* ----- actions (always shared) ----- */
@@ -116,13 +117,13 @@ const OWTv=(()=>{
     const cnt={},seen={};
     function badge(){const v=S.q[S.i],n=v?Math.max(0,(cnt[v.id]||0)-(seen[v.id]||0)):0;bdg.textContent=n>99?'99+':String(n||'');bdg.classList.toggle('on',n>0);cmB.setAttribute('aria-label',n?'Comments, '+n+' new':'Comments');}
     async function refreshCount(){const v=S.q[S.i];if(!o.comments||!alive||!v||document.hidden)return;try{const cs=await o.comments.load(v.id);cnt[v.id]=cs.length;if(box.classList.contains('cm-on'))seen[v.id]=cs.length;badge();}catch(e){}}
-    const cI=setInterval(refreshCount,12000);setTimeout(refreshCount,1800);
+    const cI=setInterval(refreshCount,5000);setTimeout(refreshCount,1800);
     /* the icons in the title bar each open one panel over the video; tapping the icon again closes it */
     const PP=['pp-ctl','pp-rx','pl-on','cm-on'];
     const pp=k=>{const on=!box.classList.contains(k);PP.forEach(c=>box.classList.remove(c));if(on)box.classList.add(k);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));
       clearInterval(cT);if(k==='cm-on'&&on){loadC();cT=setInterval(loadC,5000);}if(box.classList.contains('rot'))showUi();};
     cmB.onclick=()=>pp('cm-on');ctlB.onclick=()=>pp('pp-ctl');rxB.onclick=()=>pp('pp-rx');
-    const postC=async(txt)=>{const t=(typeof txt==='string'?txt:cIn.value).trim();const v=S.q[S.i];if(!t||!o.comments||!v)return;try{await o.comments.post(v.id,t);if(typeof txt!=='string')cIn.value='';seen[v.id]=(cnt[v.id]||0)+1;cnt[v.id]=seen[v.id];badge();cIn.blur();PP.forEach(c=>box.classList.remove(c));box.classList.remove('side-on');clearInterval(cT);undodge();setTimeout(refreshCount,800);}catch(e){}};
+    const postC=async(txt)=>{const t=(typeof txt==='string'?txt:cIn.value).trim();const v=S.q[S.i];if(!t||!o.comments||!v)return;try{await o.comments.post(v.id,t);if(typeof txt!=='string')cIn.value='';seen[v.id]=(cnt[v.id]||0)+1;cnt[v.id]=seen[v.id];badge();cIn.blur();PP.forEach(c=>box.classList.remove(c));box.classList.remove('side-on');clearInterval(cT);undodge();send({k:'cm',v:v.id});}catch(e){}};
     cSend.onclick=()=>postC();cIn.addEventListener('keydown',e=>{if(e.key==='Enter')postC();});
     /* typing needs the phone keyboard, which cannot share a sideways full screen. So "Write a comment" leaves full screen and
        puts the video in the top corner, with the comment box right under it, so the keyboard never covers the picture. */
