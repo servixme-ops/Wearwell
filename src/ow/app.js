@@ -323,7 +323,7 @@ async function visitView(username){
   let R=null;
   let hud=null;
   if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+username;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
-    const oav=d.room.theme&&d.room.theme.avatar;if(oav&&!d.is_me)R.addResident(OWA.migrate(oav),()=>ownerSheet(o,cn));}
+    R.liveStart({roomId:d.room.id,uid:Auth.user&&Auth.user.id,ownerId:o.id,cb:{onTap:info=>info.owner?ownerSheet(o,cn):sheet(info.name,(b,close)=>{b.append(info.username?h('button',{class:'btn coral block',onclick:()=>{close();go('#/@'+info.username);}},'View profile'):h('p',{class:'tag'},'Visiting this room'));})}});}
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}
   let cn={followers:0,following:0,iFollow:false};try{cn=await Store.counts(o.id);}catch(e){}
@@ -336,9 +336,9 @@ async function visitView(username){
     R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk()},icon('walk')):null);
   v.querySelector('.rtop').replaceWith(top);
   const walkBtn=()=>v.querySelector('.walkbtn');
-  async function enterWalk(){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){App.avBack='#/@'+username;chooseAvatar();return;}R.startWalk(cfg);hud=walkHud(host,R);const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
+  async function enterWalk(){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){App.avBack='#/@'+username;chooseAvatar();return;}R.startWalk(cfg);hud=walkHud(host,R);if(Auth.user){const pf=Auth.profile||{};R.liveTrack({uid:Auth.user.id,name:pf.display_name||pf.username||'Guest',username:pf.username||'',cfg});}const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
     const hn=host.querySelector('.hint');hn&&hn.remove();host.append(h('div',{class:'hint'},'Joystick to walk · tap the floor to go there · drag to look'));setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);}
-  function leaveWalk(){if(!hud)return;hud.destroy();hud=null;R.stopWalk();const b=walkBtn();b&&b.classList.remove('on');host.classList.remove('walking');}
+  function leaveWalk(){if(!hud)return;hud.destroy();hud=null;R.liveUntrack();R.stopWalk();const b=walkBtn();b&&b.classList.remove('on');host.classList.remove('walking');}
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
   if(R)enterWalk();
   host.append(socialBar(d,o));

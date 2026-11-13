@@ -26,7 +26,7 @@ P.freeNear=function(x,z,r){const L=this.blockers();for(let ring=0;ring<14;ring++
 /* ---------- start / stop ---------- */
 P.startWalk=function(cfg,opt){
   opt=opt||{};this.stopWalk();const f=makeFigure(this,cfg);this.me=f;this.walkOn=true;this.joy={x:0,y:0};this.goal=null;this.seat=null;this.near=null;this.nearT=0;
-  const dz=this.D/2-1.15,sp=this.freeNear(-this.W/2+.8,dz,.24);f.x=sp[0];f.z=sp[1];f.yaw=PI/2;this.placeFigure(f);
+  const dz=this.D/2-1.15,sp=this.freeNear(-this.W/2+.8+Math.random()*1.1,dz-Math.random()*1.2,.24);f.x=sp[0];f.z=sp[1];f.yaw=PI/2;this.placeFigure(f);
   this.wTarget=new T.Vector3(f.x,1.1,f.z);this.az=-1.0;this.el=.36;this.dist=3.1;this.camT=null;
   this.cam.far=60;this.r.setPixelRatio(Math.min(window.devicePixelRatio||1,this.low?1.25:1.75));this.resize();this.setCam(this.az,this.el,this.dist);this.markDirty(true);};
 P.stopWalk=function(keepCam){
