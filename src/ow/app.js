@@ -347,9 +347,9 @@ async function visitView(username){
   if(Auth.isAdmin&&!d.is_me){let on=!!d.room.featured;const fb=h('button',{class:'rbtn dark',style:{position:'absolute',left:'12px',top:'calc(64px + var(--sat))',zIndex:5},onclick:()=>guard(fb,async()=>{await Store.setFeatured(d.room.id,!on);on=!on;fb.textContent=on?'★ Featured (tap to remove)':'☆ Feature this room';})},on?'★ Featured (tap to remove)':'☆ Feature this room');host.append(fb);}
   if(R){const lb=h('div',{class:'loadbar'},h('i'));host.append(lb);const iv=setInterval(()=>{lb.classList.toggle('on',R.loading>0);},250);const old=App.teardown;App.teardown=()=>{clearInterval(iv);old&&old();};}
   /* YouTube links play on the room's shared TV (synced for everyone in the room) */
-  function tvPlay(it,id){OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:id,title:it.title||null,comments:{load:v=>Store.videoComments(d.room.id,v),post:async(v,t)=>{if(!needAuth('Sign in to comment'))throw new Error('auth');try{await Store.videoComment(d.room.id,v,t);}catch(e){toast(friendlyError(e),'err');throw e;}}}});}
+  function tvPlay(it,src){OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src,title:it.title||null,comments:{load:v=>Store.videoComments(d.room.id,v),post:async(v,t)=>{if(!needAuth('Sign in to comment'))throw new Error('auth');try{await Store.videoComment(d.room.id,v,t);}catch(e){toast(friendlyError(e),'err');throw e;}}}});}
   function openItem(it){
-    const yid=it.link&&ytId(it.link);if(yid)return tvPlay(it,yid);
+    const src=it.link&&OWTv.parse(it.link);if(src)return tvPlay(it,src);
     const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path||(it.props&&it.props.images&&it.props.images.length);if(!hasInfo)return;
     sheet(it.title||def.name,(body)=>{
       const wrap=h('div',{class:'viewer'});if(def.hint==='book_stack'&&it.title)wrap.append(h('div',{class:'bookcard'},h('b',null,it.title)));
