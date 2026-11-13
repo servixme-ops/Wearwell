@@ -81,6 +81,7 @@ const OWPrev=(()=>{
   function node(r,cls,alt){
     const url=Store.previewUrl(r.theme,r.updated_at);
     if(url)return h('img',{class:cls,src:url,alt:alt||r.name||'',width:'480',height:'360',loading:'lazy',decoding:'async'});
+    return h('div',{class:cls+' ph'},r.name||'Room');
     const box=h('div',{class:cls+' plan','aria-label':alt||r.name||'Room'},h('span',{class:'plan-n'},r.name||'Room'));
     if(r.id)watch(box,r);return box;
   }
