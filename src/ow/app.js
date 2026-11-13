@@ -323,7 +323,7 @@ async function visitView(username){
   host.replaceChildren();document.title=d.room.name+' · @'+o.username+' · OpenWalls';
   let R=null;
   let hud=null;
-  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+username;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
+  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+username;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{OWTv.close(d.room.id);hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
     R.liveStart({roomId:d.room.id,uid:Auth.user&&Auth.user.id,ownerId:o.id,cb:{onTap:info=>info.owner?ownerSheet(o,cn):sheet(info.name,(b,close)=>{b.append(info.username?h('button',{class:'btn coral block',onclick:()=>{close();go('#/@'+info.username);}},'View profile'):h('p',{class:'tag'},'Visiting this room'));})}});}
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}
@@ -346,17 +346,8 @@ async function visitView(username){
   setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);
   if(Auth.isAdmin&&!d.is_me){let on=!!d.room.featured;const fb=h('button',{class:'rbtn dark',style:{position:'absolute',left:'12px',top:'calc(64px + var(--sat))',zIndex:5},onclick:()=>guard(fb,async()=>{await Store.setFeatured(d.room.id,!on);on=!on;fb.textContent=on?'★ Featured (tap to remove)':'☆ Feature this room';})},on?'★ Featured (tap to remove)':'☆ Feature this room');host.append(fb);}
   if(R){const lb=h('div',{class:'loadbar'},h('i'));host.append(lb);const iv=setInterval(()=>{lb.classList.toggle('on',R.loading>0);},250);const old=App.teardown;App.teardown=()=>{clearInterval(iv);old&&old();};}
-  /* YouTube links play in a small TV window over the room; Expand makes it big. Reactions and comments stay available below. */
-  function tvPlay(it,id){
-    const old=host.querySelector('.tvplayer');if(old)old.remove();
-    const def=OW.def(it.type);
-    const fr=h('iframe',{src:'https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&playsinline=1&rel=0&modestbranding=1',allow:'autoplay; encrypted-media; picture-in-picture; fullscreen',allowfullscreen:'',title:it.title||'YouTube video'});
-    const ex=h('button',{class:'tv-b','aria-label':'Expand'},icon('expand')),cl=h('button',{class:'tv-b','aria-label':'Close video'},icon('close'));
-    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},h('span',null,it.title||(it.type==='tv'?'Now playing on TV':def.name)),ex,cl),h('div',{class:'tv-screen'},fr));
-    ex.onclick=()=>{const big=box.classList.toggle('big');ex.setAttribute('aria-label',big?'Shrink':'Expand');};
-    cl.onclick=()=>box.remove();
-    host.append(box);
-  }
+  /* YouTube links play on the room's shared TV (synced for everyone in the room) */
+  function tvPlay(it,id){OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:id,title:it.title||null});}
   function openItem(it){
     const yid=it.link&&ytId(it.link);if(yid)return tvPlay(it,yid);
     const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path||(it.props&&it.props.images&&it.props.images.length);if(!hasInfo)return;
