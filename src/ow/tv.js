@@ -26,7 +26,7 @@ const OWTv=(()=>{
 
     /* ----- UI ----- */
     const ic=(n)=>icon(n);
-    const cmB=h('button',{class:'tv-b tv-cm','aria-label':'Comments'},ic('chat')),rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close TV'},ic('close'));
+    const bdg=h('i',{class:'tv-badge'}),cmB=h('button',{class:'tv-b tv-cm','aria-label':'Comments'},ic('chat'),bdg),rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close TV'},ic('close'));
     const ttl=h('span',null,'TV');
     const slot=h('div',{id:'tv-yt-'+Math.random().toString(36).slice(2,7)});
     const fl=h('div',{class:'tv-float'});
@@ -41,7 +41,7 @@ const OWTv=(()=>{
     const lst=h('div',{class:'tv-list'});
     const pl=h('div',{class:'tv-pl'},h('div',{class:'tv-add-row'},urlIn,addB),lst);
     const cList=h('div',{class:'tv-clist'}),cIn=h('input',{type:'text',maxlength:'300',placeholder:'Say something nice\u2026',class:'tv-in'}),cSend=h('button',{class:'tv-add'},'Post');
-    const QUICK=['\ud83d\udd25 Fire','\ud83d\udc4f Great one','\ud83d\ude02 Funny','\u2764\ufe0f Love this'];
+    const QUICK=['\ud83d\ude31 What happened?','\ud83d\ude28 This is scary','\ud83d\ude02 This is funny','\ud83e\udd14 This is interesting','\ud83d\udd25 Fire','\ud83d\udc4f Great one','\u2764\ufe0f Love this'];
     const cHead=h('div',{class:'tv-ch'},'Comments on this video'),cWrite=h('button',{class:'tv-add tv-wr'},'Write a comment');
     const cChips=h('div',{class:'tv-chips'},...QUICK.map(t=>h('button',{onclick:()=>postC(t)},t)),cWrite);
     const cRow=h('div',{class:'tv-add-row tv-typing'},cIn,cSend);
@@ -110,21 +110,31 @@ const OWTv=(()=>{
     tap.addEventListener('click',()=>{if(!box.classList.contains('rot')){PP.forEach(c=>box.classList.remove(c));return;}if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
     box.addEventListener('pointerdown',()=>{if(box.classList.contains('rot')&&box.classList.contains('ui-on')&&!box.classList.contains('side-on'))showUi();});
     let cT=0;
-    async function loadC(){const v=S.q[S.i];if(!o.comments||!alive||!v){cList.replaceChildren(h('p',{class:'tv-none'},'Nothing is playing.'));return;}try{const cs=await o.comments.load(v.id);if(!S.q[S.i]||S.q[S.i].id!==v.id)return;cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;}catch(e){}}
+    async function loadC(){const v=S.q[S.i];if(!o.comments||!alive||!v){cList.replaceChildren(h('p',{class:'tv-none'},'Nothing is playing.'));return;}try{const cs=await o.comments.load(v.id);if(!S.q[S.i]||S.q[S.i].id!==v.id)return;cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;cnt[v.id]=cs.length;seen[v.id]=cs.length;badge();}catch(e){}}
     cmB.style.display=o.comments?'':'none';
+    /* unread count on the comment icon: comments on this video you have not opened yet */
+    const cnt={},seen={};
+    function badge(){const v=S.q[S.i],n=v?Math.max(0,(cnt[v.id]||0)-(seen[v.id]||0)):0;bdg.textContent=n>99?'99+':String(n||'');bdg.classList.toggle('on',n>0);cmB.setAttribute('aria-label',n?'Comments, '+n+' new':'Comments');}
+    async function refreshCount(){const v=S.q[S.i];if(!o.comments||!alive||!v||document.hidden)return;try{const cs=await o.comments.load(v.id);cnt[v.id]=cs.length;if(box.classList.contains('cm-on'))seen[v.id]=cs.length;badge();}catch(e){}}
+    const cI=setInterval(refreshCount,12000);setTimeout(refreshCount,1800);
     /* the icons in the title bar each open one panel over the video; tapping the icon again closes it */
     const PP=['pp-ctl','pp-rx','pl-on','cm-on'];
     const pp=k=>{const on=!box.classList.contains(k);PP.forEach(c=>box.classList.remove(c));if(on)box.classList.add(k);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));
       clearInterval(cT);if(k==='cm-on'&&on){loadC();cT=setInterval(loadC,5000);}if(box.classList.contains('rot'))showUi();};
     cmB.onclick=()=>pp('cm-on');ctlB.onclick=()=>pp('pp-ctl');rxB.onclick=()=>pp('pp-rx');
-    const postC=async(txt)=>{const t=(typeof txt==='string'?txt:cIn.value).trim();const v=S.q[S.i];if(!t||!o.comments||!v)return;try{await o.comments.post(v.id,t);if(typeof txt!=='string')cIn.value='';loadC();}catch(e){}};
+    const postC=async(txt)=>{const t=(typeof txt==='string'?txt:cIn.value).trim();const v=S.q[S.i];if(!t||!o.comments||!v)return;try{await o.comments.post(v.id,t);if(typeof txt!=='string')cIn.value='';seen[v.id]=(cnt[v.id]||0)+1;cnt[v.id]=seen[v.id];badge();cIn.blur();PP.forEach(c=>box.classList.remove(c));box.classList.remove('side-on');clearInterval(cT);undodge();setTimeout(refreshCount,800);}catch(e){}};
     cSend.onclick=()=>postC();cIn.addEventListener('keydown',e=>{if(e.key==='Enter')postC();});
     /* typing needs the phone keyboard, which cannot share a sideways full screen. So "Write a comment" leaves full screen and
        puts the video in the top corner, with the comment box right under it, so the keyboard never covers the picture. */
-    function typingMode(){if(box.classList.contains('rot')){rot.onclick();}PP.forEach(c=>box.classList.remove(c));box.classList.add('cm-on');loadC();clearInterval(cT);cT=setInterval(loadC,5000);box.classList.remove('big');box.classList.add('typing');box.style.left='12px';box.style.top='calc(56px + var(--sat))';setTimeout(()=>cIn.focus(),120);}
+    function typingMode(){if(box.classList.contains('rot')){rot.onclick();}PP.forEach(c=>box.classList.remove(c));box.classList.add('cm-on');loadC();clearInterval(cT);cT=setInterval(loadC,5000);setTimeout(()=>cIn.focus(),120);}
+    /* the window keeps its size; if the keyboard would cover it, it just slides up out of the way */
+    const vv=window.visualViewport;let savedTop=null;
+    function dodge(){if(!alive||box.classList.contains('rot'))return;const lim=(vv?vv.height:innerHeight)-8,r=box.getBoundingClientRect();if(r.bottom>lim){const hr=o.host.getBoundingClientRect();if(savedTop===null)savedTop=box.style.top;box.style.top=Math.max(0,r.top-hr.top-(r.bottom-lim))+'px';}}
+    function undodge(){if(savedTop!==null){box.style.top=savedTop;savedTop=null;}}
+    if(vv)vv.addEventListener('resize',()=>{if(document.activeElement===cIn)dodge();else undodge();});
     cWrite.onclick=()=>{typingMode();};
-    cIn.addEventListener('blur',()=>{setTimeout(()=>{if(document.activeElement!==cIn)box.classList.remove('typing');},200);});
-    cIn.addEventListener('focus',()=>{if(!box.classList.contains('rot')){box.classList.remove('big');box.classList.add('typing');box.style.left='12px';box.style.top='calc(56px + var(--sat))';}});
+    cIn.addEventListener('focus',()=>{setTimeout(dodge,350);});
+    cIn.addEventListener('blur',()=>{setTimeout(()=>{if(document.activeElement!==cIn)undodge();},250);});
 
     /* draggable by its title bar (not while expanded or rotated) */
     (function(){const bar=box.querySelector('.tv-bar');let st=null;
@@ -133,7 +143,7 @@ const OWTv=(()=>{
       const end=()=>{st=null;};bar.addEventListener('pointerup',end);bar.addEventListener('pointercancel',end);})();
 
     function render(){
-      const v=S.q[S.i];ttl.textContent=v?v.t:'TV';if((v&&v.id)!==shownVid){shownVid=v&&v.id;if(box.classList.contains('cm-on'))loadC();}box.classList.toggle('empty',!v);
+      const v=S.q[S.i];ttl.textContent=v?v.t:'TV';if((v&&v.id)!==shownVid){shownVid=v&&v.id;if(box.classList.contains('cm-on'))loadC();else if(typeof refreshCount==='function')setTimeout(refreshCount,300);if(typeof badge==='function')badge();}box.classList.toggle('empty',!v);
       bPlay.replaceChildren(ic(S.play?'pause':'play'));bNext.disabled=S.i+1>=S.q.length;
       lst.replaceChildren(...(S.q.length?S.q.map((q,k)=>h('div',{class:'tv-li'+(k===S.i?' on':'')},
         h('button',{class:'tv-th','aria-label':'Play '+q.t,onclick:()=>playIndex(k)},h('img',{src:'https://i.ytimg.com/vi/'+q.id+'/default.jpg',alt:'',loading:'lazy',width:'64',height:'36'}),h('span',null,(k===S.i?'▶ ':'')+q.t)),
@@ -169,7 +179,7 @@ const OWTv=(()=>{
 
     const api={alive:true,
       addOrFocus(id){if(!id)return;if(!S.q.some(v=>v.id===id))add(id);else{const k=S.q.findIndex(v=>v.id===id);if(k!==S.i)playIndex(k);}},
-      destroy(){if(!alive)return;alive=false;api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearTimeout(uiT);try{player&&player.destroy();}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
+      destroy(){if(!alive)return;alive=false;api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{player&&player.destroy();}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
     cur[o.roomId]=api;return api;
   }

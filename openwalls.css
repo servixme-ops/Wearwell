@@ -254,7 +254,7 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .seg button.on{border-color:#6c4bff;background:#f1edff}
 
 /* Room TV: shared YouTube player */
-.tvplayer{position:absolute;left:12px;top:calc(64px + var(--sat));width:min(260px,66vw);z-index:7;border-radius:16px;overflow:hidden;background:#15122a;color:#fff;box-shadow:0 14px 34px rgba(10,10,30,.55);touch-action:none}
+.tvplayer{position:absolute;left:12px;top:calc(64px + var(--sat));width:min(310px,82vw);z-index:7;border-radius:16px;overflow:hidden;background:#15122a;color:#fff;box-shadow:0 14px 34px rgba(10,10,30,.55);touch-action:none}
 .tvplayer.big{left:3%;width:min(94%,720px)}
 .tv-bar{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;font:700 12px var(--disp);cursor:grab;user-select:none}
 .tv-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -303,4 +303,5 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tvplayer:not(.rot) .tv-clist{max-height:110px}.tvplayer:not(.rot) .tv-chips{display:none}
 .tvplayer.rot .tv-typing{display:none}.tv-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.tv-chips button{padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.12);color:#fff;font:700 12px var(--disp)}
 .tvplayer:not(.rot) .tv-wr{display:none}.tv-chips .tv-wr{background:#ff5a3c;border-radius:99px;padding:7px 12px}
-.tvplayer.typing{width:min(300px,78vw)!important}
+
+.tv-cm{position:relative}.tv-badge{display:none;position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#ff3d5a;color:#fff;font:800 10px/17px var(--disp);text-align:center;font-style:normal;box-shadow:0 0 0 2px #15122a}.tv-badge.on{display:block}
