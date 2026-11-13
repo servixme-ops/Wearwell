@@ -97,7 +97,7 @@ const OWTv=(()=>{
     rng.addEventListener('input',()=>{seeking=true;});
     rng.addEventListener('change',()=>{seeking=false;try{const d=player.getDuration()||0;if(d)seekBy(rng.value/1000*d-pos());}catch(e){}});
     ex.onclick=()=>{const big=box.classList.toggle('big');ex.setAttribute('aria-label',big?'Shrink':'Expand');box.style.left=box.style.top='';};
-    rot.onclick=()=>{const on=box.classList.toggle('rot');box.style.left=box.style.top='';box.classList.remove('side-on','pl-on','cm-on');clearTimeout(uiT);box.classList.toggle('ui-on',on);if(on)showUi();document.body.classList.toggle('tv-rotated',on);rot.setAttribute('aria-label',on?'Back to portrait':'Rotate to landscape');
+    rot.onclick=()=>{const on=box.classList.toggle('rot');box.style.left=box.style.top='';box.classList.remove('side-on','pl-on','cm-on');clearTimeout(uiT);box.classList.remove('ui-on');document.body.classList.toggle('tv-rotated',on);rot.setAttribute('aria-label',on?'Back to portrait':'Rotate to landscape');
       if(on){try{const e=document.documentElement;e.requestFullscreen&&e.requestFullscreen().catch(()=>{});}catch(_){}}else{try{document.fullscreenElement&&document.exitFullscreen();}catch(_){}}};
 
     /* full screen: only the video until you tap it; the controls fade in over the picture, then fade out */
