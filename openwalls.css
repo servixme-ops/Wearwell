@@ -253,10 +253,26 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .seg button b{display:block;font:800 14px var(--disp)}.seg button span{display:block;font-size:12px;opacity:.65;margin-top:2px}
 .seg button.on{border-color:#6c4bff;background:#f1edff}
 
-/* YouTube TV player over the room */
-.tvplayer{position:absolute;left:12px;top:calc(64px + var(--sat));width:min(230px,58vw);z-index:5;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 12px 30px rgba(10,10,30,.5);transition:width .25s}
-.tvplayer.big{left:0;right:0;top:calc(56px + var(--sat));width:100%;border-radius:0 0 16px 16px}
-.tv-bar{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:#15122a;color:#fff;font:700 12px var(--disp)}
+/* Room TV: shared YouTube player */
+.tvplayer{position:absolute;left:12px;top:calc(64px + var(--sat));width:min(260px,66vw);z-index:7;border-radius:16px;overflow:hidden;background:#15122a;color:#fff;box-shadow:0 14px 34px rgba(10,10,30,.55);touch-action:none}
+.tvplayer.big{left:0!important;right:0;top:calc(56px + var(--sat))!important;width:100%;border-radius:0 0 18px 18px}
+.tv-bar{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;font:700 12px var(--disp);cursor:grab;user-select:none}
 .tv-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tv-b{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.12)}.tv-b svg{width:16px;height:16px}
-.tv-screen{aspect-ratio:16/9;background:#000}.tv-screen iframe{width:100%;height:100%;border:0;display:block}
+.tv-b{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.12)}.tv-b svg{width:17px;height:17px}
+.tv-screen{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden}.tv-screen iframe{width:100%;height:100%;border:0;display:block;pointer-events:none}
+.tv-msg{position:absolute;inset:auto 8px 8px;font:600 12px var(--disp);text-align:center;color:#fff}
+.tv-float{position:absolute;inset:0;pointer-events:none;overflow:hidden}.tv-fe{position:absolute;bottom:-10px;font-size:26px;animation:tvup 2.2s ease-out forwards}
+@keyframes tvup{to{transform:translateY(-150px);opacity:0}}
+.tv-seek{display:flex;align-items:center;gap:8px;padding:6px 12px 0}.tv-rng{flex:1;accent-color:#ff5a3c;min-width:0}.tv-tm{font:600 11px var(--disp);opacity:.75;white-space:nowrap}
+.tv-ctr{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 8px 6px}
+.tv-c{min-width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.1);font:800 12px var(--disp)}.tv-c svg{width:19px;height:19px}.tv-c.big{width:46px;background:#ff5a3c}.tv-c:disabled{opacity:.35}
+.tv-rx{display:flex;align-items:center;gap:4px;padding:4px 10px 8px;border-top:1px solid rgba(255,255,255,.1)}.tv-rx span{flex:1;font:600 11px var(--disp);opacity:.65}.tv-rx button{font-size:20px;width:36px;height:34px;border-radius:10px;background:rgba(255,255,255,.08)}
+.tv-pl{display:none;border-top:1px solid rgba(255,255,255,.1);padding:8px 10px 10px;max-height:32vh;overflow-y:auto}.tvplayer.pl-on .tv-pl{display:block}
+.tv-add-row{display:flex;gap:6px;margin-bottom:8px}.tv-in{flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:0;background:rgba(255,255,255,.12)!important;color:#fff!important;font-size:13px}.tv-in::placeholder{color:rgba(255,255,255,.5)}
+.tv-add{padding:0 12px;border-radius:10px;background:#ff5a3c;color:#fff;font:800 12px var(--disp)}
+.tv-li{display:flex;align-items:center;gap:4px;border-radius:10px}.tv-li.on{background:rgba(255,255,255,.1)}.tv-th{flex:1;min-width:0;display:flex;align-items:center;gap:8px;text-align:left;color:#fff;padding:4px}.tv-th img{width:64px;height:36px;border-radius:6px;object-fit:cover;background:#000;flex:none}.tv-th span{font:600 12px var(--disp);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tv-x{width:28px;height:28px;display:grid;place-items:center;color:#fff;opacity:.7}.tv-x svg{width:14px;height:14px}.tv-none{font-size:12px;opacity:.65;margin:4px 0}
+/* rotated: the player turns sideways to fill a portrait phone */
+.tvplayer.rot{position:fixed;left:0!important;top:0!important;width:100vh;width:100dvh;height:100vw;height:100dvw;transform-origin:0 0;transform:translateX(100vw) rotate(90deg);border-radius:0;display:flex;flex-direction:column;z-index:200}
+.tvplayer.rot .tv-screen{flex:1;aspect-ratio:auto;min-height:0}.tvplayer.rot .tv-pl{max-height:30vw}
+body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
