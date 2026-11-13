@@ -41,7 +41,11 @@ const OWTv=(()=>{
     const lst=h('div',{class:'tv-list'});
     const pl=h('div',{class:'tv-pl'},h('div',{class:'tv-add-row'},urlIn,addB),lst);
     const cList=h('div',{class:'tv-clist'}),cIn=h('input',{type:'text',maxlength:'300',placeholder:'Say something nice\u2026',class:'tv-in'}),cSend=h('button',{class:'tv-add'},'Post');
-    const cmP=h('div',{class:'tv-cmp'},h('div',{class:'tv-ch'},'Comments'),cList,h('div',{class:'tv-add-row'},cIn,cSend));
+    const QUICK=['\ud83d\udd25 Fire','\ud83d\udc4f Great one','\ud83d\ude02 Funny','\u2764\ufe0f Love this'];
+    const cHead=h('div',{class:'tv-ch'},'Comments on this video'),cWrite=h('button',{class:'tv-add tv-wr'},'Write a comment');
+    const cChips=h('div',{class:'tv-chips'},...QUICK.map(t=>h('button',{onclick:()=>postC(t)},t)),cWrite);
+    const cRow=h('div',{class:'tv-add-row tv-typing'},cIn,cSend);
+    const cmP=h('div',{class:'tv-cmp'},cHead,cList,cChips,cRow);
     const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,ctlB,bList,rxB,cmB,rot,ex,cl),screen,seekRow,ctr,rx,pl,cmP);
     o.host.append(box);
 
@@ -101,20 +105,26 @@ const OWTv=(()=>{
       if(on){try{const e=document.documentElement;e.requestFullscreen&&e.requestFullscreen().catch(()=>{});}catch(_){}}else{try{document.fullscreenElement&&document.exitFullscreen();}catch(_){}}};
 
     /* full screen: only the video until you tap it; the controls fade in over the picture, then fade out */
-    let uiT=0;
+    let uiT=0,shownVid=null;
     function showUi(){box.classList.add('ui-on');clearTimeout(uiT);uiT=setTimeout(()=>{if(!box.classList.contains('side-on'))box.classList.remove('ui-on');},3500);}
     tap.addEventListener('click',()=>{if(!box.classList.contains('rot')){PP.forEach(c=>box.classList.remove(c));return;}if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
     box.addEventListener('pointerdown',()=>{if(box.classList.contains('rot')&&box.classList.contains('ui-on')&&!box.classList.contains('side-on'))showUi();});
     let cT=0;
-    async function loadC(){if(!o.comments||!alive)return;try{const cs=await o.comments.load();cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;}catch(e){}}
+    async function loadC(){const v=S.q[S.i];if(!o.comments||!alive||!v){cList.replaceChildren(h('p',{class:'tv-none'},'Nothing is playing.'));return;}try{const cs=await o.comments.load(v.id);if(!S.q[S.i]||S.q[S.i].id!==v.id)return;cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;}catch(e){}}
     cmB.style.display=o.comments?'':'none';
     /* the icons in the title bar each open one panel over the video; tapping the icon again closes it */
     const PP=['pp-ctl','pp-rx','pl-on','cm-on'];
     const pp=k=>{const on=!box.classList.contains(k);PP.forEach(c=>box.classList.remove(c));if(on)box.classList.add(k);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));
       clearInterval(cT);if(k==='cm-on'&&on){loadC();cT=setInterval(loadC,5000);}if(box.classList.contains('rot'))showUi();};
     cmB.onclick=()=>pp('cm-on');ctlB.onclick=()=>pp('pp-ctl');rxB.onclick=()=>pp('pp-rx');
-    const postC=async()=>{const t=cIn.value.trim();if(!t||!o.comments)return;try{await o.comments.post(t);cIn.value='';loadC();}catch(e){}};
-    cSend.onclick=postC;cIn.addEventListener('keydown',e=>{if(e.key==='Enter')postC();});
+    const postC=async(txt)=>{const t=(typeof txt==='string'?txt:cIn.value).trim();const v=S.q[S.i];if(!t||!o.comments||!v)return;try{await o.comments.post(v.id,t);if(typeof txt!=='string')cIn.value='';loadC();}catch(e){}};
+    cSend.onclick=()=>postC();cIn.addEventListener('keydown',e=>{if(e.key==='Enter')postC();});
+    /* typing needs the phone keyboard, which cannot share a sideways full screen. So "Write a comment" leaves full screen and
+       puts the video in the top corner, with the comment box right under it, so the keyboard never covers the picture. */
+    function typingMode(){if(box.classList.contains('rot')){rot.onclick();}PP.forEach(c=>box.classList.remove(c));box.classList.add('cm-on');loadC();clearInterval(cT);cT=setInterval(loadC,5000);box.classList.remove('big');box.classList.add('typing');box.style.left='12px';box.style.top='calc(56px + var(--sat))';setTimeout(()=>cIn.focus(),120);}
+    cWrite.onclick=()=>{typingMode();};
+    cIn.addEventListener('blur',()=>{setTimeout(()=>{if(document.activeElement!==cIn)box.classList.remove('typing');},200);});
+    cIn.addEventListener('focus',()=>{if(!box.classList.contains('rot')){box.classList.remove('big');box.classList.add('typing');box.style.left='12px';box.style.top='calc(56px + var(--sat))';}});
 
     /* draggable by its title bar (not while expanded or rotated) */
     (function(){const bar=box.querySelector('.tv-bar');let st=null;
@@ -123,7 +133,7 @@ const OWTv=(()=>{
       const end=()=>{st=null;};bar.addEventListener('pointerup',end);bar.addEventListener('pointercancel',end);})();
 
     function render(){
-      const v=S.q[S.i];ttl.textContent=v?v.t:'TV';box.classList.toggle('empty',!v);
+      const v=S.q[S.i];ttl.textContent=v?v.t:'TV';if((v&&v.id)!==shownVid){shownVid=v&&v.id;if(box.classList.contains('cm-on'))loadC();}box.classList.toggle('empty',!v);
       bPlay.replaceChildren(ic(S.play?'pause':'play'));bNext.disabled=S.i+1>=S.q.length;
       lst.replaceChildren(...(S.q.length?S.q.map((q,k)=>h('div',{class:'tv-li'+(k===S.i?' on':'')},
         h('button',{class:'tv-th','aria-label':'Play '+q.t,onclick:()=>playIndex(k)},h('img',{src:'https://i.ytimg.com/vi/'+q.id+'/default.jpg',alt:'',loading:'lazy',width:'64',height:'36'}),h('span',null,(k===S.i?'▶ ':'')+q.t)),
