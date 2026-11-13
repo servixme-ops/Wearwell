@@ -287,7 +287,6 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .tvplayer.rot .tv-pl,.tvplayer.rot .tv-cmp{position:absolute;z-index:4;top:0;right:0;bottom:0;width:min(46%,340px);max-height:none;background:rgba(15,12,35,.92);padding:12px;display:none;flex-direction:column}
 .tvplayer.rot.pl-on .tv-pl{display:block}.tvplayer.rot.cm-on .tv-cmp{display:flex}
 .tv-cmp{display:none}.tv-ch{font:800 14px var(--disp);margin-bottom:8px}.tv-clist{flex:1;overflow-y:auto;min-height:0;margin-bottom:8px}.tv-c1{font-size:13px;margin-bottom:7px;word-break:break-word}.tv-c1 b{color:#ffb4a3}
-.tvplayer:not(.rot) .tv-cm{display:none!important}
 body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 
 /* window mode: only the video; each title-bar icon opens one panel over the picture */
@@ -298,3 +297,10 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tvplayer:not(.rot).pl-on .tv-tap,.tvplayer:not(.rot).pp-ctl .tv-tap,.tvplayer:not(.rot).pp-rx .tv-tap{display:block}
 .tvplayer:not(.rot).pl-on .tv-tap{display:none}
 .tvplayer.rot .tv-pb-ctl,.tvplayer.rot .tv-pb-rx{display:none}
+
+/* video comments: under the video in window mode, over the side in full screen */
+.tvplayer:not(.rot).cm-on .tv-cmp{display:flex;position:static;flex-direction:column;padding:8px 10px 10px;background:#15122a;border-top:1px solid rgba(255,255,255,.1)}
+.tvplayer:not(.rot) .tv-clist{max-height:110px}.tvplayer:not(.rot) .tv-chips{display:none}
+.tvplayer.rot .tv-typing{display:none}.tv-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.tv-chips button{padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.12);color:#fff;font:700 12px var(--disp)}
+.tvplayer:not(.rot) .tv-wr{display:none}.tv-chips .tv-wr{background:#ff5a3c;border-radius:99px;padding:7px 12px}
+.tvplayer.typing{width:min(300px,78vw)!important}

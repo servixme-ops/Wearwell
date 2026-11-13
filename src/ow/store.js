@@ -43,6 +43,8 @@ const Store={
     const r=await sb.from('room_reactions').upsert({room_id:room,user_id:Auth.user.id,kind},{onConflict:'room_id,user_id'});if(r.error)throw r.error;},
   async comments(room){const r=await sb.rpc('ow_comments',{p_room:room});if(r.error)throw r.error;return r.data||[];},
   async comment(room,body){const r=await sb.from('room_comments').insert({room_id:room,user_id:Auth.user.id,body});if(r.error)throw r.error;},
+  async videoComments(room,vid){const r=await sb.rpc('ow_video_comments',{p_room:room,p_video:vid});if(r.error)throw r.error;return r.data||[];},
+  async videoComment(room,vid,body){const r=await sb.from('video_comments').insert({room_id:room,video_id:vid,user_id:Auth.user.id,body});if(r.error)throw r.error;},
   async delComment(id){const r=await sb.from('room_comments').delete().eq('id',id);if(r.error)throw r.error;},
   async conversations(){const r=await sb.rpc('ow_conversations');if(r.error)throw r.error;return r.data||[];},
   async thread(peer){const me=Auth.user.id;const r=await sb.from('messages').select('*').or(`and(sender_id.eq.${me},recipient_id.eq.${peer}),and(sender_id.eq.${peer},recipient_id.eq.${me})`).order('created_at',{ascending:true}).limit(200);if(r.error)throw r.error;return r.data||[];},
