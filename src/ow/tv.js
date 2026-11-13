@@ -32,9 +32,9 @@ const OWTv=(()=>{
     const fl=h('div',{class:'tv-float'});
     const tap=h('div',{class:'tv-tap'});
     const screen=h('div',{class:'tv-screen'},slot,tap,fl,h('div',{class:'tv-msg'}));
-    const bPlay=h('button',{class:'tv-c big','aria-label':'Play or pause'},ic('play')),bBack=h('button',{class:'tv-c','aria-label':'Back 10 seconds'},h('b',null,'-10')),bFwd=h('button',{class:'tv-c','aria-label':'Forward 10 seconds'},h('b',null,'+10')),bNext=h('button',{class:'tv-c','aria-label':'Next video'},ic('next')),bList=h('button',{class:'tv-c','aria-label':'Playlist'},ic('list'));
+    const bPlay=h('button',{class:'tv-c big','aria-label':'Play or pause'},ic('play')),bBack=h('button',{class:'tv-c','aria-label':'Back 10 seconds'},h('b',null,'-10')),bFwd=h('button',{class:'tv-c','aria-label':'Forward 10 seconds'},h('b',null,'+10')),bNext=h('button',{class:'tv-c','aria-label':'Next video'},ic('next')),bList=h('button',{class:'tv-b','aria-label':'Playlist'},ic('list')),ctlB=h('button',{class:'tv-b tv-pb-ctl','aria-label':'Playback controls'},ic('play')),rxB=h('button',{class:'tv-b tv-pb-rx','aria-label':'Reactions'},'\u2764\ufe0f');
     const rng=h('input',{type:'range',min:'0',max:'1000',value:'0',class:'tv-rng','aria-label':'Seek'}),tm=h('span',{class:'tv-tm'},'0:00');
-    const ctr=h('div',{class:'tv-ctr'},bBack,bPlay,bFwd,bNext,bList);
+    const ctr=h('div',{class:'tv-ctr'},bBack,bPlay,bFwd,bNext);
     const seekRow=h('div',{class:'tv-seek'},rng,tm);
     const rx=h('div',{class:'tv-rx'},h('span',null,'Live reactions'),...EM.map(e=>h('button',{'aria-label':'React '+e,onclick:()=>react(e)},e)));
     const urlIn=h('input',{type:'url',placeholder:'Paste a YouTube link to queue',class:'tv-in'}),addB=h('button',{class:'tv-add'},'Add');
@@ -42,7 +42,7 @@ const OWTv=(()=>{
     const pl=h('div',{class:'tv-pl'},h('div',{class:'tv-add-row'},urlIn,addB),lst);
     const cList=h('div',{class:'tv-clist'}),cIn=h('input',{type:'text',maxlength:'300',placeholder:'Say something nice\u2026',class:'tv-in'}),cSend=h('button',{class:'tv-add'},'Post');
     const cmP=h('div',{class:'tv-cmp'},h('div',{class:'tv-ch'},'Comments'),cList,h('div',{class:'tv-add-row'},cIn,cSend));
-    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,cmB,rot,ex,cl),screen,seekRow,ctr,rx,pl,cmP);
+    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,ctlB,bList,rxB,cmB,rot,ex,cl),screen,seekRow,ctr,rx,pl,cmP);
     o.host.append(box);
 
     /* ----- messaging ----- */
@@ -93,29 +93,33 @@ const OWTv=(()=>{
     }
     addB.onclick=fromInput;urlIn.addEventListener('keydown',e=>{if(e.key==='Enter')fromInput();});
     bPlay.onclick=toggle;bBack.onclick=()=>seekBy(-10);bFwd.onclick=()=>seekBy(10);bNext.onclick=next;
-    bList.onclick=()=>{const on=box.classList.toggle('pl-on');if(on)box.classList.remove('cm-on');box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));if(box.classList.contains('rot'))showUi();};
+    bList.onclick=()=>pp('pl-on');
     rng.addEventListener('input',()=>{seeking=true;});
     rng.addEventListener('change',()=>{seeking=false;try{const d=player.getDuration()||0;if(d)seekBy(rng.value/1000*d-pos());}catch(e){}});
     ex.onclick=()=>{const big=box.classList.toggle('big');ex.setAttribute('aria-label',big?'Shrink':'Expand');box.style.left=box.style.top='';};
-    rot.onclick=()=>{const on=box.classList.toggle('rot');box.style.left=box.style.top='';box.classList.remove('side-on','pl-on','cm-on');clearTimeout(uiT);box.classList.remove('ui-on');document.body.classList.toggle('tv-rotated',on);rot.setAttribute('aria-label',on?'Back to portrait':'Rotate to landscape');
+    rot.onclick=()=>{const on=box.classList.toggle('rot');box.style.left=box.style.top='';PP.forEach(c=>box.classList.remove(c));box.classList.remove('side-on');clearTimeout(uiT);box.classList.remove('ui-on');document.body.classList.toggle('tv-rotated',on);rot.setAttribute('aria-label',on?'Back to portrait':'Rotate to landscape');
       if(on){try{const e=document.documentElement;e.requestFullscreen&&e.requestFullscreen().catch(()=>{});}catch(_){}}else{try{document.fullscreenElement&&document.exitFullscreen();}catch(_){}}};
 
     /* full screen: only the video until you tap it; the controls fade in over the picture, then fade out */
     let uiT=0;
     function showUi(){box.classList.add('ui-on');clearTimeout(uiT);uiT=setTimeout(()=>{if(!box.classList.contains('side-on'))box.classList.remove('ui-on');},3500);}
-    tap.addEventListener('click',()=>{if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
+    tap.addEventListener('click',()=>{if(!box.classList.contains('rot')){PP.forEach(c=>box.classList.remove(c));return;}if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
     box.addEventListener('pointerdown',()=>{if(box.classList.contains('rot')&&box.classList.contains('ui-on')&&!box.classList.contains('side-on'))showUi();});
     let cT=0;
     async function loadC(){if(!o.comments||!alive)return;try{const cs=await o.comments.load();cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;}catch(e){}}
     cmB.style.display=o.comments?'':'none';
-    cmB.onclick=()=>{const on=box.classList.toggle('cm-on');if(on){box.classList.remove('pl-on');loadC();clearInterval(cT);cT=setInterval(loadC,5000);}else clearInterval(cT);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));showUi();};
+    /* the icons in the title bar each open one panel over the video; tapping the icon again closes it */
+    const PP=['pp-ctl','pp-rx','pl-on','cm-on'];
+    const pp=k=>{const on=!box.classList.contains(k);PP.forEach(c=>box.classList.remove(c));if(on)box.classList.add(k);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));
+      clearInterval(cT);if(k==='cm-on'&&on){loadC();cT=setInterval(loadC,5000);}if(box.classList.contains('rot'))showUi();};
+    cmB.onclick=()=>pp('cm-on');ctlB.onclick=()=>pp('pp-ctl');rxB.onclick=()=>pp('pp-rx');
     const postC=async()=>{const t=cIn.value.trim();if(!t||!o.comments)return;try{await o.comments.post(t);cIn.value='';loadC();}catch(e){}};
     cSend.onclick=postC;cIn.addEventListener('keydown',e=>{if(e.key==='Enter')postC();});
 
     /* draggable by its title bar (not while expanded or rotated) */
     (function(){const bar=box.querySelector('.tv-bar');let st=null;
-      bar.addEventListener('pointerdown',e=>{if(e.target.closest('button')||box.classList.contains('big')||box.classList.contains('rot'))return;const r=box.getBoundingClientRect(),hr=o.host.getBoundingClientRect();st={dx:e.clientX-r.left,dy:e.clientY-r.top,hr};bar.setPointerCapture(e.pointerId);e.preventDefault();});
-      bar.addEventListener('pointermove',e=>{if(!st)return;const w=box.offsetWidth,hh=box.offsetHeight;let x=e.clientX-st.dx-st.hr.left,y=e.clientY-st.dy-st.hr.top;x=Math.max(0,Math.min(st.hr.width-w,x));y=Math.max(0,Math.min(st.hr.height-hh-70,y));box.style.left=x+'px';box.style.top=y+'px';});
+      bar.addEventListener('pointerdown',e=>{if(e.target.closest('button')||box.classList.contains('rot'))return;const r=box.getBoundingClientRect(),hr=o.host.getBoundingClientRect();st={dx:e.clientX-r.left,dy:e.clientY-r.top,hr};bar.setPointerCapture(e.pointerId);e.preventDefault();});
+      bar.addEventListener('pointermove',e=>{if(!st)return;const w=box.offsetWidth,hh=box.offsetHeight;let x=e.clientX-st.dx-st.hr.left,y=e.clientY-st.dy-st.hr.top;x=Math.max(0,Math.min(st.hr.width-w,x));y=Math.max(0,Math.min(st.hr.height-hh,y));box.style.left=x+'px';box.style.top=y+'px';});
       const end=()=>{st=null;};bar.addEventListener('pointerup',end);bar.addEventListener('pointercancel',end);})();
 
     function render(){

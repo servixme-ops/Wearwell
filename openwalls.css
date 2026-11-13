@@ -255,7 +255,7 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 
 /* Room TV: shared YouTube player */
 .tvplayer{position:absolute;left:12px;top:calc(64px + var(--sat));width:min(260px,66vw);z-index:7;border-radius:16px;overflow:hidden;background:#15122a;color:#fff;box-shadow:0 14px 34px rgba(10,10,30,.55);touch-action:none}
-.tvplayer.big{left:0!important;right:0;top:calc(56px + var(--sat))!important;width:100%;border-radius:0 0 18px 18px}
+.tvplayer.big{left:3%;width:min(94%,720px)}
 .tv-bar{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;font:700 12px var(--disp);cursor:grab;user-select:none}
 .tv-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tv-b{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.12)}.tv-b svg{width:17px;height:17px}
@@ -289,3 +289,12 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .tv-cmp{display:none}.tv-ch{font:800 14px var(--disp);margin-bottom:8px}.tv-clist{flex:1;overflow-y:auto;min-height:0;margin-bottom:8px}.tv-c1{font-size:13px;margin-bottom:7px;word-break:break-word}.tv-c1 b{color:#ffb4a3}
 .tvplayer:not(.rot) .tv-cm{display:none!important}
 body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
+
+/* window mode: only the video; each title-bar icon opens one panel over the picture */
+.tvplayer:not(.rot) .tv-seek,.tvplayer:not(.rot) .tv-ctr,.tvplayer:not(.rot) .tv-rx{display:none;position:absolute;left:0;right:0;z-index:3;background:rgba(15,12,35,.9)}
+.tvplayer:not(.rot) .tv-seek{bottom:56px;padding-bottom:0}.tvplayer:not(.rot) .tv-ctr{bottom:0}.tvplayer:not(.rot).pp-ctl .tv-seek,.tvplayer:not(.rot).pp-ctl .tv-ctr{display:flex}
+.tvplayer:not(.rot) .tv-rx{bottom:0;border:0;padding:8px 10px}.tvplayer:not(.rot).pp-rx .tv-rx{display:flex}
+.tvplayer:not(.rot) .tv-pl{position:absolute;left:0;right:0;top:44px;bottom:0;max-height:none;z-index:3;background:rgba(15,12,35,.94);border:0}
+.tvplayer:not(.rot).pl-on .tv-tap,.tvplayer:not(.rot).pp-ctl .tv-tap,.tvplayer:not(.rot).pp-rx .tv-tap{display:block}
+.tvplayer:not(.rot).pl-on .tv-tap{display:none}
+.tvplayer.rot .tv-pb-ctl,.tvplayer.rot .tv-pb-rx{display:none}
