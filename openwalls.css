@@ -308,3 +308,5 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tvplayer.rot .tv-wr{display:none!important}
 
 .tv-ping{position:absolute;z-index:3;top:46px;right:12px;padding:7px 12px;border-radius:99px;background:rgba(15,12,35,.82);color:#fff;font:800 12px var(--disp);opacity:0;transform:translateY(-6px);transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap}.tv-ping.on{opacity:1;transform:none}
+
+.tvplayer:not(.rot) .tv-tap{display:block}
