@@ -317,3 +317,15 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tv-start{display:none;position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 20px;border-radius:99px;background:#ff5a3c;color:#fff;font:800 14px var(--disp)}.tv-start.on{display:block}
 .tv-gth{display:grid;place-items:center;width:64px;height:36px;border-radius:6px;background:#2a2547;font-size:14px;flex:none}
 .tvplayer.noctl .tv-pb-ctl{display:none}.tvplayer.noctl.rot .tv-seek,.tvplayer.noctl.rot .tv-ctr{display:none}
+
+/* Live Space countdown */
+.sp-timer{margin-top:4px;font:800 12px var(--disp);color:rgba(255,255,255,.75)}.sp-timer.low{color:#ffb4a3}
+/* welcome page */
+.intro-view{background:linear-gradient(180deg,#fff4e6,var(--paper));overflow-y:auto}
+.in-wrap{max-width:520px;margin:0 auto;padding:calc(28px + var(--sat)) 18px calc(28px + var(--sab));display:flex;flex-direction:column;gap:18px}
+.in-hero{text-align:center}.in-hero .ow-logo{margin:0 auto 10px}.in-hero h1{font:800 30px/1.1 var(--disp);margin:6px 0 10px}.in-hero p{color:var(--ink2);font-size:15px;line-height:1.45;margin:0 auto;max-width:380px}
+.in-cards{display:grid;gap:10px}.in-card{display:flex;gap:12px;align-items:flex-start;background:#fff;border-radius:18px;padding:14px;box-shadow:0 6px 18px rgba(29,26,43,.06)}
+.in-card b{font:800 15px var(--disp)}.in-card p{margin:3px 0 0;font-size:13.5px;line-height:1.4;color:var(--ink2)}
+.in-ic{flex:none;width:38px;height:38px;border-radius:12px;background:var(--violet);color:#fff;display:grid;place-items:center}.in-ic svg{width:20px;height:20px}
+.in-cta{display:grid;gap:10px;margin-top:4px}.in-look{padding:12px;font:800 14px var(--disp);color:var(--ink2);text-decoration:underline}
+.in-cta{position:sticky;bottom:0;padding:14px 0 calc(8px + var(--sab));background:linear-gradient(transparent,var(--paper) 22%)}

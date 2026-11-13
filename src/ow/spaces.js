@@ -98,7 +98,7 @@ function createSheet(onDone){
     b.append(field('Title',title),field('Description',desc),field('Category',cat),
       field('Who can join',visw,'Private spaces are only visible to people you invite.'),
       field('When',timing),sched,
-      h('div',{class:'sp-row'},h('span',null,'Allow text chat'),toggleEl(true,v=>chat=v,'Allow text chat')),goB);
+      h('div',{class:'sp-row'},h('span',null,'Allow text chat'),toggleEl(true,v=>chat=v,'Allow text chat')),h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Every space lasts 30 minutes from the moment it goes live. You can start another one afterwards.'),goB);
   });
 }
 function inviteSheet(space){
@@ -150,7 +150,7 @@ async function room(id){
   const v=setView(true);v.classList.add('sp-view');
   let D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
-  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl);let R=null,camAuto=true;
+  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl);let R=null,camAuto=true;
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
   const chatBox=h('div',{class:'sp-chat'},msgs,h('div',{class:'cin'},inp,sendB));
   const top=h('div',{class:'sp-topbar'});
@@ -321,14 +321,25 @@ async function room(id){
   const sendMsg=()=>{const t=inp.value.trim();if(!t)return;guard(sendB,async()=>{await rpc('space_message',{p_space:id,p_kind:'text',p_body:t});inp.value='';await chat();});};
   sendB.onclick=sendMsg;inp.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
 
+  /* every space lasts 30 minutes from the moment it goes live */
+  let warned={};
+  function paintTimer(){
+    const e=D&&D.space&&D.space.ends_at&&D.space.status==='live'?new Date(D.space.ends_at).getTime():0;
+    if(!e){timerEl.textContent='';return;}
+    const ms=Math.max(0,e-Date.now()),m=Math.floor(ms/60000),sc=Math.floor(ms/1000)%60;
+    timerEl.textContent='\u23f1 '+m+':'+String(sc).padStart(2,'0')+' left';timerEl.classList.toggle('low',ms<=5*60000);
+    if(ms<=5*60000&&ms>60000&&!warned.five){warned.five=1;toast('5 minutes left in this space');}
+    if(ms<=60000&&ms>0&&!warned.one){warned.one=1;toast('1 minute left');}
+    if(ms===0&&!dead)tick();
+  }
+  const timerT=setInterval(()=>{if(dead)clearInterval(timerT);else paintTimer();},1000);
   async function tick(){
     if(dead)return;
     try{
       const d=await rpc('space_get',{p_space:id});if(dead)return;D=d;
-      if(d.space.status==='ended')return finish('The host ended this space.');
+      if(d.space.status==='ended')return finish(d.space.ends_at&&new Date(d.space.ends_at)<=new Date()?'This space reached its 30 minute limit.':'The host ended this space.');
       if(d.me&&d.me.status==='removed'){toast('You were removed from this space.','err');return finish('You were removed by the host.');}
-      if(isHost()&&d.space.scheduled_end&&new Date(d.space.scheduled_end)<new Date()&&!tick.asked){tick.asked=true;if(await confirmBox('Scheduled time is up','Keep the space going or end it now?','End space',true)){await adm('end',id);return finish('Your space has ended.');}}
-      paintTop();paintStage();paintReq();paintBar();
+            paintTop();paintTimer();paintStage();paintReq();paintBar();
       if(audio.room)audio.setBlocked(d.participants.filter(p=>p.blocked).map(p=>p.id));
       if(role()!==lastRole&&audio.room&&connState==='connected')syncMic();
     }catch(e){if(/not found/i.test(e.message||'')){finish('This space is no longer available.');}}
