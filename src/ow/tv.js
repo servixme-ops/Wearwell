@@ -109,7 +109,8 @@ const OWTv=(()=>{
     /* full screen: only the video until you tap it; the controls fade in over the picture, then fade out */
     let uiT=0,shownVid=null;
     function showUi(){box.classList.add('ui-on');clearTimeout(uiT);uiT=setTimeout(()=>{if(!box.classList.contains('side-on'))box.classList.remove('ui-on');},3500);}
-    tap.addEventListener('click',()=>{if(!box.classList.contains('rot')){PP.forEach(c=>box.classList.remove(c));return;}if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
+    let ctlT=0;
+    tap.addEventListener('click',()=>{if(!box.classList.contains('rot')){clearTimeout(ctlT);if(PP.some(c=>box.classList.contains(c)))PP.forEach(c=>box.classList.remove(c));else{pp('pp-ctl');ctlT=setTimeout(()=>box.classList.remove('pp-ctl'),4000);}return;}if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
     box.addEventListener('pointerdown',()=>{if(box.classList.contains('rot')&&box.classList.contains('ui-on')&&!box.classList.contains('side-on'))showUi();});
     let cT=0;
     async function loadC(){const v=S.q[S.i];if(!o.comments||!alive||!v){cList.replaceChildren(h('p',{class:'tv-none'},'Nothing is playing.'));return;}try{const cs=await o.comments.load(v.id);if(!S.q[S.i]||S.q[S.i].id!==v.id)return;cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;cnt[v.id]=cs.length;seen[v.id]=cs.length;badge();}catch(e){}}
