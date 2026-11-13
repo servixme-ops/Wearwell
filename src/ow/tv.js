@@ -26,11 +26,12 @@ const OWTv=(()=>{
 
     /* ----- UI ----- */
     const ic=(n)=>icon(n);
-    const rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close TV'},ic('close'));
+    const cmB=h('button',{class:'tv-b tv-cm','aria-label':'Comments'},ic('chat')),rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close TV'},ic('close'));
     const ttl=h('span',null,'TV');
     const slot=h('div',{id:'tv-yt-'+Math.random().toString(36).slice(2,7)});
     const fl=h('div',{class:'tv-float'});
-    const screen=h('div',{class:'tv-screen'},slot,fl,h('div',{class:'tv-msg'}));
+    const tap=h('div',{class:'tv-tap'});
+    const screen=h('div',{class:'tv-screen'},slot,tap,fl,h('div',{class:'tv-msg'}));
     const bPlay=h('button',{class:'tv-c big','aria-label':'Play or pause'},ic('play')),bBack=h('button',{class:'tv-c','aria-label':'Back 10 seconds'},h('b',null,'-10')),bFwd=h('button',{class:'tv-c','aria-label':'Forward 10 seconds'},h('b',null,'+10')),bNext=h('button',{class:'tv-c','aria-label':'Next video'},ic('next')),bList=h('button',{class:'tv-c','aria-label':'Playlist'},ic('list'));
     const rng=h('input',{type:'range',min:'0',max:'1000',value:'0',class:'tv-rng','aria-label':'Seek'}),tm=h('span',{class:'tv-tm'},'0:00');
     const ctr=h('div',{class:'tv-ctr'},bBack,bPlay,bFwd,bNext,bList);
@@ -39,7 +40,9 @@ const OWTv=(()=>{
     const urlIn=h('input',{type:'url',placeholder:'Paste a YouTube link to queue',class:'tv-in'}),addB=h('button',{class:'tv-add'},'Add');
     const lst=h('div',{class:'tv-list'});
     const pl=h('div',{class:'tv-pl'},h('div',{class:'tv-add-row'},urlIn,addB),lst);
-    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,rot,ex,cl),screen,seekRow,ctr,rx,pl);
+    const cList=h('div',{class:'tv-clist'}),cIn=h('input',{type:'text',maxlength:'300',placeholder:'Say something nice\u2026',class:'tv-in'}),cSend=h('button',{class:'tv-add'},'Post');
+    const cmP=h('div',{class:'tv-cmp'},h('div',{class:'tv-ch'},'Comments'),cList,h('div',{class:'tv-add-row'},cIn,cSend));
+    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,cmB,rot,ex,cl),screen,seekRow,ctr,rx,pl,cmP);
     o.host.append(box);
 
     /* ----- messaging ----- */
@@ -90,12 +93,24 @@ const OWTv=(()=>{
     }
     addB.onclick=fromInput;urlIn.addEventListener('keydown',e=>{if(e.key==='Enter')fromInput();});
     bPlay.onclick=toggle;bBack.onclick=()=>seekBy(-10);bFwd.onclick=()=>seekBy(10);bNext.onclick=next;
-    bList.onclick=()=>box.classList.toggle('pl-on');
+    bList.onclick=()=>{const on=box.classList.toggle('pl-on');if(on)box.classList.remove('cm-on');box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));if(box.classList.contains('rot'))showUi();};
     rng.addEventListener('input',()=>{seeking=true;});
     rng.addEventListener('change',()=>{seeking=false;try{const d=player.getDuration()||0;if(d)seekBy(rng.value/1000*d-pos());}catch(e){}});
     ex.onclick=()=>{const big=box.classList.toggle('big');ex.setAttribute('aria-label',big?'Shrink':'Expand');box.style.left=box.style.top='';};
-    rot.onclick=()=>{const on=box.classList.toggle('rot');box.style.left=box.style.top='';document.body.classList.toggle('tv-rotated',on);rot.setAttribute('aria-label',on?'Back to portrait':'Rotate to landscape');
+    rot.onclick=()=>{const on=box.classList.toggle('rot');box.style.left=box.style.top='';box.classList.remove('side-on','pl-on','cm-on');clearTimeout(uiT);box.classList.toggle('ui-on',on);if(on)showUi();document.body.classList.toggle('tv-rotated',on);rot.setAttribute('aria-label',on?'Back to portrait':'Rotate to landscape');
       if(on){try{const e=document.documentElement;e.requestFullscreen&&e.requestFullscreen().catch(()=>{});}catch(_){}}else{try{document.fullscreenElement&&document.exitFullscreen();}catch(_){}}};
+
+    /* full screen: only the video until you tap it; the controls fade in over the picture, then fade out */
+    let uiT=0;
+    function showUi(){box.classList.add('ui-on');clearTimeout(uiT);uiT=setTimeout(()=>{if(!box.classList.contains('side-on'))box.classList.remove('ui-on');},3500);}
+    tap.addEventListener('click',()=>{if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
+    box.addEventListener('pointerdown',()=>{if(box.classList.contains('rot')&&box.classList.contains('ui-on')&&!box.classList.contains('side-on'))showUi();});
+    let cT=0;
+    async function loadC(){if(!o.comments||!alive)return;try{const cs=await o.comments.load();cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;}catch(e){}}
+    cmB.style.display=o.comments?'':'none';
+    cmB.onclick=()=>{const on=box.classList.toggle('cm-on');if(on){box.classList.remove('pl-on');loadC();clearInterval(cT);cT=setInterval(loadC,5000);}else clearInterval(cT);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));showUi();};
+    const postC=async()=>{const t=cIn.value.trim();if(!t||!o.comments)return;try{await o.comments.post(t);cIn.value='';loadC();}catch(e){}};
+    cSend.onclick=postC;cIn.addEventListener('keydown',e=>{if(e.key==='Enter')postC();});
 
     /* draggable by its title bar (not while expanded or rotated) */
     (function(){const bar=box.querySelector('.tv-bar');let st=null;
@@ -140,7 +155,7 @@ const OWTv=(()=>{
 
     const api={alive:true,
       addOrFocus(id){if(!id)return;if(!S.q.some(v=>v.id===id))add(id);else{const k=S.q.findIndex(v=>v.id===id);if(k!==S.i)playIndex(k);}},
-      destroy(){if(!alive)return;alive=false;api.alive=false;clearInterval(tick);clearInterval(hb);try{player&&player.destroy();}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
+      destroy(){if(!alive)return;alive=false;api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearTimeout(uiT);try{player&&player.destroy();}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
     cur[o.roomId]=api;return api;
   }
