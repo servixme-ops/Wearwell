@@ -31,7 +31,8 @@ const OWTv=(()=>{
     const slot=h('div',{id:'tv-yt-'+Math.random().toString(36).slice(2,7)});
     const fl=h('div',{class:'tv-float'});
     const tap=h('div',{class:'tv-tap'});
-    const screen=h('div',{class:'tv-screen'},slot,tap,fl,h('div',{class:'tv-msg'}));
+    const ping=h('div',{class:'tv-ping'});
+    const screen=h('div',{class:'tv-screen'},slot,tap,fl,ping,h('div',{class:'tv-msg'}));
     const bPlay=h('button',{class:'tv-c big','aria-label':'Play or pause'},ic('play')),bBack=h('button',{class:'tv-c','aria-label':'Back 10 seconds'},h('b',null,'-10')),bFwd=h('button',{class:'tv-c','aria-label':'Forward 10 seconds'},h('b',null,'+10')),bNext=h('button',{class:'tv-c','aria-label':'Next video'},ic('next')),bList=h('button',{class:'tv-b','aria-label':'Playlist'},ic('list')),ctlB=h('button',{class:'tv-b tv-pb-ctl','aria-label':'Playback controls'},ic('play')),rxB=h('button',{class:'tv-b tv-pb-rx','aria-label':'Reactions'},'\u2764\ufe0f');
     const rng=h('input',{type:'range',min:'0',max:'1000',value:'0',class:'tv-rng','aria-label':'Seek'}),tm=h('span',{class:'tv-tm'},'0:00');
     const ctr=h('div',{class:'tv-ctr'},bBack,bPlay,bFwd,bNext);
@@ -73,7 +74,7 @@ const OWTv=(()=>{
       if(p.k==='hello'){if(got||S.q.length){setTimeout(()=>{if(alive)send(snap());},Math.random()*400);}}
       else if(p.k==='state'&&p.s){got=true;lead=false;apply(p.s);}
       else if(p.k==='react'&&EM.includes(p.e))float(p.e);
-      else if(p.k==='cm'){const v=S.q[S.i];if(v&&p.v===v.id){if(box.classList.contains('cm-on'))loadC();else refreshCount();}}
+      else if(p.k==='cm'){const v=S.q[S.i];if(v&&p.v===v.id){if(box.classList.contains('cm-on'))loadC();else{cnt[v.id]=(cnt[v.id]||0)+1;badge();refreshCount();}}}
     }
 
     /* ----- actions (always shared) ----- */
@@ -115,9 +116,10 @@ const OWTv=(()=>{
     cmB.style.display=o.comments?'':'none';
     /* unread count on the comment icon: comments on this video you have not opened yet */
     const cnt={},seen={};
-    function badge(){const v=S.q[S.i],n=v?Math.max(0,(cnt[v.id]||0)-(seen[v.id]||0)):0;bdg.textContent=n>99?'99+':String(n||'');bdg.classList.toggle('on',n>0);cmB.setAttribute('aria-label',n?'Comments, '+n+' new':'Comments');}
+    let prevN=0,pingT=0;
+    function badge(){const v=S.q[S.i],n=v?Math.max(0,(cnt[v.id]||0)-(seen[v.id]||0)):0;if(n>prevN&&box.classList.contains('rot')&&!box.classList.contains('cm-on')){ping.textContent='\ud83d\udcac '+n+(n===1?' new comment':' new comments');ping.classList.add('on');clearTimeout(pingT);pingT=setTimeout(()=>ping.classList.remove('on'),4000);}prevN=n;bdg.textContent=n>99?'99+':String(n||'');bdg.classList.toggle('on',n>0);cmB.setAttribute('aria-label',n?'Comments, '+n+' new':'Comments');}
     async function refreshCount(){const v=S.q[S.i];if(!o.comments||!alive||!v||document.hidden)return;try{const cs=await o.comments.load(v.id);cnt[v.id]=cs.length;if(box.classList.contains('cm-on'))seen[v.id]=cs.length;badge();}catch(e){}}
-    const cI=setInterval(refreshCount,5000);setTimeout(refreshCount,1800);
+    const cI=setInterval(refreshCount,2500);setTimeout(refreshCount,1800);
     /* the icons in the title bar each open one panel over the video; tapping the icon again closes it */
     const PP=['pp-ctl','pp-rx','pl-on','cm-on'];
     const pp=k=>{const on=!box.classList.contains(k);PP.forEach(c=>box.classList.remove(c));if(on)box.classList.add(k);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));

@@ -306,3 +306,5 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 
 .tv-cm{position:relative}.tv-badge{display:none;position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#ff3d5a;color:#fff;font:800 10px/17px var(--disp);text-align:center;font-style:normal;box-shadow:0 0 0 2px #15122a}.tv-badge.on{display:block}
 .tvplayer.rot .tv-wr{display:none!important}
+
+.tv-ping{position:absolute;z-index:3;top:46px;right:12px;padding:7px 12px;border-radius:99px;background:rgba(15,12,35,.82);color:#fff;font:800 12px var(--disp);opacity:0;transform:translateY(-6px);transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap}.tv-ping.on{opacity:1;transform:none}
