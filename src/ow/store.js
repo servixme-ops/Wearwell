@@ -29,7 +29,7 @@ const Store={
     const r=await sb.storage.from('room-images').upload(path,blob,{contentType:'image/jpeg',upsert:true,cacheControl:'600'});if(r.error)throw r.error;return path;
   },
   async uploadPicture(file){const p=await prepareImage(file,{max:1024,quality:.8,maxMB:12});const path=await uploadFile('room-images',p.blob,'jpg','image/jpeg');return{path,width:p.width,height:p.height};},
-  previewUrl(theme,key){return theme&&theme.preview?publicUrl('room-images',theme.preview)+'?v='+(theme.pv||key||1):null;},
+  previewUrl(theme,key){return false&&theme&&theme.preview?publicUrl('room-images',theme.preview)+'?v='+(theme.pv||key||1):null;},
   async visit(id){let k=null;try{k=localStorage.getItem('ow_dev');if(!k){k=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2));localStorage.setItem('ow_dev',k);}}catch(e){k=null;}try{await sb.rpc('ow_visit',{p_room:id,p_key:k});}catch(e){}},
   async trending(n){const r=await sb.rpc('ow_trending',{p_limit:n||8});if(r.error)throw r.error;return r.data||[];},
   async featured(){const r=await sb.rpc('ow_featured');if(r.error)throw r.error;return r.data||[];},
