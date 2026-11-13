@@ -238,3 +238,17 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .ow-lbls{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
 .ow-lbl{position:absolute;left:0;top:0;pointer-events:auto;padding:3px 10px;border-radius:99px;background:rgba(21,16,40,.66);color:#fff;font:700 12px var(--body);white-space:nowrap;backdrop-filter:blur(4px);display:flex;align-items:center;gap:6px}
 .ow-lbl i{font-style:normal;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;background:var(--mint);color:#08301f}
+
+/* room previews: drawn floor plan while no picture exists */
+.pshot.plan{display:grid;place-items:center;background:#efe7f7;overflow:hidden;position:relative}
+.pshot.plan .plan-cv{width:100%;height:100%;display:block}
+.pshot.plan .plan-n{font:800 14px var(--disp);color:rgba(29,26,43,.45);padding:10px;text-align:center}
+.pshot.plan.ready .plan-n{display:none}
+.pshot.plan:not(.ready):not(.fail){animation:planPulse 1.4s ease-in-out infinite}
+@keyframes planPulse{50%{opacity:.7}}
+.tcard .pshot.plan{border-radius:0}
+/* public / private switch */
+.seg{display:grid;gap:8px}
+.seg button{display:block;text-align:left;padding:11px 14px;border-radius:14px;border:2px solid rgba(29,26,43,.12);background:#fff}
+.seg button b{display:block;font:800 14px var(--disp)}.seg button span{display:block;font-size:12px;opacity:.65;margin-top:2px}
+.seg button.on{border-color:#6c4bff;background:#f1edff}

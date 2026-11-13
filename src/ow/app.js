@@ -91,8 +91,7 @@ function rxBtn(r){
   b.onclick=()=>{if(!needAuth('Sign in to react to rooms'))return;const was=r.mine;guard(b,async()=>{await Store.react(r.id,was?null:'love');r.mine=was?null:'love';r.reactions=Math.max(0,(+r.reactions||0)+(was?-1:1));paint();});};
   return b;}
 function roomPiece(r,i){
-  const prev=Store.previewUrl(r.theme,r.updated_at);
-  const shot=prev?h('img',{class:'pshot',src:prev,alt:r.name+' by @'+r.username,loading:'lazy',decoding:'async'}):h('div',{class:'pshot ph'},r.name);
+  const shot=OWPrev.node(r,'pshot',r.name+' by @'+r.username);
   return h('div',{class:'piece'},r.featured?h('span',{class:'star'},'★ Featured'):null,h('button',{class:'pframe','aria-label':'Visit '+r.name,onclick:()=>go('#/@'+r.username)},shot),
     h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,r.name),h('span',{class:'s'},'@'+r.username)),rxBtn(r),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
     r.visits?h('div',{class:'vis'},r.visits+(r.visits===1?' visit':' visits')):null);
@@ -119,7 +118,7 @@ async function discoverView(){
   const chips=h('div',{class:'scrollx'}),sec=h('div');
   v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now'))),chips,sec);
   const ok=r=>!cat||(r.categories||[]).includes(cat);
-  const tcard=r=>{const p=Store.previewUrl(r.theme,r.updated_at);return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},p?h('img',{src:p,alt:'',loading:'lazy'}):h('div',{class:'pshot ph'},r.name),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,r.name),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
+  const tcard=r=>{return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},OWPrev.node(r,'pshot',''),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,r.name),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
   const paint=()=>{
     chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();}},c||'All')));
     const f=feat.filter(ok),t=trend.filter(ok),rows=feed.filter(ok);
@@ -144,7 +143,7 @@ async function meView(){
   const room=mine&&mine.room,prev=room&&Store.previewUrl(room.theme,room.updated_at);
   v.replaceChildren(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Me'))),
     h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
-    h('div',{class:'roomcard'},prev?h('img',{class:'pshot',src:prev,alt:'Your room'}):h('div',{class:'pshot ph'},room?room.name:'Your room is not built yet'),
+    h('div',{class:'roomcard'},room?OWPrev.node(Object.assign({},room,{id:room.id}),'pshot','Your room'):h('div',{class:'pshot ph'},'Your room is not built yet'),
       h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
@@ -172,17 +171,19 @@ function roomSettings(room,done){
   sheet('Room settings',(body,close)=>{
     const nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
     let cats=new Set(room.categories||[]);const cw=h('div',{class:'chips'});const pc=()=>cw.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(cats.has(c)?' on':''),onclick:()=>{cats.has(c)?cats.delete(c):cats.add(c);pc();}},c)));pc();
-    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),save);
+    let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
+    const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
+    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),save);
   });
 }
 
 /* ---------- starter room: an improved Lagos living room ---------- */
 function starterRoom(){
-  const S=OW.SIZES.medium;
-  const room={name:'My room',size:'medium',width:S.w,depth:S.d,height:S.h,theme:{key:'lagos'},categories:[],visibility:'public'};
-  const f=(type,x,z,rot,extra)=>Object.assign({id:uuid(),kind:'furniture',type,x,y:0,z,rot:rot||0,scale:1,color:null,z_index:0,props:{}},extra||{});
-  const d=(type,wall,x,y,extra)=>{const dd=OW.decor(type);return Object.assign({id:uuid(),kind:'decor',type,wall,x,y,z:0,rot:0,scale:1,width:dd.w,height:dd.h,frame:dd.frame||null,color:null,z_index:0,props:{}},extra||{});};
+  const S=OW.SIZES.large,kx=S.w/6,kz=S.d/5.4;
+  const room={name:'My room',size:'large',width:S.w,depth:S.d,height:S.h,theme:{key:'lagos'},categories:[],visibility:'public'};
+  const f=(type,x,z,rot,extra)=>Object.assign({id:uuid(),kind:'furniture',type,x:x*kx,y:0,z:z*kz,rot:rot||0,scale:1,color:null,z_index:0,props:{}},extra||{});
+  const d=(type,wall,x,y,extra)=>{const dd=OW.decor(type);return Object.assign({id:uuid(),kind:'decor',type,wall,x:x*(wall==='left'||wall==='right'?kz:kx),y,z:0,rot:0,scale:1,width:dd.w,height:dd.h,frame:dd.frame||null,color:null,z_index:0,props:{}},extra||{});};
   const items=[f('rug',0,-.5),f('sofa',0,-2.15),f('coffee_table',0,-.6),f('bookshelf',-2.8,-1.2,Math.PI/2),f('plant',2.5,-2.2),f('floor_lamp',-2.5,-2.3),f('tv_stand',2.75,-.4,-Math.PI/2),f('tv',2.75,-.4,-Math.PI/2),
     d('curtains','back',1.08,1.5,{width:2.0,color:'#c4532d',z_index:1}),d('frame','back',-2.0,1.65,{z_index:2}),d('poster','back',-1.15,1.55,{z_index:3}),d('photo_frame','back',-.35,1.8,{z_index:4}),d('wall_clock','back',-1.15,2.3,{z_index:5}),d('neon','left',-.4,1.9,{title:'OPEN WALLS',z_index:6})];
   return{room,items};
@@ -432,8 +433,8 @@ window.addEventListener('hashchange',route);
   const ld=document.getElementById('ldlogo');if(ld)ld.append(logoEl(84));
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
-  Auth.init().then(()=>{route();refreshUnread();ensureRoom();}).catch(()=>route());
-  Auth.on(ev=>{if(ev==='signin')ensureRoom();});
+  Auth.init().then(()=>{route();refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
+  Auth.on(ev=>{if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});
   window.__ready=true;const l=document.getElementById('loading');setTimeout(()=>l&&l.classList.add('gone'),250);
   try{sessionStorage.removeItem('ow_try');}catch(e){}
   PWA.init();
