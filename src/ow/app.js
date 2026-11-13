@@ -334,10 +334,10 @@ async function visitView(username){
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
     h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>shareRoom(o.username,d.room.name)},icon('share')),
     R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null,
-    R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk()},icon('walk')):null);
+    R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk(true)},icon('walk')):null);
   v.querySelector('.rtop').replaceWith(top);
   const walkBtn=()=>v.querySelector('.walkbtn');
-  async function enterWalk(){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){App.avBack='#/@'+username;chooseAvatar();return;}R.startWalk(cfg);hud=walkHud(host,R);if(Auth.user){const pf=Auth.profile||{};R.liveTrack({uid:Auth.user.id,name:pf.display_name||pf.username||'Guest',username:pf.username||'',cfg});}const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
+  async function enterWalk(manual){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){if(manual){App.avBack='#/@'+username;chooseAvatar();}return;}R.startWalk(cfg);hud=walkHud(host,R);if(Auth.user){const pf=Auth.profile||{};R.liveTrack({uid:Auth.user.id,name:pf.display_name||pf.username||'Guest',username:pf.username||'',cfg});}const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
     const hn=host.querySelector('.hint');hn&&hn.remove();host.append(h('div',{class:'hint'},'Joystick to walk · tap the floor to go there · drag to look'));setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);}
   function leaveWalk(){if(!hud)return;hud.destroy();hud=null;R.liveUntrack();R.stopWalk();const b=walkBtn();b&&b.classList.remove('on');host.classList.remove('walking');}
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
@@ -346,7 +346,19 @@ async function visitView(username){
   setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);
   if(Auth.isAdmin&&!d.is_me){let on=!!d.room.featured;const fb=h('button',{class:'rbtn dark',style:{position:'absolute',left:'12px',top:'calc(64px + var(--sat))',zIndex:5},onclick:()=>guard(fb,async()=>{await Store.setFeatured(d.room.id,!on);on=!on;fb.textContent=on?'★ Featured (tap to remove)':'☆ Feature this room';})},on?'★ Featured (tap to remove)':'☆ Feature this room');host.append(fb);}
   if(R){const lb=h('div',{class:'loadbar'},h('i'));host.append(lb);const iv=setInterval(()=>{lb.classList.toggle('on',R.loading>0);},250);const old=App.teardown;App.teardown=()=>{clearInterval(iv);old&&old();};}
+  /* YouTube links play in a small TV window over the room; Expand makes it big. Reactions and comments stay available below. */
+  function tvPlay(it,id){
+    const old=host.querySelector('.tvplayer');if(old)old.remove();
+    const def=OW.def(it.type);
+    const fr=h('iframe',{src:'https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&playsinline=1&rel=0&modestbranding=1',allow:'autoplay; encrypted-media; picture-in-picture; fullscreen',allowfullscreen:'',title:it.title||'YouTube video'});
+    const ex=h('button',{class:'tv-b','aria-label':'Expand'},icon('expand')),cl=h('button',{class:'tv-b','aria-label':'Close video'},icon('close'));
+    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},h('span',null,it.title||(it.type==='tv'?'Now playing on TV':def.name)),ex,cl),h('div',{class:'tv-screen'},fr));
+    ex.onclick=()=>{const big=box.classList.toggle('big');ex.setAttribute('aria-label',big?'Shrink':'Expand');};
+    cl.onclick=()=>box.remove();
+    host.append(box);
+  }
   function openItem(it){
+    const yid=it.link&&ytId(it.link);if(yid)return tvPlay(it,yid);
     const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path||(it.props&&it.props.images&&it.props.images.length);if(!hasInfo)return;
     sheet(it.title||def.name,(body)=>{
       const wrap=h('div',{class:'viewer'});if(def.hint==='book_stack'&&it.title)wrap.append(h('div',{class:'bookcard'},h('b',null,it.title)));
