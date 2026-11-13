@@ -305,3 +305,4 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tvplayer:not(.rot) .tv-wr{display:none}.tv-chips .tv-wr{background:#ff5a3c;border-radius:99px;padding:7px 12px}
 
 .tv-cm{position:relative}.tv-badge{display:none;position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#ff3d5a;color:#fff;font:800 10px/17px var(--disp);text-align:center;font-style:normal;box-shadow:0 0 0 2px #15122a}.tv-badge.on{display:block}
+.tvplayer.rot .tv-wr{display:none!important}
