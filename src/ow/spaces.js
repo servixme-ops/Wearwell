@@ -1,6 +1,6 @@
 /* ---------- Live Spaces: audio rooms on LiveKit. Rules live in Supabase (RPCs + RLS); audio via livekit-client ---------- */
 const Spaces=(()=>{
-const CATS=[['talk','Talk'],['music','Music'],['tech','Tech'],['gaming','Gaming'],['art','Art & Design'],['fashion','Fashion'],['wellness','Wellness'],['business','Business'],['learning','Learning'],['chill','Just chatting']];
+const CATS=[['talk','Talk'],['music','Music'],['sports','Sports'],['football','Football'],['basketball','Basketball'],['movies','Movies & TV'],['anime','Anime'],['gaming','Gaming'],['fashion','Fashion'],['art','Art & Design'],['sipandpaint','Sip & Paint'],['travel','Travel'],['photography','Photography'],['books','Books'],['tech','Tech'],['food','Food'],['lifestyle','Lifestyle'],['wellness','Wellness'],['business','Business'],['learning','Learning'],['chill','Just chatting']];
 const catLabel=id=>(CATS.find(c=>c[0]===id)||[0,'Talk'])[1];
 const REACTS=['👏','❤️','🔥','😂','😮','🎉'];
 const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};

@@ -343,3 +343,18 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .pad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px);gap:4px;flex:none;touch-action:none}
 .pad .ar{width:46px;height:46px;border-radius:14px;background:var(--ink);color:#fff;display:grid;place-items:center;touch-action:none}.pad .ar svg{width:22px;height:22px}.pad .ar:active{background:var(--coral)}
 .pad .ar-u{grid-column:2;grid-row:1}.pad .ar-l{grid-column:1;grid-row:2}.pad .pad-c{grid-column:2;grid-row:2;display:grid;place-items:center;color:var(--ink2)}.pad .ar-r{grid-column:3;grid-row:2}.pad .ar-d{grid-column:2;grid-row:3}
+
+/* the logo's frames shuffle while a page is loading */
+#loading .ow-logo svg *,.spin-wrap .ow-logo svg *{transform-box:fill-box;transform-origin:center}
+#loading .lg1,.spin-wrap .lg1{animation:lgA 1.8s ease-in-out infinite}
+#loading .lg2,.spin-wrap .lg2{animation:lgB 1.8s ease-in-out .15s infinite}
+#loading .lg3,.spin-wrap .lg3{animation:lgC 1.8s ease-in-out .3s infinite}
+#loading .lg4,.spin-wrap .lg4{animation:lgD 1.8s ease-in-out .45s infinite}
+#loading .lg5,.spin-wrap .lg5{animation:lgA 1.8s ease-in-out infinite}
+@keyframes lgA{0%,100%{transform:translate(0,0)}35%{transform:translate(0,26px)}70%{transform:translate(0,-6px)}}
+@keyframes lgB{0%,100%{transform:translate(0,0)}35%{transform:translate(-45px,0)}70%{transform:translate(6px,0)}}
+@keyframes lgC{0%,100%{transform:translate(0,0)}35%{transform:translate(0,-26px)}70%{transform:translate(0,6px)}}
+@keyframes lgD{0%,100%{transform:translate(0,0)}35%{transform:translate(45px,0)}70%{transform:translate(-6px,0)}}
+@media (prefers-reduced-motion:reduce){#loading .ow-logo svg *,.spin-wrap .ow-logo svg *{animation:none!important}}
+
+#view.full.intro-view{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}

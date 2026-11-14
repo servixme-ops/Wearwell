@@ -16,7 +16,7 @@ Object.assign(IC,{
 });
 const $view=()=>document.getElementById('view'),$nav=()=>document.getElementById('nav');
 const App={teardown:null,route:'',visited:{}};
-const CATS=['Music','Football','Basketball','Movies','Gaming','Fashion','Travel','Photography','Books','Technology','Lifestyle','Art','Food'];
+const CATS=['Music','Sports','Football','Basketball','Movies','Anime','Gaming','Fashion','Travel','Photography','Books','Technology','Lifestyle','Art','Food'];
 const EMOJI={love:'❤️',fire:'🔥',wow:'😮',clap:'👏'};
 const needAuth=why=>{if(Auth.user)return true;authSheet('signin',why||'Sign in to do that');return false;};
 function embedFor(u){
@@ -456,13 +456,15 @@ function introView(){
   const card=(ic,t,d)=>h('div',{class:'in-card'},h('span',{class:'in-ic'},icon(ic)),h('div',null,h('b',null,t),h('p',null,d)));
   const look=()=>{introDone();go('#/wall');};
   v.append(h('div',{class:'in-wrap'},
-    h('div',{class:'in-hero'},logoEl(72),h('h1',null,'Your room. Your wall. Your people.'),h('p',null,'OpenWalls is a place where everyone gets their own 3D room to decorate, share and invite people into.')),
+    h('div',{class:'in-hero'},logoEl(72),h('h1',null,'Build a room that is unmistakably you.'),h('p',null,'Decorate your own 3D space, show off what you love, then invite the world in for movie nights, music sessions and conversations that feel like you are really there.')),
     h('div',{class:'in-cards'},
-      card('house','Build your room','Pick the walls and floor, add furniture, hang posters and photos, and make it feel like you.'),
-      card('user','Walk in as your avatar','Create an avatar, explore your room, sit on the sofa, and visit other people\u2019s rooms to say hello.'),
-      card('compass','Discover the Wall','Browse rooms from people all over. React, comment and message the ones you like.'),
-      card('mic','Watch and talk together','Play a video on your room\u2019s TV in sync for everyone inside, and host Live Spaces: audio talks that last 30 minutes.'),
-      card('lock','You are in control','Keep your room public or make it private whenever you like.')),
+      card('house','Design your space','Choose your walls and floor, then add furniture, lighting and your favourite posters and photos. Show off your passion, whether it is sport, fashion, movies or music.'),
+      card('user','Step in as your avatar','Create an avatar, explore your room, sit down and relax, then visit other people\u2019s rooms and say hello.'),
+      card('tv','Movie night','Play a video on your room\u2019s TV, in sync for everyone inside. Pause, rewind, queue the next one and react together.'),
+      card('music','Music room','Put a track on the speaker and keep the vibe going with a shared queue. Everyone hears the same beat at the same time.'),
+      card('mic','Live Spaces','Host or join 30 minute audio talks about anime, fashion, sport and more, with sip and paint nights on the way.'),
+      card('compass','Explore the Wall','Browse rooms from people everywhere. React, comment and message the ones that inspire you.'),
+      card('lock','Yours to control','Keep your room public, or make it private and share it only with people you invite.')),
     h('div',{class:'in-cta'},
       h('button',{class:'btn coral block',onclick:()=>{introDone();go('#/wall');authSheet('signup','Create an account to build your room');}},'Create account'),
       h('button',{class:'btn block',onclick:()=>{introDone();go('#/wall');authSheet('signin');}},'Sign in'),

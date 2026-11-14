@@ -33,6 +33,7 @@ const IC={
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   bell:'<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/>',
   play:'<path d="M8 5v14l11-7z" fill="currentColor"/>',pause:'<path d="M8 5v14M16 5v14" stroke-width="3.2"/>',next:'<path d="M6 5v14l9-7zM18 5v14" />',list:'<path d="M4 6h12M4 12h12M4 18h8M19 15v6M16 18h6"/>',rotate:'<rect x="3" y="7" width="14" height="10" rx="2"/><path d="M20 8v3h-3M20 11a5 5 0 0 0-3-4"/>',
+  tv:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',music:'<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
   move:'<path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/>',arrU:'<path d="M12 19V5M5 12l7-7 7 7"/>',arrD:'<path d="M12 5v14M5 12l7 7 7-7"/>',arrL:'<path d="M19 12H5M12 5l-7 7 7 7"/>',arrR:'<path d="M5 12h14M12 5l7 7-7 7"/>',check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   expand:'<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
   mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',micoff:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M3.500 3.500l17 17"/>',
