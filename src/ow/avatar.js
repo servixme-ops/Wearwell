@@ -159,7 +159,27 @@ function build(cfg){
     const sd=(g,ph)=>{const be=Math.sin(t*4.4+ph),b2=Math.sin(t*2.9+ph*2);
       return{u:mixv([.15,-.9,.35],[.36+.08*b2,-.55,.5],g),f:mixv([.1,-.35,1],[.05+.22*b2,.4+.28*be,1],g)};};
     const R=sd(st.gR,0),L=sd(st.gL,2.1);
-    arm('R',R.u[0],R.u[1],R.u[2],R.f[0],R.f[1],R.f[2]);arm('L',L.u[0],L.u[1],L.u[2],L.f[0],L.f[1],L.f[2]);
+    /* resting hands are aimed at the thigh, so any body size actually touches the lap */
+    const top=av.seatTop==null?.46:av.seatTop;
+    const lp0=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3()));
+    if(bones.RightArm&&bones.RightHand&&bones.RightUpLeg&&bones.RightLeg){
+      /* arms too short to reach the lap while sitting bolt upright (taller builds): lean forward a little */
+      const sh=lp0('RightArm'),tg=lp0('RightUpLeg').lerp(lp0('RightLeg'),.55);tg.y+=.062/rs;
+      const reach=(lp0('RightArm').distanceTo(lp0('RightForeArm'))+lp0('RightForeArm').distanceTo(lp0('RightHand')))*.93,short=sh.distanceTo(tg)-reach,tl=Math.max(.2,sh.y-lp0('Hips').y);
+      st.lean=(st.lean||0)+((short>0?Math.min(.45,short*4/tl):0)-(st.lean||0))*Math.min(1,dt*6);
+      if(st.lean>.005){rot('Spine1',1,0,0,st.lean*.5);rot('Spine2',1,0,0,st.lean*.5);}
+    }
+    const lp=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3()));
+    const sa=(sd_,V,g)=>{const S=sd_==='L'?'Left':'Right',sg=sd_==='L'?1:-1;if(!bones[S+'Hand']||!bones[S+'ForeArm']){return;}
+      const sh=lp(S+'Arm'),el0=lp(S+'ForeArm'),ha0=lp(S+'Hand'),l1=sh.distanceTo(el0),l2=el0.distanceTo(ha0);
+      const T_=lp(S+'UpLeg').lerp(lp(S+'Leg'),.55);T_.y+=.062/rs;const dv=T_.clone().sub(sh);let d=dv.length();const mx=(l1+l2)*.98;if(d>mx){dv.multiplyScalar(mx/d);d=mx;}else if(d<.05/rs)d=.05/rs;
+      const dir=dv.clone().normalize(),aa=(l1*l1-l2*l2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,l1*l1-aa*aa));
+      const pole=new T.Vector3(sg*.5,-.5,-.7);pole.addScaledVector(dir,-pole.dot(dir)).normalize();
+      const el=sh.clone().addScaledVector(dir,aa).addScaledVector(pole,hh),uL=el.clone().sub(sh).normalize();
+      const gu=new T.Vector3(sg*V.u[0],V.u[1],V.u[2]).normalize(),gf=new T.Vector3(sg*V.f[0],V.f[1],V.f[2]).normalize();
+      const ud=uL.lerp(gu,g).normalize();aim(S+'Arm',S+'ForeArm',ud.x,ud.y,ud.z);
+      const ea=lp(S+'ForeArm'),fl=T_.clone().sub(ea).normalize().lerp(gf,g).normalize();aim(S+'ForeArm',S+'Hand',fl.x,fl.y,fl.z);};
+    sa('R',R,Math.min(1,st.gR*1.6));sa('L',L,Math.min(1,st.gL*1.6));
     if(st.gR>.05)rot('RightHand',0,0,1,Math.sin(t*5.2)*.3*st.gR);if(st.gL>.05)rot('LeftHand',0,0,1,-Math.sin(t*4.7)*.3*st.gL);
     rot('Head',1,0,0,.04+Math.sin(t*.8)*.02+ts*(.05*Math.sin(t*3.3)+.03*Math.sin(t*5.7)));
     rot('Head',0,1,0,Math.sin(t*.5)*.07+ts*Math.sin(t*1.7)*.12);rot('Head',0,0,1,Math.sin(t*.6+1)*.025);
@@ -178,6 +198,25 @@ function build(cfg){
       arm('L',.3,-1,.0,.2,-1,.05);arm('R',.3,-1,.0,.2,-1,.05);leg('L',.06,-1,0,.04,-1,0);leg('R',.06,-1,0,.04,-1,0);
     }else if(P==='wave'){
       const wv=Math.sin(t*10);arm('L',.2,-1,.03,.12,-1,.14);arm('R',.6,.7,.25,.2+wv*.55,1,.1);rot('Head',0,0,1,.05);leg('L',.04,-1,0,.03,-1,0);leg('R',.04,-1,0,.03,-1,0);rot('Spine2',1,0,0,br*.01);
+    }else if(P==='dance2'){
+      /* side step and sway, arms swing across */
+      const b=Math.sin(t*5),st2=Math.sin(t*2.5),sw=st2*.5;placeHips(geo.hipsH-Math.abs(b)*.03,0);
+      const sl=Math.max(0,st2),sr=Math.max(0,-st2);
+      leg('L',.1+sl*.25,-1,0,.03+sl*.1,-1,0);leg('R',.1+sr*.25,-1,0,.03+sr*.1,-1,0);
+      arm('L',.45,.2+sw*.5,.3,.3,.5+sw*.6,.4);arm('R',.45,.2-sw*.5,.3,.3,.5-sw*.6,.4);
+      rot('Hips',0,1,0,Math.sin(t*5)*.22);rot('Spine1',0,1,0,-Math.sin(t*5)*.14);rot('Head',0,0,1,Math.sin(t*2.5)*.1);
+    }else if(P==='dance3'){
+      /* raise the roof: arms pump overhead, knees bounce */
+      const b=Math.sin(t*8),bb=(b+1)/2;placeHips(geo.hipsH-bb*.07,0);
+      leg('L',.14,-Math.cos(.35),Math.sin(.35),.05,-Math.cos(.35-.55),Math.sin(.35-.55));leg('R',.14,-Math.cos(.35),Math.sin(.35),.05,-Math.cos(.35-.55),Math.sin(.35-.55));
+      arm('L',.35,.8+b*.15,.15,.15,1,.15+b*.3);arm('R',.35,.8+b*.15,.15,.15,1,.15+b*.3);
+      rot('Spine1',1,0,0,-.08-bb*.1);rot('Head',1,0,0,-.1+bb*.1);rot('Head',0,0,1,Math.sin(t*4)*.07);
+    }else if(P==='dance4'){
+      /* robot: stiff snapping arm angles and a hip twist */
+      const q=Math.floor(t*3.2)%4,A=[[.9,.2,0],[.2,.9,0],[.9,.0,.4],[.1,-.8,.3]][q],B=[[.2,.9,0],[.9,.2,0],[.2,-.4,.8],[.9,.1,.3]][q];
+      placeHips(geo.hipsH-.03,0);leg('L',.12,-1,0,.03,-1,0);leg('R',.12,-1,0,.03,-1,0);
+      arm('L',A[0],A[1],A[2],A[0],A[1]+.6,A[2]+.3);arm('R',B[0],B[1],B[2],B[0],B[1]+.6,B[2]+.3);
+      rot('Hips',0,1,0,((q%2)?1:-1)*.3);rot('Head',0,1,0,((q%2)?-1:1)*.35);
     }else if(P==='dance'){
       const b=Math.sin(t*7),bb=Math.abs(b);placeHips(geo.hipsH-bb*.04,0);const fl=Math.max(0,b),fr=Math.max(0,-b);
       leg('L',.1,-Math.cos(fl*.5),Math.sin(fl*.5),.03,-Math.cos(fl*.5-fl*.7),Math.sin(fl*.5-fl*.7));leg('R',.1,-Math.cos(fr*.5),Math.sin(fr*.5),.03,-Math.cos(fr*.5-fr*.7),Math.sin(fr*.5-fr*.7));

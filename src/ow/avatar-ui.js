@@ -78,7 +78,7 @@ function walkHud(host,R,o){
   const act=h('button',{class:'actbtn hide','aria-label':'Interact'},h('span',{class:'al'}));let cur=null;
   act.onclick=()=>{if(R.seat){R.standUp();return;}if(cur&&cur.it)R.interact(cur.it,cur.act.k);};
   const emo=h('button',{class:'emobtn','aria-label':'Emotes',onclick:()=>{const old=host.querySelector('.emopop');if(old){old.remove();return;}
-    const pop=h('div',{class:'emopop'},[['wave','👋','Wave'],['dance','💃','Dance']].map(([k,e,l])=>h('button',{onclick:()=>{pop.remove();R.emote(k);}},h('span',null,e),l)));host.append(pop);}},icon('hand'));
+    const pop=h('div',{class:'emopop'},[['wave','👋','Wave'],['dance','💃','Dance'],['dance2','🕺','Side sway'],['dance3','🙌','Raise the roof'],['dance4','🤖','Robot']].map(([k,e,l])=>h('button',{onclick:()=>{pop.remove();R.emote(k);}},h('span',null,e),l)));host.append(pop);}},icon('hand'));
   const el=h('div',{class:'walkhud'},base,act,emo);host.append(el);
   const keys={};const kd=e=>{const k=e.key.toLowerCase();if(!'wasd'.includes(k)&&!k.startsWith('arrow'))return;if(['INPUT','TEXTAREA'].includes((e.target||{}).tagName))return;keys[k]=e.type==='keydown';const x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),y=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);R.setJoy(x,y);e.preventDefault();};
   window.addEventListener('keydown',kd);window.addEventListener('keyup',kd);
