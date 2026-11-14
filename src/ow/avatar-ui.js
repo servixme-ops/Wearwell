@@ -11,13 +11,13 @@ Object.assign(IC,{
 Object.assign(Store,{
   _av:null,
   async loadAvatar(force){
-    if(Store._av&&!force)return Store._av;let local=null;try{local=JSON.parse(localStorage.getItem('ow_avatar')||'null');}catch(e){}
+    if(Store._av&&!force)return Store._av;let local=null;try{const own=localStorage.getItem('ow_avatar_uid')||'';/* a saved copy only counts for the account that made it (or for a guest) */if(!own||(Auth.user&&own===Auth.user.id))local=JSON.parse(localStorage.getItem('ow_avatar')||'null');}catch(e){}
     if(Auth.user){try{const r=await sb.from('rooms').select('theme').eq('owner_id',Auth.user.id).maybeSingle();const a=r.data&&r.data.theme&&r.data.theme.avatar;
-      if(a){Store._av=OWA.migrate(a);try{localStorage.setItem('ow_avatar',JSON.stringify(Store._av));}catch(e){}return Store._av;}
+      if(a){Store._av=OWA.migrate(a);try{localStorage.setItem('ow_avatar',JSON.stringify(Store._av));localStorage.setItem('ow_avatar_uid',Auth.user.id);}catch(e){}return Store._av;}
       if(local){Store._av=OWA.migrate(local);Store.saveAvatar(Store._av).catch(()=>{});return Store._av;}}catch(e){}}
     if(local){Store._av=OWA.migrate(local);return Store._av;}return null;},
   async saveAvatar(cfg){
-    Store._av=cfg;try{localStorage.setItem('ow_avatar',JSON.stringify(cfg));}catch(e){}if(!Auth.user)return;
+    Store._av=cfg;try{localStorage.setItem('ow_avatar',JSON.stringify(cfg));localStorage.setItem('ow_avatar_uid',Auth.user?Auth.user.id:'');}catch(e){}if(!Auth.user)return;
     const r=await sb.from('rooms').select('id,theme').eq('owner_id',Auth.user.id).maybeSingle();if(r.error)throw r.error;if(!r.data)return;
     const theme=Object.assign({},r.data.theme||{},{avatar:cfg});const u=await sb.from('rooms').update({theme}).eq('id',r.data.id);if(u.error)throw u.error;},
   async uploadPortrait(cfg){
@@ -65,7 +65,7 @@ function chooseAvatar(onDone){
     body.append(h('p',{class:'tag',style:{marginBottom:'12px'}},'Pick a starting point. Everything can be changed afterwards.'));
     const row=h('div',{class:'av-choose'});
     for(const[g,label]of[['f','Woman'],['m','Man']]){const cfg=OWA.def(g);const img=h('img',{alt:label,width:'120',height:'150'});OWA.thumb(cfg,'full',240,300).then(u=>{img.src=u;}).catch(()=>{});
-      row.append(h('button',{class:'av-card',onclick:()=>{close();Store._av=cfg;try{localStorage.setItem('ow_avatar',JSON.stringify(cfg));}catch(e){}onDone?onDone(cfg):go('#/avatar');}},img,h('b',null,label)));}
+      row.append(h('button',{class:'av-card',onclick:()=>{close();Store._av=cfg;try{localStorage.setItem('ow_avatar',JSON.stringify(cfg));localStorage.setItem('ow_avatar_uid',Auth.user?Auth.user.id:'');}catch(e){}onDone?onDone(cfg):go('#/avatar');}},img,h('b',null,label)));}
     body.append(row);});
 }
 /* ---------- joystick HUD ---------- */
@@ -149,3 +149,6 @@ async function avatarView(){
     try{await Store.saveAvatar(cfg);}catch(e){toast(friendlyError(e),'err');return;}
     if(Auth.user)Store.uploadPortrait(cfg).catch(()=>{});toast('Avatar saved','ok');App.avBack=null;back();});
 }
+
+/* signing out or in starts from a clean slate: never show the previous account's avatar */
+Auth.on(ev=>{if(ev==='signout'||ev==='signin'){Store._av=null;if(ev==='signout'){try{localStorage.removeItem('ow_avatar');localStorage.removeItem('ow_avatar_uid');}catch(e){}}}});

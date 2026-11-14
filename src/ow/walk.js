@@ -44,7 +44,9 @@ P.removeResident=function(){if(this.res){this.root.remove(this.res.holder);this.
 P.setJoy=function(x,y){this.joy.x=x;this.joy.y=y;if(this.seat&&Math.hypot(x,y)>.45)this.standUp();};
 P.walkTap=function(it,e){
   if(this.res&&this.pickResident(e)){this.resTap&&this.resTap();return;}
-  if(!this.me){if(it&&this.cb.onOpen)this.cb.onOpen(it);return;}if(this.seat)this.standUp();
+  if(!this.me){if(it&&this.cb.onOpen)this.cb.onOpen(it);return;}
+  if(it&&it.kind==='decor'&&!this.interactOf(it)){this.cb.onOpen&&this.cb.onOpen(it);return;}
+  if(this.seat)this.standUp();
   if(it&&this.interactOf(it)){this.goToItem(it,true);return;}
   this.ray.setFromCamera(this.ndc(e),this.cam);const pl=new T.Plane(new T.Vector3(0,1,0),0),p=new T.Vector3();
   if(this.ray.ray.intersectPlane(pl,p)){const q=this.pushOut(p.x,p.z,.24,this.blockers());this.goal={x:q[0],z:q[1],t:0,stuck:0,lx:this.me.x,lz:this.me.z};this.showMark(q[0],q[1]);}};
