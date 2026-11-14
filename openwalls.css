@@ -359,7 +359,7 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 
 #view.full.intro-view{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 
-.tv-tap{clip-path:polygon(0 0,60% 0,60% 24%,100% 24%,100% 50%,58% 50%,58% 100%,0 100%)}
+.tv-tap{clip-path:polygon(0 0,100% 0,100% 62%,72% 62%,72% 88%,100% 88%,100% 100%,0 100%)}
 .tv-music .tv-screen{background:radial-gradient(circle at 30% 20%,#7d5cff,#241657 70%)}
 .tv-music .tv-screen::before{content:"♪";position:absolute;inset:0;display:grid;place-items:center;font-size:64px;color:rgba(255,255,255,.28);pointer-events:none}
 .tv-mp{display:none}
