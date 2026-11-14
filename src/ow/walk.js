@@ -107,6 +107,7 @@ P.standUp=function(){
   let q;if(s.lie){const d=OW.furn(it.type),k=it.scale||1,rot=it.rot||0,c=Math.cos(rot),sn=Math.sin(rot),dx=d.w*k/2+.45;q=this.freeNear(it.x+dx*c,it.z-dx*sn,.24);}
   else q=this.freeNear(m.x+s.front[0]*(s.d/2+.45),m.z+s.front[1]*(s.d/2+.45),.24);
   m.x=q[0];m.z=q[1];this.seat=null;this.placeFigure(m);this.nearId='x';this.setNear(null);this.markDirty(true);};
+P.photo=function(withMe){const m=this.me,vis=m?m.holder.visible:true;if(m)m.holder.visible=!!withMe;let url='';try{this.r.render(this.scene,this.cam);url=this.r.domElement.toDataURL('image/png');}finally{if(m)m.holder.visible=vis;this.dirty=true;}return url;};
 P.emote=function(name){const m=this.me;if(!m||this.seat)return;m.emote=name;m.emoteT=name==='wave'?2.4:5;m.av.setPose(name);m.pose=name;};
 /* ---------- per-frame ---------- */
 P.walkTick=function(dt){
