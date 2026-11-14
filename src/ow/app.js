@@ -160,7 +160,11 @@ function activeSpaces(uid,close){
   const box=h('div',{class:'list',style:{margin:'12px 0 0',display:'none'}});
   sb.rpc('ow_user_spaces',{p_user:uid}).then(r=>{const xs=(r.data||[]);if(!xs.length)return;box.style.display='';
     box.replaceChildren(h('div',{class:'f-label',style:{padding:'0 4px 6px'}},'Spaces'),...xs.map(x=>h('button',{onclick:()=>{close&&close();go('#/space/'+x.id);}},icon('mic'),h('span',{class:'grow'},x.title),h('b',null,x.status==='live'?'Live now':'Soon'))));}).catch(()=>{});
-  return box;
+  const past=h('div',{class:'list',style:{margin:'12px 0 0',display:'none'}});
+  sb.rpc('ow_past_spaces',{p_user:uid}).then(r=>{const xs=(r.data||[]);if(!xs.length)return;past.style.display='';
+    const d=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    past.replaceChildren(h('div',{class:'f-label',style:{padding:'0 4px 6px'}},'Past Spaces'),...xs.map(x=>h('button',{onclick:()=>{close&&close();go('#/space/'+x.id);}},icon('mic'),h('span',{class:'grow'},x.title),h('b',null,d(x.ended_at)))));}).catch(()=>{});
+  return h('div',null,box,past);
 }
 function photoSheet(R,name,hasMe){
   sheet('Take a photo',(body,close)=>{

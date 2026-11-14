@@ -78,7 +78,7 @@ function walkHud(host,R,o){
   const act=h('button',{class:'actbtn hide','aria-label':'Interact'},h('span',{class:'al'}));let cur=null;
   act.onclick=()=>{if(R.seat){R.standUp();return;}if(cur&&cur.it)R.interact(cur.it,cur.act.k);};
   const emo=h('button',{class:'emobtn','aria-label':'Emotes',onclick:()=>{const old=host.querySelector('.emopop');if(old){old.remove();return;}
-    const pop=h('div',{class:'emopop'},[['wave','👋','Wave'],['dance','💃','Dance'],['dance2','🕺','Side sway'],['dance3','🙌','Raise the roof'],['dance4','🤖','Robot']].map(([k,e,l])=>h('button',{onclick:()=>{pop.remove();R.emote(k);}},h('span',null,e),l)));host.append(pop);}},icon('hand'));
+    const pop=h('div',{class:'emopop'},[['wave','👋','Wave'],['dance','💃','Dance']].map(([k,e,l])=>h('button',{onclick:()=>{pop.remove();R.emote(k);}},h('span',null,e),l)));host.append(pop);}},icon('hand'));
   const el=h('div',{class:'walkhud'},base,act,emo);host.append(el);
   const keys={};const kd=e=>{const k=e.key.toLowerCase();if(!'wasd'.includes(k)&&!k.startsWith('arrow'))return;if(['INPUT','TEXTAREA'].includes((e.target||{}).tagName))return;keys[k]=e.type==='keydown';const x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),y=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);R.setJoy(x,y);e.preventDefault();};
   window.addEventListener('keydown',kd);window.addEventListener('keyup',kd);
@@ -111,6 +111,22 @@ async function avatarView(){
     return h('div',{class:'av-slider'},h('div',{class:'av-lab'},label,val),inp,l1?h('div',{class:'av-ends'},h('span',null,l1),h('span',null,l2)):null);};
   const chips=(list,cur,fn)=>h('div',{class:'av-chips'},list.map(([k,l])=>h('button',{class:'chip'+(cur===k?' on':''),onclick:()=>fn(k)},l)));
   const setX=(slot,k)=>{const ex=Object.assign({},cfg.extras);if(k)ex[slot]=k;else delete ex[slot];apply({extras:ex});};
+  const embCv=(id,sz)=>{const c=document.createElement('canvas');c.width=c.height=sz*2;c.style.cssText='width:'+sz+'px;height:'+sz+'px;display:block';const g=c.getContext('2d');g.translate(sz,sz);g.scale(sz*.92,-sz*.92);try{OWA.drawEmblem(g,id);}catch(e){}return c;};
+  const badgeMaker=()=>{
+    const b=OWA.parseBadge(cfg.emb)||{shape:'shield',c1:'#5b3fd4',c2:'#ffffff',sym:'star',txt:''};
+    sheet('Make your badge',(body,close)=>{
+      const prev=h('div',{style:{display:'grid',placeItems:'center',padding:'6px 0 10px'}}),ctl=h('div');
+      const draw=()=>{prev.replaceChildren(embCv(OWA.badgeId(b),120));};
+      const paintCtl=()=>{ctl.replaceChildren(
+        h('div',{class:'av-lab'},'Shape'),chips(OWA.BADGE.shapes,b.shape,k=>{b.shape=k;paintCtl();draw();}),
+        swatches(OWA.BADGE.cols,b.c1,c=>{b.c1=c;paintCtl();draw();},'Badge colour'),
+        swatches(OWA.BADGE.cols,b.c2,c=>{b.c2=c;paintCtl();draw();},'Symbol and letters colour'),
+        h('div',{class:'av-lab'},'Symbol'),chips(OWA.BADGE.syms,b.sym,k=>{b.sym=k;paintCtl();draw();}),
+        h('div',{class:'av-lab'},'Letters (up to 3)'),(()=>{const i=h('input',{type:'text',maxlength:'3',value:b.txt,placeholder:'e.g. OW',autocapitalize:'characters',style:{textTransform:'uppercase',maxWidth:'140px'}});i.addEventListener('input',()=>{i.value=i.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3);b.txt=i.value;draw();});return i;})());};
+      paintCtl();draw();
+      body.append(prev,ctl,h('button',{class:'btn coral block',style:{marginTop:'14px'},onclick:()=>{apply({emb:OWA.badgeId(b)});close();}},'Use this badge'));
+    });
+  };
   const note=t=>h('p',{class:'f-hint',style:{margin:'8px 2px'}},t);
   function paint(){
     tabs.replaceChildren(...TABS.map(([k,l,ic])=>h('button',{class:'av-tab'+(tab===k?' on':''),onclick:()=>{tab=k;content.scrollTop=0;paint();}},icon(ic),h('span',null,l))));
@@ -141,6 +157,11 @@ async function avatarView(){
       out.push(h('div',{class:'av-lab'},'Hat'),chips([['','None']].concat(OWA.WEAR.hat),X.hat||'',k=>setX('hat',k)));if(X.hat)out.push(swatches(OWA.COLORS,cfg.hatc,c=>apply({hatc:c})));
       out.push(swatches(OWA.COLORS,cfg.shoec,c=>apply({shoec:c}),'Shoes'));
       out.push(h('div',{class:'av-lab'},'Club colours'),chips(Object.entries(OWA.CLUBS).map(([k,c])=>[k,c.n]),'',k=>{const c=OWA.CLUBS[k];apply({topc:c.b,botc:c.sh,shoec:c.k});}));
+      out.push(h('div',{class:'av-lab'},'Chest badge'),h('div',{class:'av-emb'},
+        h('button',{class:'emb'+(!cfg.emb||cfg.emb==='none'?' on':''),onclick:()=>apply({emb:'none'}),'aria-label':'No badge'},'None'),
+        ...OWA.EMB.map(([id,nm])=>h('button',{class:'emb'+(cfg.emb===id?' on':''),'aria-label':nm,title:nm,onclick:()=>apply({emb:id})},embCv(id,40))),
+        h('button',{class:'emb mk'+(OWA.parseBadge(cfg.emb)?' on':''),onclick:badgeMaker},OWA.parseBadge(cfg.emb)?embCv(cfg.emb,40):'+ Make')));
+      out.push(note('Pick a ready-made badge or make your own. It shows on the left of your chest, on your current top. These are original designs, not club or brand logos.'));
       out.push(note('Extra garments are simple stylised pieces fitted to your avatar. Club colours only tint colours; no badges or sponsors.'));}
     content.replaceChildren(...out);content.scrollTop=keep;undoBtn.disabled=!hist.length;
   }
