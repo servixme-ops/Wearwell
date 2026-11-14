@@ -15,13 +15,14 @@ P.liveStart=function(o){
     ch.subscribe(s=>{if(s==='SUBSCRIBED'){L.ready=true;if(L.meta)ch.track(L.meta);}});
   }catch(e){console.warn('presence unavailable',e);}
 };
-P.liveTrack=function(meta){const L=this.live;if(!L)return;L.meta=meta;L.sendT=9;if(L.ready)try{L.ch.track(meta);}catch(e){}};
-P.liveUntrack=function(){const L=this.live;if(!L)return;L.meta=null;if(L.ready)try{L.ch.untrack();}catch(e){}};
+P.liveCount=function(){const L=this.live;if(!L||!this.onCount)return;try{this.onCount(L.roster.size+(L.meta?1:0));}catch(e){}};
+P.liveTrack=function(meta){const L=this.live;if(!L)return;L.meta=meta;L.sendT=9;if(L.ready)try{L.ch.track(meta);}catch(e){}this.liveCount();};
+P.liveUntrack=function(){const L=this.live;if(!L)return;L.meta=null;if(L.ready)try{L.ch.untrack();}catch(e){}this.liveCount();};
 P.liveSync=function(){
   const L=this.live;if(!L)return;const st=L.ch.presenceState(),seen=new Set();
   Object.keys(st).forEach(k=>{const m=(st[k]||[]).find(x=>x&&x.uid);if(!m||m.uid===L.me)return;seen.add(m.uid);L.roster.set(m.uid,m);});
   [...L.roster.keys()].forEach(u=>{if(!seen.has(u)){L.roster.delete(u);delete L.pos[u];}});
-  this.liveSelect();
+  this.liveSelect();this.liveCount();
 };
 /* everyone present is known, but only the owner and the people nearest to me are drawn */
 P.liveSelect=function(){
