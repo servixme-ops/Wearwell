@@ -52,12 +52,12 @@ class OWRoom{
   /* ----- room shell: walls, floor, ceiling, window, door ----- */
   buildShell(){
     const old=this.shell;this.scene.remove(old);old.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material&&n.material.map&&n.userData.own)n.material.map.dispose();});
-    const g=this.shell=new THREE.Group();this.scene.add(g);const W=this.W,D=this.D,H=this.H,th=this.th,M=OW.mat;
+    const g=this.shell=new THREE.Group();this.scene.add(g);const W=this.W,D=this.D,H=this.H,th=this.th,M=OW.mat,hid=(this.room.theme&&this.room.theme.hide)||{};
     const wallM=new THREE.MeshStandardMaterial({color:th.wall,roughness:.95});
     /* back wall has a real window opening */
     const ww=Math.min(1.7,W*.3),wh=1.25,wx=W*.18,wy=Math.min(1.0,H*.34);
     const sh=new THREE.Shape();sh.moveTo(-W/2,0);sh.lineTo(W/2,0);sh.lineTo(W/2,H);sh.lineTo(-W/2,H);sh.lineTo(-W/2,0);
-    const hole=new THREE.Path();hole.moveTo(wx-ww/2,wy);hole.lineTo(wx-ww/2,wy+wh);hole.lineTo(wx+ww/2,wy+wh);hole.lineTo(wx+ww/2,wy);hole.lineTo(wx-ww/2,wy);sh.holes.push(hole);
+    const hole=new THREE.Path();hole.moveTo(wx-ww/2,wy);hole.lineTo(wx-ww/2,wy+wh);hole.lineTo(wx+ww/2,wy+wh);hole.lineTo(wx+ww/2,wy);hole.lineTo(wx-ww/2,wy);if(!hid.window)sh.holes.push(hole);
     const back=new THREE.Mesh(new THREE.ShapeGeometry(sh),wallM);back.position.z=-D/2;back.receiveShadow=true;g.add(back);
     const mk=(len,ry,x,z)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(len,H),wallM);m.position.set(x,H/2,z);m.rotation.y=ry;m.receiveShadow=true;g.add(m);};
     mk(D,Math.PI/2,-W/2,0);mk(D,-Math.PI/2,W/2,0);mk(W,Math.PI,0,D/2);
@@ -75,19 +75,19 @@ class OWRoom{
     const bb=(w,d,x,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,.12,d),M(th.trim,.7));m.position.set(x,.06,z);m.receiveShadow=true;g.add(m);};
     bb(W,.025,0,-D/2+.0125);bb(.025,D,-W/2+.0125,0);bb(.025,D,W/2-.0125,0);bb(W,.025,0,D/2-.0125);
     /* window: sky behind, frame, sill, curtains-ready */
-    const sc=OW.canvas(8,128),sx=sc.getContext('2d'),gr=sx.createLinearGradient(0,0,0,128);gr.addColorStop(0,'#7cc4ff');gr.addColorStop(1,'#fff1c9');sx.fillStyle=gr;sx.fillRect(0,0,8,128);
+    if(!hid.window){const sc=OW.canvas(8,128),sx=sc.getContext('2d'),gr=sx.createLinearGradient(0,0,0,128);gr.addColorStop(0,'#7cc4ff');gr.addColorStop(1,'#fff1c9');sx.fillStyle=gr;sx.fillRect(0,0,8,128);
     const sky=new THREE.Mesh(new THREE.PlaneGeometry(ww+.4,wh+.4),new THREE.MeshBasicMaterial({map:OW.tex(sc)}));sky.position.set(wx,wy+wh/2,-D/2-.06);g.add(sky);sky.userData.own=1;
     const fm=M(th.trim,.5),fb=(w,h,x,y,z,d)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d||.08),fm);m.position.set(x,y,z);m.castShadow=true;g.add(m);};
-    fb(ww+.1,.05,wx,wy+wh,-D/2+.01);fb(ww+.1,.05,wx,wy,-D/2+.01);fb(.05,wh,wx-ww/2,wy+wh/2,-D/2+.01);fb(.05,wh,wx+ww/2,wy+wh/2,-D/2+.01);fb(.03,wh,wx,wy+wh/2,-D/2+.01,.04);fb(ww,.03,wx,wy+wh/2,-D/2+.01,.04);fb(ww+.3,.05,wx,wy-.04,-D/2+.1,.22);
+    fb(ww+.1,.05,wx,wy+wh,-D/2+.01);fb(ww+.1,.05,wx,wy,-D/2+.01);fb(.05,wh,wx-ww/2,wy+wh/2,-D/2+.01);fb(.05,wh,wx+ww/2,wy+wh/2,-D/2+.01);fb(.03,wh,wx,wy+wh/2,-D/2+.01,.04);fb(ww,.03,wx,wy+wh/2,-D/2+.01,.04);fb(ww+.3,.05,wx,wy-.04,-D/2+.1,.22);}
     /* door on the left wall */
-    const dz=D/2-1.15,dm=M('#8a5a34',.6);const door=new THREE.Mesh(new THREE.BoxGeometry(.05,2.05,.95),dm);door.position.set(-W/2+.03,1.025,dz);door.castShadow=true;g.add(door);
+    if(!hid.door){const dz=D/2-1.15,dm=M('#8a5a34',.6);const door=new THREE.Mesh(new THREE.BoxGeometry(.05,2.05,.95),dm);door.position.set(-W/2+.03,1.025,dz);door.castShadow=true;g.add(door);
     const df=(h,d,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.07,h,d),M(th.trim,.5));m.position.set(-W/2+.04,y,z);g.add(m);};df(2.1,.05,1.05,dz-.5);df(2.1,.05,1.05,dz+.5);df(.05,1.05,2.1,dz);
     const hd=new THREE.Mesh(new THREE.SphereGeometry(.035,10,8),M('#d4a82e',.3,.8));hd.position.set(-W/2+.08,1.0,dz+.35);g.add(hd);
-    for(const[y,hh]of[[1.55,.7],[.6,.7]]){const p=new THREE.Mesh(new THREE.BoxGeometry(.02,hh,.62),M('#7a4a28',.7));p.position.set(-W/2+.06,y,dz);g.add(p);}
+    for(const[y,hh]of[[1.55,.7],[.6,.7]]){const p=new THREE.Mesh(new THREE.BoxGeometry(.02,hh,.62),M('#7a4a28',.7));p.position.set(-W/2+.06,y,dz);g.add(p);}}
     /* pendant light */
-    const cord=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.6,6),M('#222'));cord.position.set(0,H-.3,0);g.add(cord);
-    const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,16,12),new THREE.MeshStandardMaterial({color:'#fff2cc',emissive:'#ffd98a',emissiveIntensity:1.2}));bulb.position.set(0,H-.62,0);g.add(bulb);
-    this.pend.position.set(0,H-.7,0);
+    if(!hid.light){const cord=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.6,6),M('#222'));cord.position.set(0,H-.3,0);g.add(cord);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,16,12),new THREE.MeshStandardMaterial({color:'#fff2cc',emissive:'#ffd98a',emissiveIntensity:1.2}));bulb.position.set(0,H-.62,0);g.add(bulb);}
+    this.pend.intensity=hid.light?.12:.55;this.pend.position.set(0,H-.7,0);
     this.sun.position.set(W*.55,H*2.4,D*.55);this.sun.target.position.set(0,0,0);const sc2=this.sun.shadow.camera,R=Math.max(W,D)*.8;sc2.left=-R;sc2.right=R;sc2.top=R;sc2.bottom=-R;sc2.near=1;sc2.far=40;sc2.updateProjectionMatrix();
     this.cam0.dist=this.fitDist();this.markDirty(true);
   }
@@ -108,7 +108,7 @@ class OWRoom{
       if(!this.edit&&def.img&&!it.image_path)return;
       const b=OW.buildDecor(it,def,this.th);const outer=new THREE.Group(),spin=new THREE.Group();spin.add(b.group);outer.add(spin);outer.userData.itemId=it.id;node={group:outer,spin,def,w:b.w,h:b.h,pic:b.pic};
       if(b.tiles)b.tiles.forEach(m=>this.setPic({pic:m},publicUrl('room-images',m.userData.path)));
-      if(b.pic){const url=it.image_path?publicUrl('room-images',it.image_path):null;if(url)this.setPic(node,url);else if(this.edit){b.pic.material.map=this.ph||(this.ph=OW.placeholder());b.pic.material.needsUpdate=true;}}
+      if(b.pic){const url=it.image_path?publicUrl('room-images',it.image_path):null;if(url)this.setPic(node,url,it.props&&it.props.adj);else if(this.edit){b.pic.material.map=this.ph||(this.ph=OW.placeholder());b.pic.material.needsUpdate=true;}}
     }
     if(!this.edit&&(it.link||it.title||it.description||def.hint&&it.kind==='furniture'&&def.link))this.hotspot(node,it);
     this.root.add(node.group);this.nodes.set(it.id,node);this.place(it);this.markDirty(true);return node;
@@ -116,9 +116,9 @@ class OWRoom{
   hotspot(node,it){const c=OW.canvas(64,64),g=c.getContext('2d');g.fillStyle='rgba(255,255,255,.92)';g.beginPath();g.arc(32,32,26,0,7);g.fill();g.fillStyle='#ff5a3c';g.beginPath();g.arc(32,32,14,0,7);g.fill();
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:OW.tex(c),depthTest:false,transparent:true}));s.scale.setScalar(.16);s.renderOrder=10;
     if(node.def.deco){s.position.set(node.w/2-.05,node.h/2-.05,.08);node.spin.add(s);}else{s.position.set(0,(node.def.h||.5)+.12,0);node.group.add(s);s.scale.setScalar(.16/(it.scale||1));}}
-  setPic(node,url){
+  setPic(node,url,adj){
     this.loading++;let p=this.texCache.get(url);if(!p){p=new Promise((res,rej)=>new THREE.TextureLoader().setCrossOrigin('anonymous').load(url,t=>{t.encoding=THREE.sRGBEncoding;t.anisotropy=4;res(t);},undefined,rej));this.texCache.set(url,p);}
-    p.then(t=>{if(!this.alive)return;node.pic.material.map=t;node.pic.material.needsUpdate=true;this.markDirty();}).catch(()=>{}).then(()=>{this.loading--;});
+    p.then(t=>{if(!this.alive)return;if(adj&&t.image&&(adj.z!==1||adj.x||adj.y)){const gp=node.pic.geometry.parameters,ia=t.image.width/t.image.height,pa=gp.width/gp.height,z=Math.max(1,adj.z||1);t=t.clone();t.needsUpdate=true;const rx=Math.min(1,pa/ia)/z,ry=Math.min(1,ia/pa)/z;t.repeat.set(rx,ry);t.offset.set((1-rx)/2*(1+Math.max(-1,Math.min(1,adj.x||0))),(1-ry)/2*(1+Math.max(-1,Math.min(1,adj.y||0))));}node.pic.material.map=t;node.pic.material.needsUpdate=true;this.markDirty();}).catch(()=>{}).then(()=>{this.loading--;});
   }
   wf(){return WALLF(this.W,this.D);}
   place(it){

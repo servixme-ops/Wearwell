@@ -173,8 +173,10 @@ function roomSettings(room,done){
     let cats=new Set(room.categories||[]);const cw=h('div',{class:'chips'});const pc=()=>cw.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(cats.has(c)?' on':''),onclick:()=>{cats.has(c)?cats.delete(c):cats.add(c);pc();}},c)));pc();
     let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
     const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
-    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),save);
+    const hide=Object.assign({},room.theme&&room.theme.hide);const sw=h('div',{class:'list'});
+    const ps=()=>sw.replaceChildren(...[['window','Window'],['door','Door'],['light','Ceiling light']].map(([k,l])=>h('button',{onclick:()=>{hide[k]?delete hide[k]:hide[k]=1;ps();}},h('span',{class:'grow'},l),h('b',null,hide[k]?'Removed':'Shown'))));ps();
+    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
   });
 }
 
@@ -280,7 +282,7 @@ async function editorView(){
       };paint();
       nm.addEventListener('change',()=>{room.name=nm.value.trim()||'My room';R.room.name=room.name;titleEl.textContent=room.name;R.changed();});
       body.append(field('Room name',nm),h('div',{class:'f-label',style:{margin:'4px 0 8px'}},'Room size'),sizes,h('div',{class:'f-label',style:{margin:'12px 0 8px'}},'Style'),themes,
-        h('button',{class:'btn block',style:{marginTop:'14px'},onclick:()=>{close();roomSettings(Object.assign(room,{name:R.room.name||room.name}),()=>{R.room.categories=room.categories;});}},icon('sliders'),'Name & interests'));
+        h('button',{class:'btn block',style:{marginTop:'14px'},onclick:()=>{close();roomSettings(Object.assign(room,{name:R.room.name||room.name,theme:R.room.theme}),()=>{R.room.categories=room.categories;R.room.theme=room.theme;R.buildShell();R.changed();});}},icon('sliders'),'Name & interests'));
     });
   }
   /* ----- selected item panel ----- */
@@ -292,6 +294,10 @@ async function editorView(){
     const rows=h('div',{class:'rows'},h('label',null,'Rotate'),rs,h('label',null,'Size'),sc);
     const acts=h('div',{class:'acts'});
     if(it.kind==='decor'&&def.img){acts.append(h('button',{class:'btn',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;await guard(null,async()=>{toast('Uploading…');const up=await Store.uploadPicture(f);const asp=up.width/up.height,area=(it.width||def.w)*(it.height||def.h),hh=def.id==='album'?it.height:Math.sqrt(area/asp);R.update(it.id,{image_path:up.path,height:+hh.toFixed(3),width:+(def.id==='album'?it.width:hh*asp).toFixed(3)});});}},icon('image'),it.image_path?'Change picture':'Add picture'));
+      if(it.image_path){const ad=Object.assign({z:1,x:0,y:0},it.props&&it.props.adj);let raf=0;const ap=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>R.update(it.id,{props:Object.assign({},it.props,{adj:Object.assign({},ad)})}));};
+        const sl=(l,k,mn,mx,st)=>{const i=h('input',{type:'range',min:mn,max:mx,step:st,value:String(ad[k])});i.addEventListener('input',()=>{ad[k]=+i.value;ap();});return[h('label',null,l),i];};
+        const box=h('div',{class:'rows',style:{display:'none'}},...sl('Zoom','z','1','3','.05'),...sl('Left / right','x','-1','1','.05'),...sl('Up / down','y','-1','1','.05'),h('button',{class:'btn',onclick:()=>{ad.z=1;ad.x=0;ad.y=0;ap();box.querySelectorAll('input').forEach((i,n)=>i.value=[1,0,0][n]);}},'Reset'));
+        acts.append(h('button',{class:'btn',onclick:()=>{box.style.display=box.style.display==='none'?'':'none';}},'Adjust picture'),box);}
       const fr=h('div',{class:'chips'});const pf=()=>fr.replaceChildren(...Object.entries(OW.FRAMES).map(([k,l])=>h('button',{class:'chip'+((it.frame||'none')===k?' on':''),onclick:()=>{R.update(it.id,{frame:k});pf();}},l)));pf();acts.append(fr);}
     if(it.type==='neon'||it.type==='curtains'||it.kind==='furniture'&&def.col){const cols=['#ff3d81','#3ddc97','#ffd23f','#6c4bff','#ff5a3c','#2d7bff','#c4532d','#2f6b4f','#d9a441','#e8d5b9','#1c1f2e','#f4f1ea'];const sw=h('div',{class:'swatches'});const pc=()=>sw.replaceChildren(...cols.map(c=>h('button',{class:'sw'+((it.color||def.col)===c?' on':''),style:{background:c},'aria-label':'Colour '+c,onclick:()=>{R.update(it.id,{color:c});pc();}})));pc();acts.append(sw);}
     if(it.type==='collage'){acts.append(h('button',{class:'btn',onclick:async()=>{const have=((it.props&&it.props.images)||[]).length;if(have>=6){toast('The board holds 6 photos');return;}const fs=await pickFiles('image/jpeg,image/png,image/webp',6-have);if(!fs||!fs.length)return;await guard(null,async()=>{toast('Uploading…');const out=[...((it.props&&it.props.images)||[])];for(const f of fs.slice(0,6-have)){const up=await Store.uploadPicture(f);out.push(up.path);}R.update(it.id,{props:Object.assign({},it.props,{images:out})});});}},icon('image'),'Add photos'),((it.props&&it.props.images)||[]).length?h('button',{class:'btn',onclick:()=>R.update(it.id,{props:Object.assign({},it.props,{images:[]})})},'Clear photos'):null);}
