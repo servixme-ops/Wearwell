@@ -86,7 +86,7 @@ P.stageTick=function(dt){
         if(gs.n==='angry')tg={desk:new T.Vector3(SX[e.idx],DESKY,SZ+.7)};
         if(gs.n==='drink'){const hm=bt.userData.home,t=gs.t,H=e.f.av.headPos(new T.Vector3()),M_=new T.Vector3(H.x+Math.sin(e.f.yaw)*.1,H.y+.0,H.z+Math.cos(e.f.yaw)*.1).add(new T.Vector3(0,-.02,0));
           const ez=x=>x*x*(3-2*x);let k=0;if(t<.9)k=0;else if(t<1.8)k=ez((t-.9)/.9);else if(t<2.4)k=1;else if(t<3.3)k=1-ez((t-2.4)/.9);
-          const pos=hm.clone().lerp(M_,k);bt.position.copy(pos);bt.rotation.x=-1.25*k;tg={bottle:pos.clone(),near:k>.8?1:Math.max(0,(k-.5)*2)};if(t>3.3){tg.bottle=hm.clone();}}
+          const pos=hm.clone().lerp(M_,k);bt.position.copy(pos);bt.rotation.x=-1.25*k;const fw=new T.Vector3(Math.sin(e.f.yaw)*.065,.012,Math.cos(e.f.yaw)*.065);tg={bottle:pos.clone().sub(fw),near:k>.8?1:Math.max(0,(k-.5)*2)};if(t>3.3){tg.bottle=hm.clone().sub(fw);}}
         e.f.av.setGesture(gs.n,gs.t,w,tg);
         if(gs.t>=gs.dur){e.gest=null;e.f.av.setGesture(null);if(bt){bt.position.copy(bt.userData.home);bt.rotation.set(0,0,0);}}}
       e.f.av.update(sdt,0);e.f.holder.rotation.y=e.f.yaw;});st.acc=0;dirty=true;}
