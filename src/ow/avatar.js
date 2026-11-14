@@ -5,7 +5,9 @@
  * Interface used by the room (walk.js): {group,height,scale,lift,seatTop,update(dt,speed),setPose(name),pose,dispose()}. */
 (function(){
 const T=THREE,PI=Math.PI,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,t)=>a+(b-a)*t;
-const bufCache={};OWA._lin=hex=>{const c=new THREE.Color(hex);c.convertSRGBToLinear();return c;};
+const bufCache={},GC={};OWA._lin=hex=>{const c=new THREE.Color(hex);c.convertSRGBToLinear();return c;};
+/* start downloading the avatar models early, so a room opens with them already in memory */
+OWA.prefetch=function(gs){(gs||['m','f']).forEach(g=>{const m=OWA.MODELS[g];if(m)fetchBuf(m.url).catch(()=>{});});};
 function fetchBuf(url){return bufCache[url]||(bufCache[url]=fetch(url).then(r=>{if(!r.ok)throw new Error('avatar model '+r.status);return r.arrayBuffer();}).catch(e=>{delete bufCache[url];throw e;}));}
 const lin=hex=>{const c=new T.Color(hex);c.convertSRGBToLinear();return c;};
 /* average linear colour of a texture image (used so a tint hits its target on average and keeps the painted detail) */
@@ -17,12 +19,13 @@ function avgLinear(img){
 function tintFor(hex,avg){const t=lin(hex);return new T.Color(clamp(t.r/Math.max(.02,avg.r),0,3),clamp(t.g/Math.max(.02,avg.g),0,3),clamp(t.b/Math.max(.02,avg.b),0,3));}
 /* recolour only the iris of the 64px eye texture, keeping its shading, pupil and highlight */
 function eyeTexture(img,hex){
-  const S=img.naturalWidth||64,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(img,0,0,S,S);
-  const im=g.getImageData(0,0,S,S),d=im.data,tc=new T.Color(hex),R=S*.215;
-  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const dx=x+.5-S/2,dy=y+.5-S*.49,r=Math.hypot(dx,dy);if(r>R*1.05)continue;const i=(y*S+x)*4,lum=(.3*d[i]+.59*d[i+1]+.11*d[i+2])/255;
+  const S=img.S||img.naturalWidth||img.width||64;let d;if(img.raw)d=new Uint8ClampedArray(img.raw);else{const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(img,0,0,S,S);d=g.getImageData(0,0,S,S).data;}
+  const tc=new T.Color(hex||'#000'),R=S*.215;
+  for(let y=0;hex&&y<S;y++)for(let x=0;x<S;x++){const dx=x+.5-S/2,dy=y+.5-S*.49,r=Math.hypot(dx,dy);if(r>R*1.05)continue;const i=(y*S+x)*4,lum=(.3*d[i]+.59*d[i+1]+.11*d[i+2])/255;
     if(lum>.6)continue;const k=clamp(lum/.3,.25,1.6),w=clamp((R*1.05-r)/(R*.25),0,1);
     d[i]=lerp(d[i],clamp(tc.r*255*k,0,255),w);d[i+1]=lerp(d[i+1],clamp(tc.g*255*k,0,255),w);d[i+2]=lerp(d[i+2],clamp(tc.b*255*k,0,255),w);}
-  g.putImageData(im,0,0);const t=new T.CanvasTexture(c);t.flipY=false;t.encoding=T.sRGBEncoding;t.anisotropy=2;return t;}
+  /* kept as raw pixels in JS memory: a canvas-backed texture can be blanked by the browser when the tab is in the background */
+  const t=new T.DataTexture(new Uint8Array(d),S,S,T.RGBAFormat);t.flipY=false;t.encoding=T.sRGBEncoding;t.generateMipmaps=true;t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;t.anisotropy=2;t.needsUpdate=true;return t;}
 
 function build(cfg){
   cfg=OWA.migrate(cfg);const M=OWA.MODELS[cfg.g]||OWA.MODELS.f;
@@ -40,6 +43,12 @@ function build(cfg){
     G.scene.updateMatrixWorld(true);Object.values(G.skinned).forEach(m=>m.skeleton.update());
     /* measure the real skinned extents once, in model units */
     const ext=(m)=>{let mn=1e9,mx=-1e9;const p=m.geometry.attributes.position,t=new T.Vector3();for(let i=0;i<p.count;i++){m.boneTransform(i,t);t.applyMatrix4(m.matrixWorld);mn=Math.min(mn,t.y);mx=Math.max(mx,t.y);}return[mn,mx];};
+    const GCk=M.url,GCc=GC[GCk];
+    if(GCc){/* identical rig every time: reuse the measurements from the first avatar of this model (saves most of the per-avatar setup time) */
+      geo.H0=GCc.H0;geo.foot0=GCc.foot0;geo.ankle0=GCc.ankle0;geo.bw=JSON.parse(JSON.stringify(GCc.bw));
+      for(const k in G.skinned)if(GCc.D[k])G.skinned[k]._D=GCc.D[k];
+      Object.values(G.materials).forEach(m=>{if(GCc.avg[m.name])m.userData.avg=GCc.avg[m.name].clone();});
+    }else{
     const fh=ext(G.skinned.Wolf3D_Outfit_Footwear||G.skinned.Wolf3D_Body),hh=ext(G.skinned.Wolf3D_Hair||G.skinned.Wolf3D_Head),hd=ext(G.skinned.Wolf3D_Head);
     geo.H0=Math.max(hh[1],hd[1])-fh[0];geo.foot0=fh[0];
     const wy=n=>bones[n].getWorldPosition(new T.Vector3()).y;
@@ -50,7 +59,9 @@ function build(cfg){
     geo.bw={};for(const n in bones){const v=bones[n].getWorldPosition(new T.Vector3());geo.bw[n]={x:v.x,y:v.y,z:v.z};}
     geo.ankle0=Math.min(wy('LeftFoot'),wy('RightFoot'))-geo.foot0;
     Object.values(G.materials).forEach(m=>{if(m.map&&m.map.image)m.userData.avg=avgLinear(m.map.image);});
-    for(const m of G.materials)skin[m.name]=m;eyeImg=skin.Wolf3D_Eye&&skin.Wolf3D_Eye.map?skin.Wolf3D_Eye.map.image:null;
+      GC[GCk]={H0:geo.H0,foot0:geo.foot0,ankle0:geo.ankle0,bw:JSON.parse(JSON.stringify(geo.bw)),D:Object.fromEntries(Object.entries(G.skinned).map(([k,m])=>[k,m._D])),avg:Object.fromEntries(Object.values(G.materials).filter(m=>m.userData.avg).map(m=>[m.name,m.userData.avg.clone()]))};
+    }
+    for(const m of G.materials)skin[m.name]=m;eyeImg=skin.Wolf3D_Eye&&skin.Wolf3D_Eye.map?skin.Wolf3D_Eye.map.image:null;if(eyeImg){try{const S0=eyeImg.naturalWidth||eyeImg.width||64,c0=document.createElement('canvas');c0.width=c0.height=S0;const g0=c0.getContext('2d');g0.drawImage(eyeImg,0,0,S0,S0);eyeImg={S:S0,raw:g0.getImageData(0,0,S0,S0).data};}catch(e){}}
     av.morphNames=G.morphs.slice();av._geo=geo;
     Object.values(G.meshes).forEach(m=>{m.castShadow=false;});
     apply(cfg);st.ready=true;av.onReady&&av.onReady(av);
@@ -219,27 +230,8 @@ function build(cfg){
     const sd=(g,ph)=>{const be=Math.sin(t*4.4+ph),b2=Math.sin(t*2.9+ph*2);
       return{u:mixv([.15,-.9,.35],[.36+.08*b2,-.55,.5],g),f:mixv([.1,-.35,1],[.05+.22*b2,.4+.28*be,1],g)};};
     const R=sd(st.gR,0),L=sd(st.gL,2.1);
-    /* resting hands are aimed at the thigh, so any body size actually touches the lap */
-    const top=av.seatTop==null?.46:av.seatTop;
-    const lp0=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3()));
-    if(bones.RightArm&&bones.RightHand&&bones.RightUpLeg&&bones.RightLeg){
-      /* arms too short to reach the lap while sitting bolt upright (taller builds): lean forward a little */
-      const sh=lp0('RightArm'),tg=lp0('RightUpLeg').lerp(lp0('RightLeg'),.55);tg.y+=.062/rs;
-      const reach=(lp0('RightArm').distanceTo(lp0('RightForeArm'))+lp0('RightForeArm').distanceTo(lp0('RightHand')))*.93,short=sh.distanceTo(tg)-reach,tl=Math.max(.2,sh.y-lp0('Hips').y);
-      st.lean=(st.lean||0)+((short>0?Math.min(.45,short*4/tl):0)-(st.lean||0))*Math.min(1,dt*6);
-      if(st.lean>.005){rot('Spine1',1,0,0,st.lean*.5);rot('Spine2',1,0,0,st.lean*.5);}
-    }
+    arm('R',R.u[0],R.u[1],R.u[2],R.f[0],R.f[1],R.f[2]);arm('L',L.u[0],L.u[1],L.u[2],L.f[0],L.f[1],L.f[2]);
     const lp=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3()));
-    const sa=(sd_,V,g)=>{const S=sd_==='L'?'Left':'Right',sg=sd_==='L'?1:-1;if(!bones[S+'Hand']||!bones[S+'ForeArm']){return;}
-      const sh=lp(S+'Arm'),el0=lp(S+'ForeArm'),ha0=lp(S+'Hand'),l1=sh.distanceTo(el0),l2=el0.distanceTo(ha0);
-      const T_=lp(S+'UpLeg').lerp(lp(S+'Leg'),.55);T_.y+=.062/rs;const dv=T_.clone().sub(sh);let d=dv.length();const mx=(l1+l2)*.98;if(d>mx){dv.multiplyScalar(mx/d);d=mx;}else if(d<.05/rs)d=.05/rs;
-      const dir=dv.clone().normalize(),aa=(l1*l1-l2*l2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,l1*l1-aa*aa));
-      const pole=new T.Vector3(sg*.5,-.5,-.7);pole.addScaledVector(dir,-pole.dot(dir)).normalize();
-      const el=sh.clone().addScaledVector(dir,aa).addScaledVector(pole,hh),uL=el.clone().sub(sh).normalize();
-      const gu=new T.Vector3(sg*V.u[0],V.u[1],V.u[2]).normalize(),gf=new T.Vector3(sg*V.f[0],V.f[1],V.f[2]).normalize();
-      const ud=uL.lerp(gu,g).normalize();aim(S+'Arm',S+'ForeArm',ud.x,ud.y,ud.z);
-      const ea=lp(S+'ForeArm'),fl=T_.clone().sub(ea).normalize().lerp(gf,g).normalize();aim(S+'ForeArm',S+'Hand',fl.x,fl.y,fl.z);};
-    sa('R',R,Math.min(1,st.gR*1.6));sa('L',L,Math.min(1,st.gL*1.6));
     if(st.gn)gesture(lp);
     if(st.gR>.05)rot('RightHand',0,0,1,Math.sin(t*5.2)*.3*st.gR);if(st.gL>.05)rot('LeftHand',0,0,1,-Math.sin(t*4.7)*.3*st.gL);
     rot('Head',1,0,0,.04+Math.sin(t*.8)*.02+ts*(.05*Math.sin(t*3.3)+.03*Math.sin(t*5.7)));
