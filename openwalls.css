@@ -259,7 +259,7 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .tv-bar{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;font:700 12px var(--disp);cursor:grab;user-select:none}
 .tv-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tv-b{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.12)}.tv-b svg{width:17px;height:17px}
-.tv-screen{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden}.tv-screen iframe{width:100%;height:100%;border:0;display:block;pointer-events:none}
+.tv-screen{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden}.tv-screen iframe{width:100%;height:100%;border:0;display:block}
 .tv-msg{position:absolute;inset:auto 8px 8px;font:600 12px var(--disp);text-align:center;color:#fff}
 .tv-float{position:absolute;inset:0;pointer-events:none;overflow:hidden}.tv-fe{position:absolute;bottom:-10px;font-size:26px;animation:tvup 2.2s ease-out forwards}
 @keyframes tvup{to{transform:translateY(-150px);opacity:0}}
@@ -359,7 +359,7 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 
 #view.full.intro-view{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 
-.tv-tap{clip-path:polygon(0 0,100% 0,100% 55%,62% 55%,62% 100%,0 100%)}
+.tv-tap{clip-path:polygon(0 0,60% 0,60% 24%,100% 24%,100% 50%,58% 50%,58% 100%,0 100%)}
 .tv-music .tv-screen{background:radial-gradient(circle at 30% 20%,#7d5cff,#241657 70%)}
 .tv-music .tv-screen::before{content:"♪";position:absolute;inset:0;display:grid;place-items:center;font-size:64px;color:rgba(255,255,255,.28);pointer-events:none}
 .tv-mp{display:none}
@@ -368,3 +368,4 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tvplayer.mini .tv-seek,.tvplayer.mini .tv-ctr,.tvplayer.mini .tv-rx,.tvplayer.mini .tv-pl,.tvplayer.mini .tv-cmp{display:none!important}
 .tvplayer.mini .tv-screen{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;overflow:hidden;pointer-events:none}
 .tvplayer.mini{width:auto!important;min-width:210px;max-width:92vw;height:auto!important}
+.tv-ping,.tv-msg{pointer-events:none}

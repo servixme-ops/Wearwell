@@ -106,7 +106,7 @@ const OWTv=(()=>{
     const url=v=>'https://w.soundcloud.com/player/?url='+encodeURIComponent(v.u)+'&auto_play=false&hide_related=true&show_comments=false&show_user=true&visual=false&color=%236c4bff';
     const mk=v=>{const f=h('iframe',{allow:'autoplay',title:'SoundCloud',src:url(v),style:{width:'100%',height:'100%',border:'0'}});d.append(f);w=SC.Widget(f);
       rd=new Promise(r=>w.bind(SC.Widget.Events.READY,()=>r()));
-      w.bind(SC.Widget.Events.PLAY,()=>evt.state(true));w.bind(SC.Widget.Events.PAUSE,()=>evt.state(false));w.bind(SC.Widget.Events.FINISH,()=>evt.end());w.bind(SC.Widget.Events.ERROR,()=>evt.err());
+      w.bind(SC.Widget.Events.PLAY,()=>evt.state(true));w.bind(SC.Widget.Events.PAUSE,()=>evt.state(false));w.bind(SC.Widget.Events.FINISH,()=>{try{w.getDuration(x=>{if((x||0)/1000-t>20)toast('SoundCloud only allows a 30-second preview of this track here. Use a YouTube Music link for the full song.','err');evt.end();});}catch(e){evt.end();}});w.bind(SC.Widget.Events.ERROR,()=>evt.err());
       w.bind(SC.Widget.Events.PLAY_PROGRESS,e=>{t=(e.currentPosition||0)/1000;});};
     return{ctl:true,
       async load(v,pos,play){if(first){first=false;mk(v);}else{rd=new Promise(r=>w.load(v.u,{auto_play:false,hide_related:true,show_comments:false,visual:false,callback:()=>r()}));}
