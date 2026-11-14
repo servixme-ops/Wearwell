@@ -52,7 +52,7 @@ OWA.Preview=class{
   /* gender change rebuilds (different base); everything else is applied live */
   set(cfg){const g=cfg.g;if(this.av&&this.g===g){this.av.apply(cfg);this.setMode(this.mode,true);return;}
     if(this.av){this.scene.remove(this.av.group);this.av.dispose();}this.g=g;const av=this.av=OWA.build(cfg);av.setPose(this.pose);this.scene.add(av.group);av.ready.then(()=>{if(this.av===av)this.setMode(this.mode,true);}).catch(e=>{this.err=e;this.host.dispatchEvent(new CustomEvent('avatar-error',{detail:e}));});}
-  setMode(m,now){this.mode=m;const k=this.av?this.av.height/1.68:1;const T={face:{y:1.56*k,z:1.1*k,la:1.55*k},body:{y:.9*k,z:4.1,la:.88*k},side:{y:.9*k,z:4.1,la:.88*k},back:{y:.9*k,z:4.1,la:.88*k}};this.tgt=T[m]||T.body;if(m==='side')this.ryT=-Math.PI/2;else if(m==='back')this.ryT=Math.PI;else this.ryT=-.3;this.ry=this.ryT;if(now||!this.camState)this.camState=Object.assign({},this.tgt);}
+  setMode(m,now){this.mode=m;const k=this.av?this.av.height/1.68:1;const T={face:{y:1.56*k,z:1.1*k,la:1.55*k},chest:{y:1.3*k,z:1.9*k,la:1.24*k},body:{y:.9*k,z:4.1,la:.88*k},side:{y:.9*k,z:4.1,la:.88*k},back:{y:.9*k,z:4.1,la:.88*k}};this.tgt=T[m]||T.body;if(m==='side')this.ryT=-Math.PI/2;else if(m==='back')this.ryT=Math.PI;else this.ryT=-.3;this.ry=this.ryT;if(now||!this.camState)this.camState=Object.assign({},this.tgt);}
   setPose(p){this.pose=p;this.av&&this.av.setPose(p);}
   loop(){if(!this.alive)return;requestAnimationFrame(this.loop);const now=performance.now(),dt=Math.min(.05,(now-this.t0)/1000);this.t0=now;
     if(this.av){this.av.update(dt,0);this.av.group.rotation.y+=(this.ry-this.av.group.rotation.y)*Math.min(1,dt*10);}
@@ -101,6 +101,7 @@ async function avatarView(){
   stage.addEventListener('avatar-error',e=>{stage.append(h('div',{class:'av-err'},'Could not load the avatar model. '+(e.detail&&e.detail.message||'')));});
   const MODES=[['face','Face'],['body','Body'],['side','Side'],['back','Back']];
   const mb=MODES.map(([m,l])=>h('button',{class:m===pv.mode?'on':'','data-m':m,onclick:()=>{pv.setMode(m);mb.forEach(b=>b.classList.toggle('on',b.dataset.m===m));}},l));seg.append(...mb);
+  const showChest=()=>{pv.setMode('chest');mb.forEach(b=>b.classList.remove('on'));};
   const push=()=>{hist.push(JSON.stringify(cfg));if(hist.length>40)hist.shift();};
   const apply=patch=>{push();Object.assign(cfg,patch);pv.set(cfg);paint();};
   const live=patch=>{Object.assign(cfg,patch);pv.set(cfg);};
@@ -124,7 +125,7 @@ async function avatarView(){
         h('div',{class:'av-lab'},'Symbol'),chips(OWA.BADGE.syms,b.sym,k=>{b.sym=k;paintCtl();draw();}),
         h('div',{class:'av-lab'},'Letters (up to 3)'),(()=>{const i=h('input',{type:'text',maxlength:'3',value:b.txt,placeholder:'e.g. OW',autocapitalize:'characters',style:{textTransform:'uppercase',maxWidth:'140px'}});i.addEventListener('input',()=>{i.value=i.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3);b.txt=i.value;draw();});return i;})());};
       paintCtl();draw();
-      body.append(prev,ctl,h('button',{class:'btn coral block',style:{marginTop:'14px'},onclick:()=>{apply({emb:OWA.badgeId(b)});close();}},'Use this badge'));
+      body.append(prev,ctl,h('button',{class:'btn coral block',style:{marginTop:'14px'},onclick:()=>{showChest();apply({emb:OWA.badgeId(b)});close();}},'Use this badge'));
     });
   };
   const note=t=>h('p',{class:'f-hint',style:{margin:'8px 2px'}},t);
@@ -158,8 +159,8 @@ async function avatarView(){
       out.push(swatches(OWA.COLORS,cfg.shoec,c=>apply({shoec:c}),'Shoes'));
       out.push(h('div',{class:'av-lab'},'Club colours'),chips(Object.entries(OWA.CLUBS).map(([k,c])=>[k,c.n]),'',k=>{const c=OWA.CLUBS[k];apply({topc:c.b,botc:c.sh,shoec:c.k});}));
       out.push(h('div',{class:'av-lab'},'Chest badge'),h('div',{class:'av-emb'},
-        h('button',{class:'emb'+(!cfg.emb||cfg.emb==='none'?' on':''),onclick:()=>apply({emb:'none'}),'aria-label':'No badge'},'None'),
-        ...OWA.EMB.map(([id,nm])=>h('button',{class:'emb'+(cfg.emb===id?' on':''),'aria-label':nm,title:nm,onclick:()=>apply({emb:id})},embCv(id,40))),
+        h('button',{class:'emb'+(!cfg.emb||cfg.emb==='none'?' on':''),onclick:()=>{showChest();apply({emb:'none'});},'aria-label':'No badge'},'None'),
+        ...OWA.EMB.map(([id,nm])=>h('button',{class:'emb'+(cfg.emb===id?' on':''),'aria-label':nm,title:nm,onclick:()=>{showChest();apply({emb:id});}},embCv(id,40))),
         h('button',{class:'emb mk'+(OWA.parseBadge(cfg.emb)?' on':''),onclick:badgeMaker},OWA.parseBadge(cfg.emb)?embCv(cfg.emb,40):'+ Make')));
       out.push(note('Pick a ready-made badge or make your own. It shows on the left of your chest, on your current top. These are original designs, not club or brand logos.'));
       out.push(note('Extra garments are simple stylised pieces fitted to your avatar. Club colours only tint colours; no badges or sponsors.'));}
