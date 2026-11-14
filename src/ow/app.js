@@ -382,8 +382,10 @@ async function visitView(hs0){
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}
   let cn={followers:0,following:0,iFollow:false};try{cn=await Store.counts(o.id);}catch(e){}
   const fol=h('button',{class:'rbtn '+(cn.iFollow?'':'coral'),onclick:()=>{if(!Auth.user){authSheet('signin','Sign in to follow '+o.username);return;}guard(fol,async()=>{await Store.follow(o.id,!cn.iFollow);cn.iFollow=!cn.iFollow;fol.textContent=cn.iFollow?'Following':'Follow';fol.classList.toggle('coral',!cn.iFollow);});}},cn.iFollow?'Following':'Follow');
+  const cntPill=h('span',{class:'live-n',style:{display:'none'},'aria-label':'People in this room'});if(R)R.onCount=n=>{cntPill.style.display=n>0?'':'none';cntPill.replaceChildren(h('i'),String(n));};
   const top=h('div',{class:'rtop'},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go(d.is_me?'#/me':'#/wall')},icon('back')),
     h('button',{class:'owner',onclick:()=>ownerSheet(o,cn)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
+    cntPill,
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
     h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>{if(d.room.visibility==='private'&&!d.is_me){toast('Only the owner can share a private room');return;}shareRoom(o.username,d.room.name,d.room.visibility);}},icon('share')),
     R?h('button',{class:'rbtn','aria-label':'Take a photo',onclick:()=>photoSheet(R,d.room.name,!!R.me)},icon('cam')):null,
