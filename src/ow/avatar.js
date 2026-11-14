@@ -186,27 +186,8 @@ function build(cfg){
     const sd=(g,ph)=>{const be=Math.sin(t*4.4+ph),b2=Math.sin(t*2.9+ph*2);
       return{u:mixv([.15,-.9,.35],[.36+.08*b2,-.55,.5],g),f:mixv([.1,-.35,1],[.05+.22*b2,.4+.28*be,1],g)};};
     const R=sd(st.gR,0),L=sd(st.gL,2.1);
-    /* resting hands are aimed at the thigh, so any body size actually touches the lap */
-    const top=av.seatTop==null?.46:av.seatTop;
-    const lp0=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3()));
-    if(bones.RightArm&&bones.RightHand&&bones.RightUpLeg&&bones.RightLeg){
-      /* arms too short to reach the lap while sitting bolt upright (taller builds): lean forward a little */
-      const sh=lp0('RightArm'),tg=lp0('RightUpLeg').lerp(lp0('RightLeg'),.55);tg.y+=.062/rs;
-      const reach=(lp0('RightArm').distanceTo(lp0('RightForeArm'))+lp0('RightForeArm').distanceTo(lp0('RightHand')))*.93,short=sh.distanceTo(tg)-reach,tl=Math.max(.2,sh.y-lp0('Hips').y);
-      st.lean=(st.lean||0)+((short>0?Math.min(.45,short*4/tl):0)-(st.lean||0))*Math.min(1,dt*6);
-      if(st.lean>.005){rot('Spine1',1,0,0,st.lean*.5);rot('Spine2',1,0,0,st.lean*.5);}
-    }
+    arm('R',R.u[0],R.u[1],R.u[2],R.f[0],R.f[1],R.f[2]);arm('L',L.u[0],L.u[1],L.u[2],L.f[0],L.f[1],L.f[2]);
     const lp=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3()));
-    const sa=(sd_,V,g)=>{const S=sd_==='L'?'Left':'Right',sg=sd_==='L'?1:-1;if(!bones[S+'Hand']||!bones[S+'ForeArm']){return;}
-      const sh=lp(S+'Arm'),el0=lp(S+'ForeArm'),ha0=lp(S+'Hand'),l1=sh.distanceTo(el0),l2=el0.distanceTo(ha0);
-      const T_=lp(S+'UpLeg').lerp(lp(S+'Leg'),.55);T_.y+=.062/rs;const dv=T_.clone().sub(sh);let d=dv.length();const mx=(l1+l2)*.98;if(d>mx){dv.multiplyScalar(mx/d);d=mx;}else if(d<.05/rs)d=.05/rs;
-      const dir=dv.clone().normalize(),aa=(l1*l1-l2*l2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,l1*l1-aa*aa));
-      const pole=new T.Vector3(sg*.5,-.5,-.7);pole.addScaledVector(dir,-pole.dot(dir)).normalize();
-      const el=sh.clone().addScaledVector(dir,aa).addScaledVector(pole,hh),uL=el.clone().sub(sh).normalize();
-      const gu=new T.Vector3(sg*V.u[0],V.u[1],V.u[2]).normalize(),gf=new T.Vector3(sg*V.f[0],V.f[1],V.f[2]).normalize();
-      const ud=uL.lerp(gu,g).normalize();aim(S+'Arm',S+'ForeArm',ud.x,ud.y,ud.z);
-      const ea=lp(S+'ForeArm'),fl=T_.clone().sub(ea).normalize().lerp(gf,g).normalize();aim(S+'ForeArm',S+'Hand',fl.x,fl.y,fl.z);};
-    sa('R',R,Math.min(1,st.gR*1.6));sa('L',L,Math.min(1,st.gL*1.6));
     if(st.gn)gesture(lp);
     if(st.gR>.05)rot('RightHand',0,0,1,Math.sin(t*5.2)*.3*st.gR);if(st.gL>.05)rot('LeftHand',0,0,1,-Math.sin(t*4.7)*.3*st.gL);
     rot('Head',1,0,0,.04+Math.sin(t*.8)*.02+ts*(.05*Math.sin(t*3.3)+.03*Math.sin(t*5.7)));
