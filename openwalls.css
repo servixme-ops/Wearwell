@@ -358,3 +358,5 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 @media (prefers-reduced-motion:reduce){#loading .ow-logo svg *,.spin-wrap .ow-logo svg *{animation:none!important}}
 
 #view.full.intro-view{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+
+.tv-tap{clip-path:polygon(0 0,100% 0,100% 55%,62% 55%,62% 100%,0 100%)}
