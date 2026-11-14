@@ -29,7 +29,7 @@ function build(cfg){
   const group=new T.Group();group.name='avatar';
   const st={pose:'stand',t:Math.random()*10,walk:0,blink:2+Math.random()*3,bl:0,talk:0,talkS:0,syl:0,gR:0,gL:0,w:{},ready:false,disposed:false,wear:{}};
   const av={group,cfg,height:M.height,scale:M.height/1.68,lift:0,seatTop:null,ready:null,A:null,
-    update,setPose(p){st.pose=p;},get pose(){return st.pose;},apply,dispose,attach,detach,setTalk(v){st.talk=clamp(+v||0,0,1);},get talking(){return st.talkS>.05;},morphNames:[],slots:{}};
+    update,setPose(p){st.pose=p;},headPos(v){if(bones.Head)bones.Head.getWorldPosition(v);return v;},setGesture(n,t,w,tg){st.gn=n||null;st.gt=t||0;st.gw=w==null?1:w;st.gtg=tg||null;},get pose(){return st.pose;},apply,dispose,attach,detach,setTalk(v){st.talk=clamp(+v||0,0,1);},get talking(){return st.talkS>.05;},morphNames:[],slots:{}};
   let A=null,root=null,bones={},rest={},home={},skin={},eyeImg=null,eyeKey='',rs=1,floor=0,ankle=0,geo={},baseHidden={};
   const parts=()=>A.skinned;
 
@@ -152,6 +152,32 @@ function build(cfg){
   const leg=(s,tx,ty,tz,sx,sy,sz)=>{const S=s==='L'?'Left':'Right',sg=s==='L'?1:-1;aim(S+'UpLeg',S+'Leg',sg*tx,ty,tz);aim(S+'Leg',S+'Foot',sg*sx,sy,sz);const d=geo.toeDir||{x:0,y:-.18,z:1};aim(S+'Foot',S+'ToeBase',d.x,d.y,d.z);};
   /* seated: arms rest on the desk, lift into natural hand gestures while talking, head nods and sways */
   const mixv=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];
+  /* host gestures: hands are moved by IK to targets (chest, cheek, lips, desk, bottle), the face gets a matching expression */
+  const GFACE={angry:{browDownLeft:.9,browDownRight:.9,eyeSquintLeft:.45,eyeSquintRight:.45,mouthFrownLeft:.6,mouthFrownRight:.6,noseSneerLeft:.4,noseSneerRight:.4,mouthPressLeft:.3,mouthPressRight:.3,jawForward:.15},
+    smile:{mouthSmileLeft:.9,mouthSmileRight:.9,cheekSquintLeft:.45,cheekSquintRight:.45,eyeSquintLeft:.2,eyeSquintRight:.2,browInnerUp:.15},
+    quiet:{mouthPucker:.5,browInnerUp:.3,eyeWideLeft:.15,eyeWideRight:.15},clap:{mouthSmileLeft:.55,mouthSmileRight:.55,cheekSquintLeft:.2,cheekSquintRight:.2},
+    cheek:{mouthSmileLeft:.25,mouthSmileRight:.25,browInnerUp:.12},fold:{mouthSmileLeft:.2,mouthSmileRight:.2,browInnerUp:.1},drink:{mouthPucker:.3,jawOpen:.1}};
+  function reachTo(S,sg,T_,pole,lp){
+    if(!bones[S+'Hand']||!bones[S+'ForeArm'])return;
+    const sh=lp(S+'Arm'),el0=lp(S+'ForeArm'),ha0=lp(S+'Hand'),l1=sh.distanceTo(el0),l2=el0.distanceTo(ha0);
+    const dv=T_.clone().sub(sh);let d=dv.length();const mx=(l1+l2)*.98;if(d>mx){dv.multiplyScalar(mx/d);d=mx;}else if(d<.05/rs)d=.05/rs;
+    const dir=dv.clone().normalize(),aa=(l1*l1-l2*l2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,l1*l1-aa*aa));
+    const po=pole.clone();po.addScaledVector(dir,-po.dot(dir)).normalize();
+    const el=sh.clone().addScaledVector(dir,aa).addScaledVector(po,hh),u=el.sub(sh).normalize();aim(S+'Arm',S+'ForeArm',u.x,u.y,u.z);
+    const ea=lp(S+'ForeArm'),f=T_.clone().sub(ea).normalize();aim(S+'ForeArm',S+'Hand',f.x,f.y,f.z);}
+  function gesture(lp){
+    const n=st.gn,w=Math.min(1,st.gw),t=st.gt,m=1/rs,V=(x,y,z)=>new T.Vector3(x,y,z);
+    const head=lp('Head'),chest=lp('Spine2');
+    const go=(S,sg,Tg,pole)=>{const h0=lp(S+'Hand');reachTo(S,sg,h0.lerp(Tg,w),pole,lp);};
+    const both=(fn,pole)=>{[['Left',1],['Right',-1]].forEach(([S,sg])=>go(S,sg,fn(sg),V(sg*pole[0],pole[1],pole[2])));};
+    const tg=st.gtg;
+    if(n==='clap'){const ph=Math.sin(t*11),sep=.03+.075*(ph*.5+.5);both(sg=>V(chest.x+sg*sep*m,chest.y-.03*m,chest.z+.24*m),[.6,-.4,-.3]);rot('Head',1,0,0,.03*w);}
+    else if(n==='fold'){both(sg=>V(chest.x+sg*.035*m,chest.y-.16*m,chest.z+.2*m),[.6,-.8,-.2]);}
+    else if(n==='cheek'){go('Right',-1,V(head.x-.075*m,head.y-.09*m,head.z+.09*m),V(-.2,-1,.35));rot('Head',0,0,1,-.1*w);}
+    else if(n==='quiet'){go('Right',-1,V(head.x-.012*m,head.y-.075*m,head.z+.135*m),V(-.4,-1,.25));}
+    else if(n==='angry'&&tg&&tg.desk){const d=root.worldToLocal(tg.desk.clone());both(sg=>V(d.x+sg*.2*m,d.y+.02*m,d.z),[.5,-.5,-.6]);rot('Spine1',1,0,0,.12*w);rot('Head',1,0,0,.1*w);}
+    else if(n==='drink'&&tg&&tg.bottle){const b=root.worldToLocal(tg.bottle.clone());go('Right',-1,b,V(-.4,-1,-.2));rot('Head',1,0,0,-.2*(tg.near||0)*w);}
+  }
   function sitUpper(dt){
     const t=st.t,ts=st.talkS,k=Math.min(1,dt*4);
     const tR=ts*Math.pow(Math.max(0,Math.sin(t*.85+1)),.5),tL=ts*Math.pow(Math.max(0,Math.sin(t*.63+3.6)),.5);
@@ -180,6 +206,7 @@ function build(cfg){
       const ud=uL.lerp(gu,g).normalize();aim(S+'Arm',S+'ForeArm',ud.x,ud.y,ud.z);
       const ea=lp(S+'ForeArm'),fl=T_.clone().sub(ea).normalize().lerp(gf,g).normalize();aim(S+'ForeArm',S+'Hand',fl.x,fl.y,fl.z);};
     sa('R',R,Math.min(1,st.gR*1.6));sa('L',L,Math.min(1,st.gL*1.6));
+    if(st.gn)gesture(lp);
     if(st.gR>.05)rot('RightHand',0,0,1,Math.sin(t*5.2)*.3*st.gR);if(st.gL>.05)rot('LeftHand',0,0,1,-Math.sin(t*4.7)*.3*st.gL);
     rot('Head',1,0,0,.04+Math.sin(t*.8)*.02+ts*(.05*Math.sin(t*3.3)+.03*Math.sin(t*5.7)));
     rot('Head',0,1,0,Math.sin(t*.5)*.07+ts*Math.sin(t*1.7)*.12);rot('Head',0,0,1,Math.sin(t*.6+1)*.025);
@@ -235,6 +262,7 @@ function build(cfg){
   function face(dt){
     const c=av.cfg,tgt={},ex=(OWA.EXPR.find(e=>e[0]===c.ex)||OWA.EXPR[0])[2];
     for(const k in ex)tgt[k]=ex[k];for(const k in c.mx||{})tgt[k]=Math.max(tgt[k]||0,c.mx[k]);
+    if(st.gn&&GFACE[st.gn]){const gf=GFACE[st.gn],gw=Math.min(1,st.gw);for(const k in gf)tgt[k]=Math.max(tgt[k]||0,gf[k]*gw*(k.startsWith('mouthPucker')&&st.gn==='drink'?(st.gtg&&st.gtg.near||0):1));}
     /* blinking, sometimes twice in a row */
     st.blink-=dt;if(st.blink<0){st.bl=.17;st.blink=Math.random()<.2?.22:2.2+Math.random()*3.4;}
     let b=0;if(st.bl>0){st.bl-=dt;b=Math.sin(clamp(st.bl/.17,0,1)*PI);}

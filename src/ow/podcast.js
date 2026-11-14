@@ -18,6 +18,19 @@ function mic(x){
   const ring=new T.Mesh(new T.TorusGeometry(.07,.004,6,20),M(0x111111,.6));ring.position.set(-.02,.27,-.1);ring.rotation.set(.4,0,-.5);
   g.add(base,stem,head,ring);g.position.set(x+.24,.75,SZ+.7);g.userData.head=headMat;return g;
 }
+const DESKY=.765,BX=-.25,BZ=SZ+.74,GDUR={clap:3.2,smile:3.5,angry:4,quiet:3,fold:6,cheek:6,drink:3.6};
+function bottle(){
+  const g=new T.Group(),shell=new T.MeshStandardMaterial({color:0xcfeaff,roughness:.15,metalness:0,transparent:true,opacity:.5}),water=new T.MeshStandardMaterial({color:0x6cc0ff,roughness:.2,transparent:true,opacity:.75});
+  const body=new T.Mesh(new T.CylinderGeometry(.03,.032,.17,16),shell),w=new T.Mesh(new T.CylinderGeometry(.026,.028,.12,16),water);w.position.y=-.02;
+  const neck=new T.Mesh(new T.CylinderGeometry(.013,.03,.04,16),shell);neck.position.y=.105;
+  const cap=new T.Mesh(new T.CylinderGeometry(.016,.016,.022,12),M(0x1f6fe0,.4));cap.position.y=.14;
+  const lab=new T.Mesh(new T.CylinderGeometry(.0325,.0335,.05,16,1,true),M(0xffffff,.6));lab.position.y=0;
+  g.add(body,w,neck,cap,lab);g.position.set(0,0,0);g.visible=false;return g;
+}
+P.stageReact=function(uid,name){
+  const st=this.stage;if(!st)return;const e=st.map.get(uid);if(!e||!GDUR[name])return;
+  e.gest={n:name,t:0,dur:GDUR[name]};e.nextDrink=25+Math.random()*25;
+};
 P.stageStart=function(cb){
   if(this.stage)return;
   const st=this.stage={g:new T.Group(),seats:[null,null,null,null],map:new Map(),mics:[],speaking:new Set(),focus:null,hold:0,auto:true,cb:cb||{},hidden:[],t:0,
@@ -25,7 +38,7 @@ P.stageStart=function(cb){
   const wood=M(0x8a6a4a,.6);
   const rug=new T.Mesh(new T.CylinderGeometry(1.75,1.75,.02,40),M(0x3b3350,.95));rug.position.set(0,.011,SZ+.2);rug.receiveShadow=true;
   st.g.add(rug,box(2.6,.05,.62,wood,0,.74,SZ+.78),box(2.6,.7,.04,M(0x2b2f3a,.8),0,.38,SZ+1.06));
-  SX.forEach((x,i)=>{st.g.add(chair(x));const m=mic(x);st.mics[i]=m;st.g.add(m);});
+  st.bottles=[];SX.forEach((x,i)=>{st.g.add(chair(x));const m=mic(x);st.mics[i]=m;st.g.add(m);const b=bottle();b.userData.home=new T.Vector3(x+BX,DESKY+.085,BZ);b.position.copy(b.userData.home);st.bottles[i]=b;st.g.add(b);});
   this.root.add(st.g);
   /* clear the furniture that would sit inside the studio */
   this.items.forEach(it=>{if(it.kind!=='furniture')return;const d=OW.furn(it.type);if(!d||d.floor)return;const n=this.nodes.get(it.id);if(!n)return;
@@ -49,11 +62,11 @@ P.stageAdd=function(uid,cfg){
   if(e){this.root.remove(e.f.holder);e.f.av.dispose();}
   const f=this._fig(this,cfg);f.x=SX[idx];f.z=SZ;f.yaw=-SX[idx]*.15;f.av.seatTop=SEAT;
   f.av.ready.then(()=>{if(!this.stage)return;f.av.seatTop=SEAT;f.av.setPose('sit');f.pose='sit';this.placeFigure(f);this.markDirty(true);}).catch(()=>{});
-  f.sh.visible=false;this.placeFigure(f);st.map.set(uid,{f,idx,key});st.seats[idx]=uid;this.stageLabel(uid);this.markDirty(true);
+  f.sh.visible=false;this.placeFigure(f);st.map.set(uid,{f,idx,key,gest:null,nextDrink:12+Math.random()*25});st.seats[idx]=uid;st.bottles[idx].visible=true;this.stageLabel(uid);this.markDirty(true);
 };
 P.stageRemove=function(uid){
   const st=this.stage;if(!st)return;const e=st.map.get(uid);if(!e)return;
-  this.root.remove(e.f.holder);e.f.av.dispose();st.map.delete(uid);st.seats[e.idx]=null;if(e.el)e.el.remove();if(st.focus===uid)st.focus=null;this.markDirty(true);
+  this.root.remove(e.f.holder);e.f.av.dispose();st.map.delete(uid);st.seats[e.idx]=null;st.bottles[e.idx].visible=false;if(e.el)e.el.remove();if(st.focus===uid)st.focus=null;this.markDirty(true);
 };
 P.stageLabel=function(uid){const st=this.stage,e=st.map.get(uid);if(!e||e.el)return;e.el=h('button',{class:'sp-lbl',onclick:()=>st.cb.onTap&&st.cb.onTap(uid)});st.lbl.appendChild(e.el);};
 P.stageInfo=function(uid,info){const e=this.stage&&this.stage.map.get(uid);if(!e||!e.el)return;const k=info.name+'|'+info.role+'|'+info.mic;if(e.k===k)return;e.k=k;
@@ -66,7 +79,17 @@ P.stageSpeaking=function(set){
 P.stageTick=function(dt){
   const st=this.stage;if(!st)return;st.t+=dt;st.acc+=dt;let dirty=false;
   if(st.hold>0){st.hold-=dt;if(st.hold<=0&&!st.speaking.size)st.focus=null;}
-  if(st.acc>.045){st.map.forEach((e,u)=>{const sp=st.speaking.has(u);e.f.av.setTalk(sp?1:0);e.f.av.update(st.acc,0);e.f.holder.rotation.y=e.f.yaw;});st.acc=0;dirty=true;}
+  if(st.acc>.045){const sdt=st.acc;st.map.forEach((e,u)=>{const sp=st.speaking.has(u);e.f.av.setTalk(sp?1:0);
+      const bt=st.bottles[e.idx];
+      if(!e.gest&&!sp){e.nextDrink-=sdt;if(e.nextDrink<=0){e.gest={n:'drink',t:0,dur:GDUR.drink};e.nextDrink=30+Math.random()*30;}}
+      if(e.gest){const gs=e.gest;gs.t+=sdt;const w=Math.max(0,Math.min(1,gs.t/.5,(gs.dur-gs.t)/.5));let tg=null;
+        if(gs.n==='angry')tg={desk:new T.Vector3(SX[e.idx],DESKY,SZ+.7)};
+        if(gs.n==='drink'){const hm=bt.userData.home,t=gs.t,H=e.f.av.headPos(new T.Vector3()),M_=new T.Vector3(H.x+Math.sin(e.f.yaw)*.1,H.y+.0,H.z+Math.cos(e.f.yaw)*.1).add(new T.Vector3(0,-.02,0));
+          const ez=x=>x*x*(3-2*x);let k=0;if(t<.9)k=0;else if(t<1.8)k=ez((t-.9)/.9);else if(t<2.4)k=1;else if(t<3.3)k=1-ez((t-2.4)/.9);
+          const pos=hm.clone().lerp(M_,k);bt.position.copy(pos);bt.rotation.x=-1.25*k;tg={bottle:pos.clone(),near:k>.8?1:Math.max(0,(k-.5)*2)};if(t>3.3){tg.bottle=hm.clone();}}
+        e.f.av.setGesture(gs.n,gs.t,w,tg);
+        if(gs.t>=gs.dur){e.gest=null;e.f.av.setGesture(null);if(bt){bt.position.copy(bt.userData.home);bt.rotation.set(0,0,0);}}}
+      e.f.av.update(sdt,0);e.f.holder.rotation.y=e.f.yaw;});st.acc=0;dirty=true;}
   st.mics.forEach((m,i)=>{const u=st.seats[i],on=u&&st.speaking.has(u),h=m.userData.head,tgt=on?.9:0;if(Math.abs(h.emissiveIntensity-tgt)>.01){h.emissiveIntensity+=(tgt-h.emissiveIntensity)*Math.min(1,dt*10);dirty=true;}});
   /* camera: wide shot of all four, or in on the speaker and their mic */
   const asp=this.cam.aspect||.6,tanH=Math.tan(this.cam.fov*Math.PI/360)*asp,c=st.cur;

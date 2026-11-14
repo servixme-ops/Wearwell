@@ -288,7 +288,9 @@ async function room(id){
     });
   }
   function reactSheet(){
-    sheet('React',(b,close)=>{b.append(h('div',{class:'sp-reacts'},REACTS.map(e=>h('button',{onclick:()=>{close();rpc('space_message',{p_space:id,p_kind:'reaction',p_body:e}).catch(er=>toast(friendlyError(er),'err'));pop(e);}},e))));});
+    sheet('React',(b,close)=>{b.append(h('div',{class:'sp-reacts'},REACTS.map(e=>h('button',{onclick:()=>{close();rpc('space_message',{p_space:id,p_kind:'reaction',p_body:e}).catch(er=>toast(friendlyError(er),'err'));pop(e);}},e))));
+      if(onStage()&&R&&R.stageReact){b.append(h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'On stage'),h('div',{class:'sp-reacts'},[['smile','🙂','Smile'],['angry','😠','Angry'],['quiet','🤫','Quiet'],['fold','🙏','Fold hands'],['clap','👏','Clap'],['cheek','🤔','Hand on cheek'],['drink','💧','Drink water']].map(([k,em,l])=>h('button',{title:l,'aria-label':l,onclick:()=>{close();R.stageReact(Auth.user.id,k);rpc('space_message',{p_space:id,p_kind:'reaction',p_body:'host:'+k}).catch(er=>toast(friendlyError(er),'err'));}},h('span',null,em),h('small',{style:{display:'block',font:'600 10px var(--body)'}},l)))));}
+    });
   }
   function pop(e){const s=h('span',{class:'sp-float',style:{left:(10+Math.random()*70)+'%'}},e);floats.appendChild(s);setTimeout(()=>s.remove(),2400);}
   async function endSpace(){
@@ -312,7 +314,7 @@ async function room(id){
       const rows=await rpc('space_chat',{p_space:id,p_after:lastMsg});if(!rows.length)return;
       const first=lastMsg===0;
       rows.forEach(m=>{lastMsg=Math.max(lastMsg,m.id);
-        if(m.kind==='reaction'){if(!first&&m.user_id!==Auth.user.id)pop(m.body);return;}
+        if(m.kind==='reaction'){if(m.body.startsWith('host:')){if(!first&&m.user_id!==Auth.user.id&&R&&R.stageReact)R.stageReact(m.user_id,m.body.slice(5));return;}if(!first&&m.user_id!==Auth.user.id)pop(m.body);return;}
         msgs.appendChild(h('div',{class:'sp-msg'+(m.user_id===Auth.user.id?' me':'')},h('b',null,m.name),h('span',null,m.body)));if(!first&&m.user_id!==Auth.user.id&&!chatOpen)unread++;});
       while(msgs.childNodes.length>80)msgs.firstChild.remove();
       if(chatOpen){chatSeen=lastMsg;unread=0;msgs.scrollTop=msgs.scrollHeight;}else paintBar();
