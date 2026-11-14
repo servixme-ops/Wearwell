@@ -162,6 +162,21 @@ function activeSpaces(uid,close){
     box.replaceChildren(h('div',{class:'f-label',style:{padding:'0 4px 6px'}},'Spaces'),...xs.map(x=>h('button',{onclick:()=>{close&&close();go('#/space/'+x.id);}},icon('mic'),h('span',{class:'grow'},x.title),h('b',null,x.status==='live'?'Live now':'Soon'))));}).catch(()=>{});
   return box;
 }
+function photoSheet(R,name,hasMe){
+  sheet('Take a photo',(body,close)=>{
+    let withMe=hasMe,url='';const img=h('img',{style:{width:'100%',borderRadius:'12px',display:'block'},alt:'Photo preview'});
+    const snap=()=>{try{url=R.photo(withMe);img.src=url;}catch(e){toast('Could not take the photo','err');}};
+    const seg=h('div',{class:'seg'});
+    const ps=()=>seg.replaceChildren(h('button',{class:withMe?'on':'',onclick:()=>{withMe=true;ps();snap();}},'With me'),h('button',{class:withMe?'':'on',onclick:()=>{withMe=false;ps();snap();}},'Room only'));
+    if(hasMe)ps();
+    const fname='openwalls-'+(name||'room').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.png';
+    const blob=()=>fetch(url).then(r=>r.blob());
+    body.append(img,hasMe?h('div',{class:'field',style:{marginTop:'10px'}},seg):null,
+      h('button',{class:'btn coral block',style:{marginTop:'10px'},onclick:()=>{const a=h('a',{href:url,download:fname});document.body.append(a);a.click();a.remove();toast('Photo saved','ok');}},'Save photo'),
+      navigator.canShare?h('button',{class:'btn block',style:{marginTop:'8px'},onclick:async()=>{try{const f=new File([await blob()],fname,{type:'image/png'});if(navigator.canShare({files:[f]}))await navigator.share({files:[f],title:name||'OpenWalls'});else toast('Sharing images is not supported here');}catch(e){}}},'Share'):null);
+    snap();
+  });
+}
 function ownerSheet(o,cn){
   sheet('@'+o.username,(body,close)=>{
     body.append(h('div',{style:{textAlign:'center'}},h('div',{style:{display:'flex',justifyContent:'center'}},avatarEl(o,'lg')),h('h3',{style:{margin:'10px 0 2px',font:'800 22px var(--disp)'}},o.display_name||'@'+o.username),o.bio?h('p',null,o.bio):null,
@@ -371,6 +386,7 @@ async function visitView(hs0){
     h('button',{class:'owner',onclick:()=>ownerSheet(o,cn)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
     h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>{if(d.room.visibility==='private'&&!d.is_me){toast('Only the owner can share a private room');return;}shareRoom(o.username,d.room.name,d.room.visibility);}},icon('share')),
+    R?h('button',{class:'rbtn','aria-label':'Take a photo',onclick:()=>photoSheet(R,d.room.name,!!R.me)},icon('cam')):null,
     R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null,
     R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk(true)},icon('walk')):null);
   v.querySelector('.rtop').replaceWith(top);
