@@ -403,6 +403,7 @@ async function visitView(hs0){
   /* YouTube links play on the room's shared TV (synced for everyone in the room) */
   function tvPlay(it,src){OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src,title:it.title||null,comments:{load:v=>Store.videoComments(d.room.id,v),post:async(v,t)=>{if(!needAuth('Sign in to comment'))throw new Error('auth');try{await Store.videoComment(d.room.id,v,t);}catch(e){toast(friendlyError(e),'err');throw e;}}}});}
   function openItem(it){
+    if(it.type==='speaker'){const src=it.link&&OWTv.parse(it.link);OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src||null,title:it.title||null,music:true});return;}
     const src=it.link&&OWTv.parse(it.link);if(src)return tvPlay(it,src);
     const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path||(it.props&&it.props.images&&it.props.images.length);if(!hasInfo)return;
     sheet(it.title||def.name,(body)=>{

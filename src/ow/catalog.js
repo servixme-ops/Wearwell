@@ -10,8 +10,8 @@ OW.THEMES={
   forest:{name:'Forest',wall:'#9bc4a8',floor:'#8b6b4a',trim:'#f4efe2',ceil:'#e9f2e8',rug:['#2f6b4f','#f1e2c4','#d9a441']}
 };
 OW.CATS=[['bedroom','Bedroom'],['living','Living'],['gaming','Gaming'],['decor','Decoration'],['wall','Wall decoration']];
-OW.INTERACT_HINT={tv:'Add a YouTube or Vimeo link, it plays for visitors',laptop:'Link to a website or project',record_player:'Link a song or album (Spotify, YouTube, SoundCloud, Apple Music) and visitors can listen',book_stack:'Book title, author and a reading link',poster:'Artist, song, player or team + link',music:'Artist or song + a music link',sports:'Player or team + a link',movie:'Movie or show + a trailer link',album:'Song or album + music link',noticeboard:'Pinned notes (one per line)',frame:'Tap shows the full photo',collage:'Add up to 6 photos to the board'};
-OW.FPH={tv:{t:'What is on?',d:'About this video',l:'YouTube or Vimeo link'},laptop:{t:'Project or site name',d:'What visitors will find',l:'https://…'},record_player:{t:'Song or album',d:'Artist, why it matters to you',l:'Spotify, Apple Music, YouTube or SoundCloud link'},book_stack:{t:'Book title',d:'Author and what you thought',l:'Link to read or buy'}};
+OW.INTERACT_HINT={speaker:'Visitors tap the speaker to play music together',tv:'Add a YouTube or Vimeo link, it plays for visitors',laptop:'Link to a website or project',record_player:'Link a song or album (Spotify, YouTube, SoundCloud, Apple Music) and visitors can listen',book_stack:'Book title, author and a reading link',poster:'Artist, song, player or team + link',music:'Artist or song + a music link',sports:'Player or team + a link',movie:'Movie or show + a trailer link',album:'Song or album + music link',noticeboard:'Pinned notes (one per line)',frame:'Tap shows the full photo',collage:'Add up to 6 photos to the board'};
+OW.FPH={speaker:{t:'Playlist or vibe',d:'What visitors will hear',l:'SoundCloud, YouTube, Spotify or Audiomack link'},tv:{t:'What is on?',d:'About this video',l:'YouTube or Vimeo link'},laptop:{t:'Project or site name',d:'What visitors will find',l:'https://…'},record_player:{t:'Song or album',d:'Artist, why it matters to you',l:'Spotify, Apple Music, YouTube or SoundCloud link'},book_stack:{t:'Book title',d:'Author and what you thought',l:'Link to read or buy'}};
 OW.FRAMES={none:'None',black:'Black',white:'White',wood:'Wood',gold:'Gold',polaroid:'Polaroid'};
 OW.WALLS=['back','left','right','front'];
 (function(){
@@ -55,6 +55,7 @@ pouf(g,col){cy(g,.28,.3,.38,col||'#ffd23f',0,.19,0,{seg:24});},
 tv(g){bx(g,1.1,.62,.05,'#111',0,.4,0);const s=new T.Mesh(new T.PlaneGeometry(1.04,.56),new T.MeshBasicMaterial({map:screenTex('#16213e','#0f3460')}));s.position.set(0,.4,.027);g.add(s);bx(g,.1,.08,.06,'#222',0,.07,-.01);bx(g,.4,.02,.2,'#222',0,.01,0);},
 laptop(g,col){bx(g,.34,.015,.23,col||'#cfd3da',0,.008,0,{m:.5});const s=bx(g,.34,.22,.01,col||'#cfd3da',0,.12,-.115,{m:.5});s.rotation.x=-.2;const d=new T.Mesh(new T.PlaneGeometry(.31,.19),new T.MeshBasicMaterial({map:screenTex('#2d7bff','#3ddc97')}));d.position.set(0,.12,-.108);d.rotation.x=-.2;g.add(d);},
 record_player(g,col){bx(g,.45,.08,.35,col||'#6e4f35',0,.04,0);cy(g,.15,.15,.02,'#111',-.04,.09,0,{seg:28});cy(g,.05,.05,.025,'#d9a441',-.04,.092,0);bx(g,.02,.02,.2,'#ccc',.17,.1,0);},
+speaker(g,col){const c=col||'#23252d';bx(g,.34,.8,.3,c,0,.4,0,{r:.06});cy(g,.11,.11,.03,'#0d0d10',0,.28,.155,{seg:28}).rotation.x=Math.PI/2;cy(g,.045,.045,.035,'#3a3f4b',0,.28,.16,{seg:20}).rotation.x=Math.PI/2;cy(g,.06,.06,.03,'#0d0d10',0,.6,.155,{seg:24}).rotation.x=Math.PI/2;cy(g,.022,.022,.035,'#6c4bff',0,.6,.16,{seg:16}).rotation.x=Math.PI/2;bx(g,.2,.012,.012,'#6c4bff',0,.76,.151);},
 book_stack(g,col){const cs=[col||'#b8322a','#14284b','#d9a441'];cs.forEach((c,i)=>bx(g,.24-i*.02,.04,.17,c,0,.02+i*.04,0).rotation.y=i*.2);}
 };
 /* id,cat,name,footprint w(x) d(z) h, top (surface height), surface (sits on other furniture), floor (flat, walk over it), color */
@@ -77,6 +78,7 @@ F('console','gaming','Console',.34,.26,.1,B.console,{surface:true}),
 F('gaming_acc','gaming','Keyboard & mouse',.5,.16,.04,B.gaming_acc,{surface:true}),
 F('tv','living','Television',1.1,.2,.7,B.tv,{surface:true,link:true,hint:'tv'}),
 F('laptop','gaming','Laptop',.34,.25,.22,B.laptop,{surface:true,link:true,hint:'laptop'}),
+F('speaker','living','Speaker',.34,.3,.8,B.speaker,{link:true,hint:'speaker'}),
 F('record_player','living','Record player',.45,.35,.12,B.record_player,{surface:true,link:true,hint:'record_player'}),
 F('book_stack','living','Books',.24,.17,.13,B.book_stack,{surface:true,link:true,hint:'book_stack'}),
 F('plant','decor','Indoor plant',.4,.4,1.1,B.plant,{col:'#c4532d'}),

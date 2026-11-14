@@ -14,8 +14,8 @@ const OWTv=(()=>{
   const fmt=t=>{t=Math.max(0,Math.floor(t||0));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
   /* ----- what links can play: YouTube, Vimeo, direct video files / HLS streams, and a few embeddable sites ----- */
   const h36=t=>{let a=5381,b=52711;for(let i=0;i<t.length;i++){const c=t.charCodeAt(i);a=(((a<<5)+a)^c)>>>0;b=(((b<<5)+b)^c)>>>0;}return a.toString(36)+b.toString(36);};
-  const EMBED_HOSTS=['www.dailymotion.com','streamable.com','player.twitch.tv','www.loom.com'];
-  const FILE_RE=/\.(mp4|m4v|webm|ogv|mov|m3u8)$/i;
+  const EMBED_HOSTS=['www.dailymotion.com','streamable.com','player.twitch.tv','www.loom.com','audiomack.com','open.spotify.com'];
+  const FILE_RE=/\.(mp4|m4v|webm|ogv|mov|m3u8|mp3|m4a|aac|ogg|oga|wav|flac|opus)$/i;
   function parse(u){
     try{
       const x=new URL(String(u).trim());if(!/^https?:$/.test(x.protocol))return null;
@@ -30,6 +30,9 @@ const OWTv=(()=>{
       else if(host==='twitch.tv'&&(m=x.pathname.match(/^\/videos\/(\d+)/))){e='https://player.twitch.tv/?video=v'+m[1]+'&parent='+location.hostname+'&autoplay=true';nm='Twitch video';}
       else if(host==='twitch.tv'&&(m=x.pathname.match(/^\/([A-Za-z0-9_]{3,25})$/))){e='https://player.twitch.tv/?channel='+m[1]+'&parent='+location.hostname+'&autoplay=true';nm='Twitch stream';}
       else if(host==='loom.com'&&(m=x.pathname.match(/^\/(?:share|embed)\/([a-f0-9]+)/))){e='https://www.loom.com/embed/'+m[1]+'?autoplay=1';nm='Loom video';}
+      else if(host==='audiomack.com'&&(m=x.pathname.match(/^\/([\w.-]+)\/(song|album)\/([\w.-]+)/))){e='https://audiomack.com/embed/'+m[2]+'/'+m[1]+'/'+m[3];nm='Audiomack '+m[2];}
+      else if(host==='open.spotify.com'&&(m=x.pathname.match(/^\/(?:intl-[a-z]+\/)?(track|album|playlist|episode|show)\/([A-Za-z0-9]{22})/))){e='https://open.spotify.com/embed/'+m[1]+'/'+m[2];nm='Spotify '+m[1];}
+      else if(host==='soundcloud.com'&&(m=x.pathname.match(/^\/([\w-]+)\/([\w-]+)(?:\/(s-[\w-]+))?\/?$/))&&!['you','discover','stream','search','upload','pages','charts','tags','settings','notifications','messages','feed','people'].includes(m[1])){const u0='https://soundcloud.com/'+m[1]+'/'+m[2]+(m[3]?'/'+m[3]:'');return{k:'sc',id:'sc_'+h36(u0),u:u0,n:'SoundCloud track'};}
       if(e)return{k:'em',id:'em_'+h36(e),u:e,n:nm};
       if(FILE_RE.test(x.pathname)){const f=decodeURIComponent(x.pathname.split('/').pop()||'').replace(FILE_RE,'');return{k:'fl',id:'fl_'+h36(x.href),u:x.href,n:f||x.hostname};}
     }catch(e){}
@@ -42,7 +45,8 @@ const OWTv=(()=>{
     if(k==='vm')return/^\d{1,12}$/.test(v.u);
     try{const x=new URL(v.u);if(x.protocol!=='https:')return false;
       if(k==='fl')return FILE_RE.test(x.pathname);
-      if(k==='em')return EMBED_HOSTS.includes(x.hostname);}catch(e){}
+      if(k==='em')return EMBED_HOSTS.includes(x.hostname);
+      if(k==='sc')return x.hostname==='soundcloud.com'&&/^\/[\w-]+\/[\w-]+(\/s-[\w-]+)?$/.test(x.pathname);}catch(e){}
     return false;
   }
   const norm=v=>v.k?v:Object.assign({},v,{k:'yt',u:v.u||v.id});
@@ -94,10 +98,23 @@ const OWTv=(()=>{
     const d=mount(slot),f=h('iframe',{allow:'autoplay; fullscreen; picture-in-picture',allowfullscreen:'',title:'Video'});d.append(f);
     return{ctl:false,load(v){f.src=v.u;},play(){},pause(){},seek(){},time(){return 0;},dur(){return 0;},destroy(){d.remove();}};
   }
-  const ADAPTERS={yt:A_yt,vm:A_vm,fl:A_fl,em:A_em};
+  async function A_sc(slot,evt){
+    await loadScript('https://w.soundcloud.com/player/api.js',()=>window.SC&&SC.Widget);const d=mount(slot);let w=null,t=0,du=0,rd=null,first=true;
+    const url=v=>'https://w.soundcloud.com/player/?url='+encodeURIComponent(v.u)+'&auto_play=false&hide_related=true&show_comments=false&show_user=true&visual=false&color=%236c4bff';
+    const mk=v=>{const f=h('iframe',{allow:'autoplay',title:'SoundCloud',src:url(v),style:{width:'100%',height:'100%',border:'0'}});d.append(f);w=SC.Widget(f);
+      rd=new Promise(r=>w.bind(SC.Widget.Events.READY,()=>r()));
+      w.bind(SC.Widget.Events.PLAY,()=>evt.state(true));w.bind(SC.Widget.Events.PAUSE,()=>evt.state(false));w.bind(SC.Widget.Events.FINISH,()=>evt.end());w.bind(SC.Widget.Events.ERROR,()=>evt.err());
+      w.bind(SC.Widget.Events.PLAY_PROGRESS,e=>{t=(e.currentPosition||0)/1000;});};
+    return{ctl:true,
+      async load(v,pos,play){if(first){first=false;mk(v);}else{rd=new Promise(r=>w.load(v.u,{auto_play:false,hide_related:true,show_comments:false,visual:false,callback:()=>r()}));}
+        await rd;try{w.getDuration(x=>{du=(x||0)/1000;});}catch(e){}
+        if(pos){w.seekTo(pos*1000);t=pos;}if(play){w.play();setTimeout(()=>evt.blocked&&0,0);}else w.pause();},
+      play(){w&&w.play();},pause(){w&&w.pause();},seek(x){w&&w.seekTo(x*1000);t=x;},time(){return t;},dur(){try{w&&w.getDuration(x=>{du=(x||0)/1000;});}catch(e){}return du;},destroy(){try{w&&w.unbind(SC.Widget.Events.PLAY);}catch(e){}d.remove();}};
+  }
+  const ADAPTERS={yt:A_yt,vm:A_vm,fl:A_fl,em:A_em,sc:A_sc};
 
   function open(o){
-    const old=cur[o.roomId];if(old&&old.alive){old.addOrFocus(o.vid,o.title);return old;}
+    const ck=(o.music?'m:':'')+o.roomId,old=cur[ck];if(old&&old.alive){old.addOrFocus(o.vid,o.title);return old;}
     const me=o.uid||('g'+Math.random().toString(36).slice(2,8));
     let S={q:[],i:0,play:true,pos:0},ad=null,adP=null,applySeq=0,loadedId=null,busyUntil=0,lead=false,alive=true,got=false,ch=null,hb=0,tick=0,lastRx=0,seeking=false;
     const busy=(ms)=>{busyUntil=Date.now()+(ms||900);};
@@ -107,7 +124,7 @@ const OWTv=(()=>{
     /* ----- UI ----- */
     const ic=(n)=>icon(n);
     const bdg=h('i',{class:'tv-badge'}),cmB=h('button',{class:'tv-b tv-cm','aria-label':'Comments'},ic('chat'),bdg),rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close TV'},ic('close'));
-    const ttl=h('span',null,'TV');
+    const ttl=h('span',null,o.music?'Speaker':'TV');
     const slot=h('div',{class:'tv-slot'}),startB=h('button',{class:'tv-start'},'Tap to play');
     const fl=h('div',{class:'tv-float'});
     const tap=h('div',{class:'tv-tap'});
@@ -129,6 +146,7 @@ const OWTv=(()=>{
     const cmP=h('div',{class:'tv-cmp'},cHead,cList,cChips,cRow);
     const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,ctlB,bList,rxB,cmB,rot,ex,cl),screen,seekRow,ctr,rx,pl,cmP);
     o.host.append(box);
+    if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
 
     /* ----- messaging ----- */
     const send=(payload)=>{try{ch&&ch.send({type:'broadcast',event:'tv',payload});}catch(e){}};
@@ -254,7 +272,7 @@ const OWTv=(()=>{
 
     /* ----- channel ----- */
     if(typeof sb!=='undefined'&&sb.channel){
-      ch=sb.channel('tv:'+o.roomId,{config:{broadcast:{self:false}}});
+      ch=sb.channel((o.music?'sp:':'tv:')+o.roomId,{config:{broadcast:{self:false}}});
       ch.on('broadcast',{event:'tv'},onMsg);
       ch.subscribe(s=>{if(s==='SUBSCRIBED'){send({k:'hello'});}});
     }
@@ -267,7 +285,7 @@ const OWTv=(()=>{
       addOrFocus(src){if(!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
       destroy(){if(!alive)return;alive=false;api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
-    cur[o.roomId]=api;return api;
+    cur[ck]=api;return api;
   }
-  return{open,parse,close:id=>cur[id]&&cur[id].destroy(),_state:()=>cur};
+  return{open,parse,close:id=>{cur[id]&&cur[id].destroy();cur['m:'+id]&&cur['m:'+id].destroy();},_state:()=>cur};
 })();
