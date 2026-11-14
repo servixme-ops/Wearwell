@@ -141,13 +141,13 @@ function build(cfg){
   function emblem(){
     const id=av.cfg&&av.cfg.emb;
     if(av._emb){av._emb.mesh.parent&&av._emb.mesh.parent.remove(av._emb.mesh);av._emb.tex.dispose();av._emb.mat.dispose();av._emb=null;}
-    if(!id||id==='none'||!A)return;const tg=emblemTarget();if(!tg||!tg.geometry||!tg.skeleton)return;
+    if(!id||id==='none'||!A||!(OWA.EMB.some(e=>e[0]===id)||OWA.parseBadge(id)))return;const tg=emblemTarget();if(!tg||!tg.geometry||!tg.skeleton)return;
     const ng=patchOf(tg);if(!ng)return;
     try{
       const W=256,cv=document.createElement('canvas');cv.width=cv.height=W;const g=cv.getContext('2d');g.translate(W/2,W/2);g.scale(W/2*.98,-W/2*.98);OWA.drawEmblem(g,id);
       const tex=new T.CanvasTexture(cv);tex.anisotropy=4;if(T.sRGBEncoding)tex.encoding=T.sRGBEncoding;tex.wrapS=tex.wrapT=T.ClampToEdgeWrapping;
-      const mat=new T.MeshStandardMaterial({map:tex,transparent:true,roughness:.7,metalness:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3,side:tg.material.side});
-      const m=new T.SkinnedMesh(ng,mat);m.bind(tg.skeleton,tg.bindMatrix);m.frustumCulled=false;m.renderOrder=3;m.castShadow=false;
+      const mat=new T.MeshStandardMaterial({map:tex,transparent:true,roughness:.7,metalness:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3,side:tg.material.side,skinning:true});
+      const m=new T.SkinnedMesh(ng,mat);m.position.copy(tg.position);m.quaternion.copy(tg.quaternion);m.scale.copy(tg.scale);m.updateMatrix();m.updateMatrixWorld(true);m.bind(tg.skeleton,tg.bindMatrix);m.frustumCulled=false;m.renderOrder=3;m.castShadow=false;
       (tg.parent||A.scene).add(m);av._emb={mesh:m,tex,mat,tg};
     }catch(e){console.warn('emblem',e);}
   }
@@ -251,25 +251,6 @@ function build(cfg){
       arm('L',.3,-1,.0,.2,-1,.05);arm('R',.3,-1,.0,.2,-1,.05);leg('L',.06,-1,0,.04,-1,0);leg('R',.06,-1,0,.04,-1,0);
     }else if(P==='wave'){
       const wv=Math.sin(t*10);arm('L',.2,-1,.03,.12,-1,.14);arm('R',.6,.7,.25,.2+wv*.55,1,.1);rot('Head',0,0,1,.05);leg('L',.04,-1,0,.03,-1,0);leg('R',.04,-1,0,.03,-1,0);rot('Spine2',1,0,0,br*.01);
-    }else if(P==='dance2'){
-      /* side step and sway, arms swing across */
-      const b=Math.sin(t*5),st2=Math.sin(t*2.5),sw=st2*.5;placeHips(geo.hipsH-Math.abs(b)*.03,0);
-      const sl=Math.max(0,st2),sr=Math.max(0,-st2);
-      leg('L',.1+sl*.25,-1,0,.03+sl*.1,-1,0);leg('R',.1+sr*.25,-1,0,.03+sr*.1,-1,0);
-      arm('L',.45,.2+sw*.5,.3,.3,.5+sw*.6,.4);arm('R',.45,.2-sw*.5,.3,.3,.5-sw*.6,.4);
-      rot('Hips',0,1,0,Math.sin(t*5)*.22);rot('Spine1',0,1,0,-Math.sin(t*5)*.14);rot('Head',0,0,1,Math.sin(t*2.5)*.1);
-    }else if(P==='dance3'){
-      /* raise the roof: arms pump overhead, knees bounce */
-      const b=Math.sin(t*8),bb=(b+1)/2;placeHips(geo.hipsH-bb*.07,0);
-      leg('L',.14,-Math.cos(.35),Math.sin(.35),.05,-Math.cos(.35-.55),Math.sin(.35-.55));leg('R',.14,-Math.cos(.35),Math.sin(.35),.05,-Math.cos(.35-.55),Math.sin(.35-.55));
-      arm('L',.35,.8+b*.15,.15,.15,1,.15+b*.3);arm('R',.35,.8+b*.15,.15,.15,1,.15+b*.3);
-      rot('Spine1',1,0,0,-.08-bb*.1);rot('Head',1,0,0,-.1+bb*.1);rot('Head',0,0,1,Math.sin(t*4)*.07);
-    }else if(P==='dance4'){
-      /* robot: stiff snapping arm angles and a hip twist */
-      const q=Math.floor(t*3.2)%4,A=[[.9,.2,0],[.2,.9,0],[.9,.0,.4],[.1,-.8,.3]][q],B=[[.2,.9,0],[.9,.2,0],[.2,-.4,.8],[.9,.1,.3]][q];
-      placeHips(geo.hipsH-.03,0);leg('L',.12,-1,0,.03,-1,0);leg('R',.12,-1,0,.03,-1,0);
-      arm('L',A[0],A[1],A[2],A[0],A[1]+.6,A[2]+.3);arm('R',B[0],B[1],B[2],B[0],B[1]+.6,B[2]+.3);
-      rot('Hips',0,1,0,((q%2)?1:-1)*.3);rot('Head',0,1,0,((q%2)?-1:1)*.35);
     }else if(P==='dance'){
       const b=Math.sin(t*7),bb=Math.abs(b);placeHips(geo.hipsH-bb*.04,0);const fl=Math.max(0,b),fr=Math.max(0,-b);
       leg('L',.1,-Math.cos(fl*.5),Math.sin(fl*.5),.03,-Math.cos(fl*.5-fl*.7),Math.sin(fl*.5-fl*.7));leg('R',.1,-Math.cos(fr*.5),Math.sin(fr*.5),.03,-Math.cos(fr*.5-fr*.7),Math.sin(fr*.5-fr*.7));

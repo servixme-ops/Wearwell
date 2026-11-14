@@ -369,3 +369,7 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tvplayer.mini .tv-screen{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;overflow:hidden;pointer-events:none}
 .tvplayer.mini{width:auto!important;min-width:210px;max-width:92vw;height:auto!important}
 .tv-ping,.tv-msg{pointer-events:none}
+.av-emb{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 6px}
+.av-emb .emb{min-width:52px;height:52px;border-radius:14px;border:2px solid var(--line,#e6dff5);background:#fff;display:grid;place-items:center;padding:4px;font:700 12px var(--disp);color:var(--ink,#2a1f4d)}
+.av-emb .emb.on{border-color:#6c4bff;box-shadow:0 0 0 3px rgba(108,75,255,.2)}
+.av-emb .emb.mk{padding:4px 8px}
