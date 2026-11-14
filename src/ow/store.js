@@ -7,7 +7,8 @@ const Store={
     const i=await sb.from('room_items').select('*').eq('room_id',r.data.id).order('z_index').order('created_at');if(i.error)throw i.error;
     return{room:r.data,items:i.data||[]};
   },
-  async byUsername(u){const r=await sb.rpc('ow_room_by_username',{p_username:u});if(r.error)throw r.error;return r.data;},
+  async inviteCode(reset){const r=await sb.rpc('ow_invite_get',{p_reset:!!reset});if(r.error)throw r.error;return r.data;},
+  async byUsername(u,code){const r=await sb.rpc('ow_room_by_username',{p_username:u,p_code:code||null});if(r.error)throw r.error;return r.data;},
   async feed(limit,offset,seed){const r=await sb.rpc('ow_wall_feed',{p_limit:limit||24,p_offset:offset||0,p_seed:seed||''});if(r.error)throw r.error;return r.data||[];},
   async createRoom(room,items){
     const row={owner_id:Auth.user.id,name:room.name||'My room',size:room.size,width:room.width,depth:room.depth,height:room.height,theme:room.theme||{},categories:room.categories||[],visibility:room.visibility||'public'};

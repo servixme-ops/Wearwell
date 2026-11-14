@@ -144,7 +144,7 @@ async function meView(){
   v.replaceChildren(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Me'))),
     h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},room?OWPrev.node(Object.assign({},room,{id:room.id}),'pshot','Your room'):h('div',{class:'pshot ph'},'Your room is not built yet'),
-      h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name)},'Share'):null)),
+      activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
@@ -156,14 +156,21 @@ function followSheet(uid,kind){
     Store.followList(uid,kind).then(xs=>{body.replaceChildren(xs.length?h('div',{class:'list',style:{margin:0}},xs.map(u=>h('button',{onclick:()=>{close();go('#/@'+u.username);}},avatarEl(u,'sm'),h('span',{class:'grow'},h('b',null,u.display_name||'@'+u.username),h('div',{class:'f-hint'},'@'+u.username))))):empty(kind==='followers'?'No followers yet':'Not following anyone yet',''));}).catch(e=>body.replaceChildren(empty('Could not load',friendlyError(e))));
   });
 }
+function activeSpaces(uid,close){
+  const box=h('div',{class:'list',style:{margin:'12px 0 0',display:'none'}});
+  sb.rpc('ow_user_spaces',{p_user:uid}).then(r=>{const xs=(r.data||[]);if(!xs.length)return;box.style.display='';
+    box.replaceChildren(h('div',{class:'f-label',style:{padding:'0 4px 6px'}},'Spaces'),...xs.map(x=>h('button',{onclick:()=>{close&&close();go('#/space/'+x.id);}},icon('mic'),h('span',{class:'grow'},x.title),h('b',null,x.status==='live'?'Live now':'Soon'))));}).catch(()=>{});
+  return box;
+}
 function ownerSheet(o,cn){
   sheet('@'+o.username,(body,close)=>{
     body.append(h('div',{style:{textAlign:'center'}},h('div',{style:{display:'flex',justifyContent:'center'}},avatarEl(o,'lg')),h('h3',{style:{margin:'10px 0 2px',font:'800 22px var(--disp)'}},o.display_name||'@'+o.username),o.bio?h('p',null,o.bio):null,
-      h('div',{class:'counts'},h('button',{onclick:()=>{close();followSheet(o.id,'followers');}},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>{close();followSheet(o.id,'following');}},h('b',null,cn.following),h('span',null,'following')))));
+      h('div',{class:'counts'},h('button',{onclick:()=>{close();followSheet(o.id,'followers');}},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>{close();followSheet(o.id,'following');}},h('b',null,cn.following),h('span',null,'following')))),activeSpaces(o.id,close));
   });
 }
-async function shareRoom(username,name){
-  const url=roomUrl(username);
+async function shareRoom(username,name,vis){
+  let url=roomUrl(username);
+  if(vis==='private'){try{url+='/'+await Store.inviteCode();}catch(e){toast('Could not make the invite link','err');return;}}
   if(navigator.share){try{await navigator.share({title:name||'My room on OpenWalls',text:'Come and see my room on OpenWalls',url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
   if(await copyText(url))toast('Room link copied','ok');else dialog({title:'Your room link',body:url});
 }
@@ -172,11 +179,11 @@ function roomSettings(room,done){
     const nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
     let cats=new Set(room.categories||[]);const cw=h('div',{class:'chips'});const pc=()=>cw.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(cats.has(c)?' on':''),onclick:()=>{cats.has(c)?cats.delete(c):cats.add(c);pc();}},c)));pc();
     let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
-    const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
+    const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you and people with your invite link can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
     const hide=Object.assign({},room.theme&&room.theme.hide);const sw=h('div',{class:'list'});
     const ps=()=>sw.replaceChildren(...[['window','Window'],['door','Door'],['light','Ceiling light']].map(([k,l])=>h('button',{onclick:()=>{hide[k]?delete hide[k]:hide[k]=1;ps();}},h('span',{class:'grow'},l),h('b',null,hide[k]?'Removed':'Shown'))));ps();
     const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
   });
 }
 
@@ -237,7 +244,7 @@ async function editorView(){
   const hist=()=>{undoB.disabled=!R.canUndo();redoB.disabled=!R.canRedo();};hist();
   const tabs={};let active=null;
   const dock=h('div',{class:'dock'},h('div',{class:'bar'},
-    ...[['furn','Furniture','sofa',()=>catalogue('living')],['wall','Wall','frame',()=>wallSheet()],['room','Room','house',()=>roomSheet()],['share','Share','share',async()=>{await save();if(!room.id){toast('Save your room first','err');return;}shareRoom(Auth.profile.username,room.name);}]].map(([k,l,ic,fn])=>h('button',{class:'dk',onclick:fn},icon(ic),h('span',null,l)))));
+    ...[['furn','Furniture','sofa',()=>catalogue('living')],['wall','Wall','frame',()=>wallSheet()],['room','Room','house',()=>roomSheet()],['share','Share','share',async()=>{await save();if(!room.id){toast('Save your room first','err');return;}shareRoom(Auth.profile.username,room.name,room.visibility);}]].map(([k,l,ic,fn])=>h('button',{class:'dk',onclick:fn},icon(ic),h('span',null,l)))));
   host.append(dock,h('div',{class:'hint'},'Drag to look around · pinch to zoom · tap an item to edit'));
   setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);
   /* ----- catalogue ----- */
@@ -344,16 +351,17 @@ async function editorView(){
 }
 
 /* ---------- VISITOR VIEW ---------- */
-async function visitView(username){
+async function visitView(hs0){
+  const pp=hs0.split('/'),username=pp[0],code=(pp[1]||'').toLowerCase();
   const v=setView(true);const host=h('div',{class:'room'});v.append(host,h('div',{class:'rtop'},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>{if(history.length>1&&App.hadRoute)history.back();else go('#/wall');}},icon('back'))));host.append(spinner('Opening room…'));
-  let d;try{d=await Store.byUsername(username);}catch(e){host.replaceChildren(empty('Could not open this room',friendlyError(e),h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
-  if(!d){host.replaceChildren(empty('Room not found','This room is private or does not exist.',h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
+  let d,ci;try{d=await Store.byUsername(username,code);}catch(e){host.replaceChildren(empty('Could not open this room',friendlyError(e),h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
+  if(!d){host.replaceChildren(empty('Room not found','This room is private or does not exist. If you were given an invite code, enter it here.',h('div',{class:'row',style:{gap:'8px',justifyContent:'center',flexWrap:'wrap'}},ci=h('input',{type:'text',maxlength:'20',placeholder:'Invite code',autocapitalize:'none',style:{maxWidth:'180px'}}),h('button',{class:'btn coral',onclick:()=>{const c=ci.value.trim().toLowerCase();if(c)go('#/@'+username+'/'+encodeURIComponent(c));}},'Enter'),h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall'))));return;}
   const o=d.owner;
   if(!d.room){host.replaceChildren(empty('@'+o.username+' has not built a room yet',d.is_me?'Build yours now.':'Check back soon.',d.is_me?h('button',{class:'btn coral',onclick:()=>go('#/edit')},'Build my room'):h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
   host.replaceChildren();document.title=d.room.name+' · @'+o.username+' · OpenWalls';
   let R=null;
   let hud=null;
-  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+username;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{OWTv.close(d.room.id);hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
+  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+hs0;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{OWTv.close(d.room.id);hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
     R.liveStart({roomId:d.room.id,uid:Auth.user&&Auth.user.id,ownerId:o.id,cb:{onTap:info=>info.owner?ownerSheet(o,cn):sheet(info.name,(b,close)=>{b.append(info.username?h('button',{class:'btn coral block',onclick:()=>{close();go('#/@'+info.username);}},'View profile'):h('p',{class:'tag'},'Visiting this room'));})}});}
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}
@@ -362,7 +370,7 @@ async function visitView(username){
   const top=h('div',{class:'rtop'},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go(d.is_me?'#/me':'#/wall')},icon('back')),
     h('button',{class:'owner',onclick:()=>ownerSheet(o,cn)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
-    h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>shareRoom(o.username,d.room.name)},icon('share')),
+    h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>{if(d.room.visibility==='private'&&!d.is_me){toast('Only the owner can share a private room');return;}shareRoom(o.username,d.room.name,d.room.visibility);}},icon('share')),
     R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null,
     R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk(true)},icon('walk')):null);
   v.querySelector('.rtop').replaceWith(top);
