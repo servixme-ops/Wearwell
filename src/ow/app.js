@@ -512,7 +512,9 @@ window.addEventListener('hashchange',route);
   const ld=document.getElementById('ldlogo');if(ld)ld.append(logoEl(84));
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
-  Auth.init().then(()=>{route();refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
+  Auth.init().then(()=>{route();
+    if(Auth.user&&window.OWA&&OWA.prefetch){let g='f';try{g=(JSON.parse(localStorage.getItem('ow_avatar')||'{}').g)||'f';}catch(e){}OWA.prefetch([g]);setTimeout(()=>OWA.prefetch(['m','f']),5000);}
+    refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
   Auth.on(ev=>{if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});
   window.__ready=true;const l=document.getElementById('loading');setTimeout(()=>l&&l.classList.add('gone'),250);
   try{sessionStorage.removeItem('ow_try');}catch(e){}

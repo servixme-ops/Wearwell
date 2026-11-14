@@ -1,12 +1,19 @@
 /* OpenWalls service worker: offline shell, never caches API or payment traffic. */
-const VER='openwalls-v36';
+const VER='openwalls-v47';
 const SHELL=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','openwalls.css','manifest.webmanifest','src/config.js','src/logo.js','src/ui.js','src/util.js','src/api.js','src/ow/catalog.js','src/ow/avatar-data.js','src/ow/glb-lite.js','src/ow/avatar-wear.js','src/ow/avatar.js','assets/avatars/female.glb','assets/avatars/male.glb','src/ow/room.js','src/ow/walk.js','src/ow/store.js','src/ow/tv.js','src/ow/previews.js','src/ow/app.js','src/ow/avatar-ui.js','src/ow/presence.js','src/ow/podcast.js','src/ow/spaces.js','https://cdn.jsdelivr.net/npm/livekit-client@2.5.7/dist/livekit-client.umd.js','src/pwa.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VER&&k!=='ow-glb').map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 let told=0;const tell=()=>{if(Date.now()-told<20000)return;told=Date.now();self.clients.matchAll().then(cs=>cs.forEach(c=>c.postMessage({type:'upd'})));};
 self.addEventListener('fetch',e=>{
   const r=e.request;if(r.method!=='GET')return;
   const u=new URL(r.url);
+  if(u.origin===location.origin&&/\/assets\/avatars\/[\w.-]+\.glb$/.test(u.pathname)){
+    /* avatar models are big (3-4 MB): serve the saved copy instantly, refresh it quietly in the background */
+    e.respondWith((async()=>{const c=await caches.open('ow-glb'),hit=await c.match(u.pathname);
+      const net=fetch(r).then(res=>{if(res.ok)c.put(u.pathname,res.clone());return res;});
+      if(hit){net.catch(()=>{});return hit;}return net;})());
+    return;
+  }
   if(u.origin===location.origin){
     if(/admin\.html|profile\.html/.test(u.pathname)&&r.mode==='navigate')return;
     // fresh copy when the network answers quickly, otherwise the saved copy right away (no waiting on a bad connection)

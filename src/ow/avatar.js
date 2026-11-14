@@ -5,7 +5,9 @@
  * Interface used by the room (walk.js): {group,height,scale,lift,seatTop,update(dt,speed),setPose(name),pose,dispose()}. */
 (function(){
 const T=THREE,PI=Math.PI,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,t)=>a+(b-a)*t;
-const bufCache={};OWA._lin=hex=>{const c=new THREE.Color(hex);c.convertSRGBToLinear();return c;};
+const bufCache={},GC={};OWA._lin=hex=>{const c=new THREE.Color(hex);c.convertSRGBToLinear();return c;};
+/* start downloading the avatar models early, so a room opens with them already in memory */
+OWA.prefetch=function(gs){(gs||['m','f']).forEach(g=>{const m=OWA.MODELS[g];if(m)fetchBuf(m.url).catch(()=>{});});};
 function fetchBuf(url){return bufCache[url]||(bufCache[url]=fetch(url).then(r=>{if(!r.ok)throw new Error('avatar model '+r.status);return r.arrayBuffer();}).catch(e=>{delete bufCache[url];throw e;}));}
 const lin=hex=>{const c=new T.Color(hex);c.convertSRGBToLinear();return c;};
 /* average linear colour of a texture image (used so a tint hits its target on average and keeps the painted detail) */
@@ -41,6 +43,12 @@ function build(cfg){
     G.scene.updateMatrixWorld(true);Object.values(G.skinned).forEach(m=>m.skeleton.update());
     /* measure the real skinned extents once, in model units */
     const ext=(m)=>{let mn=1e9,mx=-1e9;const p=m.geometry.attributes.position,t=new T.Vector3();for(let i=0;i<p.count;i++){m.boneTransform(i,t);t.applyMatrix4(m.matrixWorld);mn=Math.min(mn,t.y);mx=Math.max(mx,t.y);}return[mn,mx];};
+    const GCk=M.url,GCc=GC[GCk];
+    if(GCc){/* identical rig every time: reuse the measurements from the first avatar of this model (saves most of the per-avatar setup time) */
+      geo.H0=GCc.H0;geo.foot0=GCc.foot0;geo.ankle0=GCc.ankle0;geo.bw=JSON.parse(JSON.stringify(GCc.bw));
+      for(const k in G.skinned)if(GCc.D[k])G.skinned[k]._D=GCc.D[k];
+      Object.values(G.materials).forEach(m=>{if(GCc.avg[m.name])m.userData.avg=GCc.avg[m.name].clone();});
+    }else{
     const fh=ext(G.skinned.Wolf3D_Outfit_Footwear||G.skinned.Wolf3D_Body),hh=ext(G.skinned.Wolf3D_Hair||G.skinned.Wolf3D_Head),hd=ext(G.skinned.Wolf3D_Head);
     geo.H0=Math.max(hh[1],hd[1])-fh[0];geo.foot0=fh[0];
     const wy=n=>bones[n].getWorldPosition(new T.Vector3()).y;
@@ -51,6 +59,8 @@ function build(cfg){
     geo.bw={};for(const n in bones){const v=bones[n].getWorldPosition(new T.Vector3());geo.bw[n]={x:v.x,y:v.y,z:v.z};}
     geo.ankle0=Math.min(wy('LeftFoot'),wy('RightFoot'))-geo.foot0;
     Object.values(G.materials).forEach(m=>{if(m.map&&m.map.image)m.userData.avg=avgLinear(m.map.image);});
+      GC[GCk]={H0:geo.H0,foot0:geo.foot0,ankle0:geo.ankle0,bw:JSON.parse(JSON.stringify(geo.bw)),D:Object.fromEntries(Object.entries(G.skinned).map(([k,m])=>[k,m._D])),avg:Object.fromEntries(Object.values(G.materials).filter(m=>m.userData.avg).map(m=>[m.name,m.userData.avg.clone()]))};
+    }
     for(const m of G.materials)skin[m.name]=m;eyeImg=skin.Wolf3D_Eye&&skin.Wolf3D_Eye.map?skin.Wolf3D_Eye.map.image:null;if(eyeImg){try{const S0=eyeImg.naturalWidth||eyeImg.width||64,c0=document.createElement('canvas');c0.width=c0.height=S0;const g0=c0.getContext('2d');g0.drawImage(eyeImg,0,0,S0,S0);eyeImg={S:S0,raw:g0.getImageData(0,0,S0,S0).data};}catch(e){}}
     av.morphNames=G.morphs.slice();av._geo=geo;
     Object.values(G.meshes).forEach(m=>{m.castShadow=false;});
