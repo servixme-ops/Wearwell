@@ -34,6 +34,7 @@ const OWTv=(()=>{
       else if(host==='loom.com'&&(m=x.pathname.match(/^\/(?:share|embed)\/([a-f0-9]+)/))){e='https://www.loom.com/embed/'+m[1]+'?autoplay=1';nm='Loom video';}
       else if(host==='audiomack.com'&&(m=x.pathname.match(/^\/([\w.-]+)\/(song|album)\/([\w.-]+)/))){e='https://audiomack.com/embed/'+m[2]+'/'+m[1]+'/'+m[3];nm='Audiomack '+m[2];}
       else if(host==='open.spotify.com'&&(m=x.pathname.match(/^\/(?:intl-[a-z]+\/)?(track|album|playlist|episode|show)\/([A-Za-z0-9]{22})/))){e='https://open.spotify.com/embed/'+m[1]+'/'+m[2];nm='Spotify '+m[1];}
+      else if(host==='soundcloud.com'&&(m=x.pathname.match(/^\/([\w-]+)\/sets\/([\w-]+)(?:\/(s-[\w-]+))?\/?$/))){const u0='https://soundcloud.com/'+m[1]+'/sets/'+m[2]+(m[3]?'/'+m[3]:'');return{k:'scs',id:'scs_'+h36(u0),u:u0,n:'SoundCloud playlist'};}
       else if(host==='soundcloud.com'&&(m=x.pathname.match(/^\/([\w-]+)\/([\w-]+)(?:\/(s-[\w-]+))?\/?$/))&&!['you','discover','stream','search','upload','pages','charts','tags','settings','notifications','messages','feed','people'].includes(m[1])){const u0='https://soundcloud.com/'+m[1]+'/'+m[2]+(m[3]?'/'+m[3]:'');return{k:'sc',id:'sc_'+h36(u0),u:u0,n:'SoundCloud track'};}
       if(e)return{k:'em',id:'em_'+h36(e),u:e,n:nm};
       if(FILE_RE.test(x.pathname)){const f=decodeURIComponent(x.pathname.split('/').pop()||'').replace(FILE_RE,'');return{k:'fl',id:'fl_'+h36(x.href),u:x.href,n:f||x.hostname};}
@@ -44,6 +45,7 @@ const OWTv=(()=>{
   function valid(v){
     if(!v||typeof v.id!=='string'||typeof v.u!=='string')return false;const k=v.k||'yt';
     if(k==='yt')return/^[\w-]{11}$/.test(v.u);
+    if(k==='scs')return false;
     if(k==='ytl')return/^[\w-]{10,64}$/.test(v.u);
     if(k==='vm')return/^\d{1,12}$/.test(v.u);
     try{const x=new URL(v.u);if(x.protocol!=='https:')return false;
@@ -210,11 +212,38 @@ const OWTv=(()=>{
       if(i<S.i)S.i--;if(S.i>=S.q.length)S.i=Math.max(0,S.q.length-1);
       if(was)apply({q:S.q,i:S.i,play:S.play&&S.q.length>0,pos:0});else render();announce(was);
     }
+    /* playlists are read once on this phone and added as separate queue items, so the room can follow exactly which song is playing */
+    async function expandYT(list){
+      await loadYT();
+      return new Promise(res=>{const el=h('div',{id:'tv-x-'+Math.random().toString(36).slice(2,8)}),hold=h('div',{style:{position:'fixed',left:'-9999px',top:'0',width:'200px',height:'200px'}},el);document.body.append(hold);let done=false,p=null;
+        const fin=ids=>{if(done)return;done=true;try{p&&p.destroy();}catch(e){}hold.remove();res(ids);};
+        p=new YT.Player(el.id,{width:'200',height:'200',playerVars:{listType:'playlist',list,playsinline:1},events:{onReady:()=>{let n=0;const iv=setInterval(()=>{let l=null;try{l=p.getPlaylist();}catch(e){}if(l&&l.length){clearInterval(iv);fin(l.filter(x=>/^[\w-]{11}$/.test(x)).slice(0,50));}else if(++n>44){clearInterval(iv);fin([]);}},250);},onError:()=>fin([])}});
+        setTimeout(()=>fin([]),14000);});
+    }
+    async function expandSC(url){
+      await loadScript('https://w.soundcloud.com/player/api.js',()=>window.SC&&SC.Widget);
+      return new Promise(res=>{const f=h('iframe',{allow:'autoplay',title:'SoundCloud',src:'https://w.soundcloud.com/player/?url='+encodeURIComponent(url)+'&auto_play=false',style:{position:'fixed',left:'-9999px',top:'0',width:'300px',height:'300px',border:'0'}});document.body.append(f);let done=false;
+        const fin=a=>{if(done)return;done=true;try{f.remove();}catch(e){}res(a);};
+        try{const w=SC.Widget(f);w.bind(SC.Widget.Events.READY,()=>{try{w.getSounds(arr=>fin((arr||[]).slice(0,50).map(x=>{const u=String(x.permalink_url||'').replace(/^http:/,'https:');return{k:'sc',id:'sc_'+h36(u),u,n:String(x.title||'SoundCloud track').slice(0,120),pre:1};}).filter(valid)));}catch(e){fin([]);}});}catch(e){fin([]);}
+        setTimeout(()=>fin([]),14000);});
+    }
+    async function addMany(list){
+      list=list.filter(x=>valid(x)&&!S.q.some(v=>v.id===x.id));if(!list.length){toast('Those are already in the queue');return;}
+      const ts=await Promise.all(list.map(x=>x.pre?Promise.resolve(x.n):titleOf(x).catch(()=>x.n)));
+      const first=S.q.length===0;S.q=S.q.concat(list.map((x,i)=>({id:x.id,k:x.k,u:x.u,t:ts[i]||x.n,by:me})));
+      if(first){S.i=0;S.pos=0;S.play=true;apply({q:S.q,i:0,play:true,pos:0});}else render();
+      announce();toast('Added '+list.length+' to the queue','ok');
+    }
     async function resolveSC(src){try{const c=window.AbortController?new AbortController():null;if(c)setTimeout(()=>c.abort(),5000);const r=await fetch('https://soundcloud.com/oembed?format=json&url='+encodeURIComponent(src.u),c?{signal:c.signal}:{}),j=await r.json(),m=/url=([^&"]+)/.exec(j.html||'');
-      if(m){const u=decodeURIComponent(m[1]).replace(/[?&].*$/,'');if(/^https:\/\/api\.soundcloud\.com\/(tracks|playlists)\/\d+$/.test(u)){src.u=u;src.id='sc_'+h36(u);}}if(j.title)src.n=String(j.title).slice(0,120);}catch(e){}return src;}
+      if(m){const u=decodeURIComponent(m[1]).replace(/[?&].*$/,'');if(/^https:\/\/api\.soundcloud\.com\/(tracks|playlists)\/\d+$/.test(u)){src.u=u;src.id='sc_'+h36(u);if(/\/playlists\//.test(u)){src.k='scs';src.id='scs_'+h36(u);}}}if(j.title)src.n=String(j.title).slice(0,120);}catch(e){}return src;}
     async function fromInput(){
       const src=parse(urlIn.value);if(!src){toast(o.music?'That link cannot play on the speaker. Use SoundCloud, YouTube or YouTube Music, Spotify, Audiomack, or a direct .mp3 / .m4a link.':'That link cannot play on the TV. Use YouTube, Vimeo, Dailymotion, Streamable, Twitch, Loom, or a direct .mp4 / .webm / .m3u8 link.','err');return;}
-      urlIn.value='';if(src.k==='sc'&&/on\.soundcloud\.com/.test(src.u))await resolveSC(src);add(src);
+      urlIn.value='';if(src.k==='sc'&&/on\.soundcloud\.com/.test(src.u))await resolveSC(src);
+      try{
+        if(src.k==='ytl'){toast('Reading the playlist\u2026');const ids=await expandYT(src.u);if(!ids.length){toast('Could not read that playlist. It may be private or not allowed to play outside YouTube.','err');return;}await addMany(ids.map(id=>({k:'yt',id,u:id,n:'YouTube video'})));return;}
+        if(src.k==='scs'){toast('Reading the playlist\u2026');const a=await expandSC(src.u);if(!a.length){toast('Could not read that SoundCloud playlist. It may be private.','err');return;}await addMany(a);return;}
+      }catch(e){toast('Could not read that playlist.','err');return;}
+      add(src);
     }
     addB.onclick=fromInput;urlIn.addEventListener('keydown',e=>{if(e.key==='Enter')fromInput();});
     mn.onclick=()=>{const m=box.classList.toggle('mini');mn.replaceChildren(ic(m?'chevU':'chevD'));mn.setAttribute('aria-label',m?'Open':'Minimise');if(m){box.classList.remove('cm-on','pl-on','rx-on');}};mp.onclick=()=>bPlay.click();
