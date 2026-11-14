@@ -104,7 +104,41 @@ function build(cfg){
     applyWear(c);
     for(const slot in c.extras||{})if(!isWear(slot,c.extras[slot])&&(!av.slots[slot]||av.slots[slot].id!==c.extras[slot]))loadExtra(slot,c.extras[slot]);
     for(const slot in av.slots)if(!(c.extras&&c.extras[slot]))detach(slot);
-    av.dirty&&av.dirty();
+    emblem();av.dirty&&av.dirty();
+  }
+  /* chest emblem: a small patch cut out of the current top (the triangles around the right chest, viewer's left),
+     sharing its skin weights so it moves with the cloth, and textured with the badge. */
+  const embGeo=new Map();
+  function emblemTarget(){const w=st.wear&&st.wear.top;if(w&&w.meshes&&w.meshes[0])return w.meshes[0];const s=av.slots&&av.slots.top;if(s&&s.meshes&&s.meshes[0])return s.meshes[0];const t=parts().Wolf3D_Outfit_Top;return t&&t.visible?t:null;}
+  function patchOf(tg){
+    const key=tg.uuid;if(embGeo.has(key))return embGeo.get(key);let out=null;
+    try{const sk=tg.skeleton,bp=n=>{const i=sk.bones.findIndex(b=>b.name===n);return i<0?null:new T.Vector3().setFromMatrixPosition(sk.boneInverses[i].clone().invert());};
+      const sp2=bp('Spine2'),hd=bp('Head'),hp=bp('Hips'),G=tg.geometry,P=G.attributes.position,N=G.attributes.normal,SI=G.attributes.skinIndex,SW=G.attributes.skinWeight;
+      if(sp2&&hd&&hp&&P&&SI&&SW){const k=Math.max(.01,(hd.y-hp.y)/.85),cx=sp2.x-.085*k,cy=sp2.y+.04*k,r=.055*k,idx=G.index?G.index.array:null,nt=idx?idx.length/3:P.count/3,bm=tg.bindMatrix;
+        const bpv=i=>new T.Vector3().fromBufferAttribute(P,i).applyMatrix4(bm);const sel=[];let zmax=-1e9;
+        for(let t=0;t<nt;t++){const ids=[0,1,2].map(j=>idx?idx[t*3+j]:t*3+j),v=ids.map(bpv);
+          if(!v.some(q=>Math.hypot(q.x-cx,q.y-cy)<r*1.5))continue;
+          const nz=new T.Vector3().subVectors(v[1],v[0]).cross(new T.Vector3().subVectors(v[2],v[0])).normalize().z;if(nz<.35)continue;
+          sel.push({ids,v});v.forEach(q=>{if(Math.hypot(q.x-cx,q.y-cy)<r)zmax=Math.max(zmax,q.z);});}
+        const use=sel.filter(t=>t.v.every(q=>q.z>zmax-r*.9));
+        if(use.length){const pos=[],nor=[],uv=[],si=[],sw=[];
+          use.forEach(t=>t.ids.forEach((i,j)=>{pos.push(P.getX(i),P.getY(i),P.getZ(i));if(N)nor.push(N.getX(i),N.getY(i),N.getZ(i));si.push(SI.getX(i),SI.getY(i),SI.getZ(i),SI.getW(i));sw.push(SW.getX(i),SW.getY(i),SW.getZ(i),SW.getW(i));const q=t.v[j];uv.push(.5+(q.x-cx)/(2*r),.5+(q.y-cy)/(2*r));}));
+          const ng=new T.BufferGeometry();ng.setAttribute('position',new T.Float32BufferAttribute(pos,3));if(N)ng.setAttribute('normal',new T.Float32BufferAttribute(nor,3));ng.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+          ng.setAttribute('skinIndex',new T.BufferAttribute(new SI.array.constructor(si),4,!!SI.normalized));ng.setAttribute('skinWeight',new T.BufferAttribute(new SW.array.constructor(sw),4,!!SW.normalized));out=ng;}}
+    }catch(e){console.warn('emblem patch',e);}
+    embGeo.set(key,out);return out;}
+  function emblem(){
+    const id=av.cfg&&av.cfg.emb;
+    if(av._emb){av._emb.mesh.parent&&av._emb.mesh.parent.remove(av._emb.mesh);av._emb.tex.dispose();av._emb.mat.dispose();av._emb=null;}
+    if(!id||id==='none'||!A)return;const tg=emblemTarget();if(!tg||!tg.geometry||!tg.skeleton)return;
+    const ng=patchOf(tg);if(!ng)return;
+    try{
+      const W=256,cv=document.createElement('canvas');cv.width=cv.height=W;const g=cv.getContext('2d');g.translate(W/2,W/2);g.scale(W/2*.98,-W/2*.98);OWA.drawEmblem(g,id);
+      const tex=new T.CanvasTexture(cv);tex.anisotropy=4;if(T.sRGBEncoding)tex.encoding=T.sRGBEncoding;tex.wrapS=tex.wrapT=T.ClampToEdgeWrapping;
+      const mat=new T.MeshStandardMaterial({map:tex,transparent:true,roughness:.7,metalness:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3,side:tg.material.side});
+      const m=new T.SkinnedMesh(ng,mat);m.bind(tg.skeleton,tg.bindMatrix);m.frustumCulled=false;m.renderOrder=3;m.castShadow=false;
+      (tg.parent||A.scene).add(m);av._emb={mesh:m,tex,mat,tg};
+    }catch(e){console.warn('emblem',e);}
   }
   /* built-in extra hairstyles / garments / hats (avatar-wear.js), made from the model's own meshes and skeleton */
   const isWear=(slot,id)=>!!(OWA.WEAR&&OWA.WEAR[slot]&&Array.isArray(OWA.WEAR[slot])&&OWA.WEAR[slot].some(x=>x[0]===id));
@@ -135,7 +169,7 @@ function build(cfg){
       const b=bones[opts.bone||'Head'];if(!b)continue;m.parent&&m.parent.remove(m);if(opts.offset)m.position.fromArray(opts.offset);b.add(m);added.push(m);}
     (opts.hide||[]).forEach(n=>{const p=parts()[n];if(p&&p.visible){p.visible=false;hidden.push(p);}});
     if(slot==='hair')st.hairSlot=true;
-    av.slots[slot]={id:opts.id||url,meshes:added,hidden,G};av.dirty&&av.dirty();return added;}
+    av.slots[slot]={id:opts.id||url,meshes:added,hidden,G};if(slot==='top')emblem();av.dirty&&av.dirty();return added;}
   function detach(slot){const s=av.slots[slot];if(!s)return;s.meshes.forEach(m=>{m.parent&&m.parent.remove(m);m.geometry&&m.geometry.dispose();});s.hidden.forEach(p=>{p.visible=true;});
     if(slot==='hair')st.hairSlot=false;delete av.slots[slot];if(A)apply(Object.assign({},av.cfg));}
 
@@ -288,8 +322,8 @@ function build(cfg){
     const k=Math.min(1,dt*12);z.x+=(z.tx-z.x)*k;z.y+=(z.ty-z.y)*k;
     for(const n of['LeftEye','RightEye']){rot(n,0,1,0,z.x);rot(n,1,0,0,fx+z.y);}
   }
-  function update(dt,spd){if(!st.ready)return;st.t+=dt;st.talkS+=(st.talk-st.talkS)*Math.min(1,dt*7);pose(dt,spd||0);gaze(dt);face(dt);}
-  function dispose(){st.disposed=true;if(!A)return;for(const k in st.wear){st.wear[k].meshes.forEach(m=>{m.geometry.dispose();m.material.dispose();});}st.wear={};for(const s in av.slots)detach(s);
+  function update(dt,spd){if(!st.ready)return;if(av._emb){const e=av._emb;e.mesh.visible=!!(e.tg.visible&&e.tg.parent);}st.t+=dt;st.talkS+=(st.talk-st.talkS)*Math.min(1,dt*7);pose(dt,spd||0);gaze(dt);face(dt);}
+  function dispose(){st.disposed=true;if(!A)return;if(av._emb){av._emb.tex.dispose();av._emb.mat.dispose();av._emb=null;}for(const k in st.wear){st.wear[k].meshes.forEach(m=>{m.geometry.dispose();m.material.dispose();});}st.wear={};for(const s in av.slots)detach(s);
     A.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();});A.materials.forEach(m=>{['map','roughnessMap','metalnessMap','normalMap','emissiveMap'].forEach(k=>{if(m[k])m[k].dispose();});m.dispose();});}
   return av;
 }
