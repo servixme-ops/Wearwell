@@ -22,7 +22,9 @@ const OWTv=(()=>{
       const host=x.hostname.replace(/^(www|m)\./,'');let m;
       const yid=typeof ytId==='function'?ytId(x.href):null;if(yid&&/^[\w-]{11}$/.test(yid))return{k:'yt',id:yid,u:yid,n:'YouTube video'};
       if((host==='vimeo.com'&&(m=x.pathname.match(/^\/(?:channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/)))||(host==='player.vimeo.com'&&(m=x.pathname.match(/^\/video\/(\d+)/))))return{k:'vm',id:'vm_'+m[1],u:m[1],n:'Vimeo video'};
+      if((host==='youtube.com'||host==='music.youtube.com')&&/^\/playlist/.test(x.pathname)&&/^[\w-]{10,64}$/.test(x.searchParams.get('list')||''))return{k:'ytl',id:'ytl_'+x.searchParams.get('list'),u:x.searchParams.get('list'),n:'YouTube playlist'};
       if(x.protocol!=='https:')return null;
+      if(host==='on.soundcloud.com'&&(m=x.pathname.match(/^\/([A-Za-z0-9]{5,30})\/?$/))){const u0='https://on.soundcloud.com/'+m[1];return{k:'sc',id:'sc_'+h36(u0),u:u0,n:'SoundCloud track'};}
       let e=null,nm='';
       if(host==='dailymotion.com'&&(m=x.pathname.match(/^\/video\/([A-Za-z0-9]+)/))){e='https://www.dailymotion.com/embed/video/'+m[1]+'?autoplay=1';nm='Dailymotion video';}
       else if(host==='dai.ly'&&(m=x.pathname.match(/^\/([A-Za-z0-9]+)/))){e='https://www.dailymotion.com/embed/video/'+m[1]+'?autoplay=1';nm='Dailymotion video';}
@@ -42,11 +44,12 @@ const OWTv=(()=>{
   function valid(v){
     if(!v||typeof v.id!=='string'||typeof v.u!=='string')return false;const k=v.k||'yt';
     if(k==='yt')return/^[\w-]{11}$/.test(v.u);
+    if(k==='ytl')return/^[\w-]{10,64}$/.test(v.u);
     if(k==='vm')return/^\d{1,12}$/.test(v.u);
     try{const x=new URL(v.u);if(x.protocol!=='https:')return false;
       if(k==='fl')return FILE_RE.test(x.pathname);
       if(k==='em')return EMBED_HOSTS.includes(x.hostname);
-      if(k==='sc')return x.hostname==='soundcloud.com'&&/^\/[\w-]+\/[\w-]+(\/s-[\w-]+)?$/.test(x.pathname);}catch(e){}
+      if(k==='sc')return(x.hostname==='soundcloud.com'&&/^\/[\w-]+\/[\w-]+(\/s-[\w-]+)?$/.test(x.pathname))||(x.hostname==='on.soundcloud.com'&&/^\/[A-Za-z0-9]{5,30}\/?$/.test(x.pathname))||(x.hostname==='api.soundcloud.com'&&/^\/(tracks|playlists)\/\d+$/.test(x.pathname));}catch(e){}
     return false;
   }
   const norm=v=>v.k?v:Object.assign({},v,{k:'yt',u:v.u||v.id});
@@ -62,12 +65,12 @@ const OWTv=(()=>{
   const mount=slot=>{const d=h('div',{class:'tv-fill'});slot.append(d);return d;};
 
   /* one small adapter per kind of video, all with the same handful of methods */
-  async function A_yt(slot,evt){
+  async function A_yt(slot,evt,isPl){
     await loadYT();const d=mount(slot),el=h('div',{id:'tv-yt-'+Math.random().toString(36).slice(2,8)});d.append(el);let p,rd;const ready=new Promise(r=>rd=r);
     p=new YT.Player(el.id,{host:'https://www.youtube-nocookie.com',width:'100%',height:'100%',playerVars:{controls:0,disablekb:1,fs:0,playsinline:1,rel:0,modestbranding:1,iv_load_policy:3,autoplay:1},events:{
-      onReady:()=>rd(),onStateChange:e=>{if(e.data===1)evt.state(true);else if(e.data===2)evt.state(false);else if(e.data===0)evt.end();},onError:()=>evt.err()}});
+      onReady:()=>rd(),onStateChange:e=>{if(e.data===1)evt.state(true);else if(e.data===2)evt.state(false);else if(e.data===0){if(isPl){try{const l=p.getPlaylist(),i=p.getPlaylistIndex();if(l&&i<l.length-1)return;}catch(x){}}evt.end();}},onError:()=>evt.err()}});
     await ready;
-    return{ctl:true,load(v,pos,play){p.loadVideoById(v.u,pos||0);if(!play)setTimeout(()=>{evt.busy();try{p.pauseVideo();}catch(e){}},700);},play(){p.playVideo();},pause(){p.pauseVideo();},seek(t){p.seekTo(t,true);},time(){return p.getCurrentTime()||0;},dur(){return p.getDuration()||0;},destroy(){try{p.destroy();}catch(e){}d.remove();}};
+    return{ctl:true,load(v,pos,play){if(isPl)p.loadPlaylist({list:v.u,listType:'playlist',index:0,startSeconds:pos||0});else p.loadVideoById(v.u,pos||0);if(!play)setTimeout(()=>{evt.busy();try{p.pauseVideo();}catch(e){}},700);},play(){p.playVideo();},pause(){p.pauseVideo();},seek(t){p.seekTo(t,true);},time(){return p.getCurrentTime()||0;},dur(){return p.getDuration()||0;},destroy(){try{p.destroy();}catch(e){}d.remove();}};
   }
   async function A_vm(slot,evt){
     await loadScript('https://player.vimeo.com/api/player.js',()=>window.Vimeo&&Vimeo.Player);const d=mount(slot);let p=null,t=0,du=0;
@@ -111,7 +114,7 @@ const OWTv=(()=>{
         if(pos){w.seekTo(pos*1000);t=pos;}if(play){w.play();setTimeout(()=>evt.blocked&&0,0);}else w.pause();},
       play(){w&&w.play();},pause(){w&&w.pause();},seek(x){w&&w.seekTo(x*1000);t=x;},time(){return t;},dur(){try{w&&w.getDuration(x=>{du=(x||0)/1000;});}catch(e){}return du;},destroy(){try{w&&w.unbind(SC.Widget.Events.PLAY);}catch(e){}d.remove();}};
   }
-  const ADAPTERS={yt:A_yt,vm:A_vm,fl:A_fl,em:A_em,sc:A_sc};
+  const ADAPTERS={yt:A_yt,ytl:(sl,ev)=>A_yt(sl,ev,true),vm:A_vm,fl:A_fl,em:A_em,sc:A_sc};
 
   function open(o){
     const ck=(o.music?'m:':'')+o.roomId,old=cur[ck];if(old&&old.alive){old.addOrFocus(o.vid,o.title);return old;}
@@ -123,7 +126,7 @@ const OWTv=(()=>{
 
     /* ----- UI ----- */
     const ic=(n)=>icon(n);
-    const bdg=h('i',{class:'tv-badge'}),cmB=h('button',{class:'tv-b tv-cm','aria-label':'Comments'},ic('chat'),bdg),rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close TV'},ic('close'));
+    const bdg=h('i',{class:'tv-badge'}),cmB=h('button',{class:'tv-b tv-cm','aria-label':'Comments'},ic('chat'),bdg),rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close'},ic('close')),mn=h('button',{class:'tv-b tv-mn','aria-label':'Minimise'},ic('chevD')),mp=h('button',{class:'tv-b tv-mp','aria-label':'Play or pause'},ic('play'));
     const ttl=h('span',null,o.music?'Speaker':'TV');
     const slot=h('div',{class:'tv-slot'}),startB=h('button',{class:'tv-start'},'Tap to play');
     const fl=h('div',{class:'tv-float'});
@@ -144,7 +147,7 @@ const OWTv=(()=>{
     const cChips=h('div',{class:'tv-chips'},...QUICK.map(t=>h('button',{onclick:()=>postC(t)},t)),cWrite);
     const cRow=h('div',{class:'tv-add-row tv-typing'},cIn,cSend);
     const cmP=h('div',{class:'tv-cmp'},cHead,cList,cChips,cRow);
-    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,ctlB,bList,rxB,cmB,rot,ex,cl),screen,seekRow,ctr,rx,pl,cmP);
+    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,mp,ctlB,bList,rxB,cmB,rot,ex,mn,cl),screen,seekRow,ctr,rx,pl,cmP);
     o.host.append(box);
     if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
 
@@ -207,11 +210,14 @@ const OWTv=(()=>{
       if(i<S.i)S.i--;if(S.i>=S.q.length)S.i=Math.max(0,S.q.length-1);
       if(was)apply({q:S.q,i:S.i,play:S.play&&S.q.length>0,pos:0});else render();announce(was);
     }
-    function fromInput(){
-      const src=parse(urlIn.value);if(!src){toast('That link cannot play on the TV. Use YouTube, Vimeo, Dailymotion, Streamable, Twitch, Loom, or a direct .mp4 / .webm / .m3u8 link.','err');return;}
-      urlIn.value='';add(src);
+    async function resolveSC(src){try{const c=window.AbortController?new AbortController():null;if(c)setTimeout(()=>c.abort(),5000);const r=await fetch('https://soundcloud.com/oembed?format=json&url='+encodeURIComponent(src.u),c?{signal:c.signal}:{}),j=await r.json(),m=/url=([^&"]+)/.exec(j.html||'');
+      if(m){const u=decodeURIComponent(m[1]).replace(/[?&].*$/,'');if(/^https:\/\/api\.soundcloud\.com\/(tracks|playlists)\/\d+$/.test(u)){src.u=u;src.id='sc_'+h36(u);}}if(j.title)src.n=String(j.title).slice(0,120);}catch(e){}return src;}
+    async function fromInput(){
+      const src=parse(urlIn.value);if(!src){toast(o.music?'That link cannot play on the speaker. Use SoundCloud, YouTube or YouTube Music, Spotify, Audiomack, or a direct .mp3 / .m4a link.':'That link cannot play on the TV. Use YouTube, Vimeo, Dailymotion, Streamable, Twitch, Loom, or a direct .mp4 / .webm / .m3u8 link.','err');return;}
+      urlIn.value='';if(src.k==='sc'&&/on\.soundcloud\.com/.test(src.u))await resolveSC(src);add(src);
     }
     addB.onclick=fromInput;urlIn.addEventListener('keydown',e=>{if(e.key==='Enter')fromInput();});
+    mn.onclick=()=>{const m=box.classList.toggle('mini');mn.replaceChildren(ic(m?'chevU':'chevD'));mn.setAttribute('aria-label',m?'Open':'Minimise');if(m){box.classList.remove('cm-on','pl-on','rx-on');}};mp.onclick=()=>bPlay.click();
     bPlay.onclick=toggle;bBack.onclick=()=>seekBy(-10);bFwd.onclick=()=>seekBy(10);bNext.onclick=next;
     bList.onclick=()=>pp('pl-on');
     rng.addEventListener('input',()=>{seeking=true;});
@@ -261,8 +267,8 @@ const OWTv=(()=>{
       const end=()=>{st=null;};bar.addEventListener('pointerup',end);bar.addEventListener('pointercancel',end);})();
 
     function render(){
-      const v=S.q[S.i];ttl.textContent=v?v.t:'TV';if((v&&v.id)!==shownVid){shownVid=v&&v.id;if(box.classList.contains('cm-on'))loadC();else if(typeof refreshCount==='function')setTimeout(refreshCount,300);if(typeof badge==='function')badge();}box.classList.toggle('empty',!v);box.classList.toggle('noctl',!!v&&v.k==='em');
-      bPlay.replaceChildren(ic(S.play?'pause':'play'));bNext.disabled=S.i+1>=S.q.length;
+      const v=S.q[S.i];ttl.textContent=v?v.t:(o.music?'Speaker':'TV');if((v&&v.id)!==shownVid){shownVid=v&&v.id;if(box.classList.contains('cm-on'))loadC();else if(typeof refreshCount==='function')setTimeout(refreshCount,300);if(typeof badge==='function')badge();}box.classList.toggle('empty',!v);box.classList.toggle('noctl',!!v&&v.k==='em');
+      bPlay.replaceChildren(ic(S.play?'pause':'play'));mp.replaceChildren(ic(S.play?'pause':'play'));bNext.disabled=S.i+1>=S.q.length;
       lst.replaceChildren(...(S.q.length?S.q.map((q,k)=>h('div',{class:'tv-li'+(k===S.i?' on':'')},
         h('button',{class:'tv-th','aria-label':'Play '+q.t,onclick:()=>playIndex(k)},(q.k==='yt'?h('img',{src:'https://i.ytimg.com/vi/'+q.u+'/default.jpg',alt:'',loading:'lazy',width:'64',height:'36'}):h('span',{class:'tv-gth'},'\u25b6')),h('span',null,(k===S.i?'▶ ':'')+q.t)),
         (o.isOwner||q.by===me)?h('button',{class:'tv-x','aria-label':'Remove from queue',onclick:()=>remove(k)},ic('close')):null)):[h('p',{class:'tv-none'},'The queue is empty. Paste a video link above.')]));

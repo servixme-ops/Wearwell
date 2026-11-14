@@ -485,7 +485,6 @@ function introView(){
   document.title='Welcome to OpenWalls';
   const v=setView(true);v.classList.add('intro-view');
   const card=(ic,t,d)=>h('div',{class:'in-card'},h('span',{class:'in-ic'},icon(ic)),h('div',null,h('b',null,t),h('p',null,d)));
-  const look=()=>{introDone();go('#/wall');};
   v.append(h('div',{class:'in-wrap'},
     h('div',{class:'in-hero'},logoEl(72),h('h1',null,'Your room. Your wall. Your people.'),h('p',null,'OpenWalls is a place where everyone gets their own 3D room to decorate, share and invite people into.')),
     h('div',{class:'in-cards'},
@@ -495,14 +494,14 @@ function introView(){
       card('mic','Watch and talk together','Play a video on your room\u2019s TV in sync for everyone inside, and host Live Spaces: audio talks that last 30 minutes.'),
       card('lock','You are in control','Keep your room public or make it private whenever you like.')),
     h('div',{class:'in-cta'},
-      h('button',{class:'btn coral block',onclick:()=>{introDone();go('#/wall');authSheet('signup','Create an account to build your room');}},'Create account'),
-      h('button',{class:'btn block',onclick:()=>{introDone();go('#/wall');authSheet('signin');}},'Sign in'),
-      h('button',{class:'in-look',onclick:look},'Just look around'))));
+      h('button',{class:'btn coral block',onclick:()=>{introDone();authSheet('signup','Create an account to build your room');}},'Create account'),
+      h('button',{class:'btn block',onclick:()=>{introDone();authSheet('signin');}},'Sign in'))));
 }
 function route(){
   document.querySelectorAll('.sheet-ov,.dlg-ov').forEach(e=>e.remove());teardown();const hs=decodeURIComponent(location.hash.replace(/^#\/?/,''));App.hadRoute=App.route!=='';App.route=hs||'wall';
   document.title="OpenWalls · Discover what's on everyone's walls";
-  if(hs==='welcome')return introView();
+  if(!Auth.user){App.route='welcome';return introView();}
+  if(hs==='welcome'){history.replaceState(null,'','#/wall');App.route='wall';return wallView?wallView():discoverView();}
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
@@ -513,7 +512,7 @@ window.addEventListener('hashchange',route);
   const ld=document.getElementById('ldlogo');if(ld)ld.append(logoEl(84));
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
-  Auth.init().then(()=>{if(!Auth.user&&!introSeen()&&(!location.hash||location.hash==='#/'||location.hash==='#/wall'))history.replaceState(null,'','#/welcome');route();refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
+  Auth.init().then(()=>{route();refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
   Auth.on(ev=>{if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});
   window.__ready=true;const l=document.getElementById('loading');setTimeout(()=>l&&l.classList.add('gone'),250);
   try{sessionStorage.removeItem('ow_try');}catch(e){}

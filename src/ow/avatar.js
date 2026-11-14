@@ -17,12 +17,13 @@ function avgLinear(img){
 function tintFor(hex,avg){const t=lin(hex);return new T.Color(clamp(t.r/Math.max(.02,avg.r),0,3),clamp(t.g/Math.max(.02,avg.g),0,3),clamp(t.b/Math.max(.02,avg.b),0,3));}
 /* recolour only the iris of the 64px eye texture, keeping its shading, pupil and highlight */
 function eyeTexture(img,hex){
-  const S=img.naturalWidth||64,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(img,0,0,S,S);
-  const im=g.getImageData(0,0,S,S),d=im.data,tc=new T.Color(hex),R=S*.215;
-  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const dx=x+.5-S/2,dy=y+.5-S*.49,r=Math.hypot(dx,dy);if(r>R*1.05)continue;const i=(y*S+x)*4,lum=(.3*d[i]+.59*d[i+1]+.11*d[i+2])/255;
+  const S=img.S||img.naturalWidth||img.width||64;let d;if(img.raw)d=new Uint8ClampedArray(img.raw);else{const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(img,0,0,S,S);d=g.getImageData(0,0,S,S).data;}
+  const tc=new T.Color(hex||'#000'),R=S*.215;
+  for(let y=0;hex&&y<S;y++)for(let x=0;x<S;x++){const dx=x+.5-S/2,dy=y+.5-S*.49,r=Math.hypot(dx,dy);if(r>R*1.05)continue;const i=(y*S+x)*4,lum=(.3*d[i]+.59*d[i+1]+.11*d[i+2])/255;
     if(lum>.6)continue;const k=clamp(lum/.3,.25,1.6),w=clamp((R*1.05-r)/(R*.25),0,1);
     d[i]=lerp(d[i],clamp(tc.r*255*k,0,255),w);d[i+1]=lerp(d[i+1],clamp(tc.g*255*k,0,255),w);d[i+2]=lerp(d[i+2],clamp(tc.b*255*k,0,255),w);}
-  g.putImageData(im,0,0);const t=new T.CanvasTexture(c);t.flipY=false;t.encoding=T.sRGBEncoding;t.anisotropy=2;return t;}
+  /* kept as raw pixels in JS memory: a canvas-backed texture can be blanked by the browser when the tab is in the background */
+  const t=new T.DataTexture(new Uint8Array(d),S,S,T.RGBAFormat);t.flipY=false;t.encoding=T.sRGBEncoding;t.generateMipmaps=true;t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;t.anisotropy=2;t.needsUpdate=true;return t;}
 
 function build(cfg){
   cfg=OWA.migrate(cfg);const M=OWA.MODELS[cfg.g]||OWA.MODELS.f;
@@ -50,7 +51,7 @@ function build(cfg){
     geo.bw={};for(const n in bones){const v=bones[n].getWorldPosition(new T.Vector3());geo.bw[n]={x:v.x,y:v.y,z:v.z};}
     geo.ankle0=Math.min(wy('LeftFoot'),wy('RightFoot'))-geo.foot0;
     Object.values(G.materials).forEach(m=>{if(m.map&&m.map.image)m.userData.avg=avgLinear(m.map.image);});
-    for(const m of G.materials)skin[m.name]=m;eyeImg=skin.Wolf3D_Eye&&skin.Wolf3D_Eye.map?skin.Wolf3D_Eye.map.image:null;
+    for(const m of G.materials)skin[m.name]=m;eyeImg=skin.Wolf3D_Eye&&skin.Wolf3D_Eye.map?skin.Wolf3D_Eye.map.image:null;if(eyeImg){try{const S0=eyeImg.naturalWidth||eyeImg.width||64,c0=document.createElement('canvas');c0.width=c0.height=S0;const g0=c0.getContext('2d');g0.drawImage(eyeImg,0,0,S0,S0);eyeImg={S:S0,raw:g0.getImageData(0,0,S0,S0).data};}catch(e){}}
     av.morphNames=G.morphs.slice();av._geo=geo;
     Object.values(G.meshes).forEach(m=>{m.castShadow=false;});
     apply(cfg);st.ready=true;av.onReady&&av.onReady(av);
