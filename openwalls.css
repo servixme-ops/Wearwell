@@ -362,3 +362,9 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .tv-tap{clip-path:polygon(0 0,100% 0,100% 55%,62% 55%,62% 100%,0 100%)}
 .tv-music .tv-screen{background:radial-gradient(circle at 30% 20%,#7d5cff,#241657 70%)}
 .tv-music .tv-screen::before{content:"♪";position:absolute;inset:0;display:grid;place-items:center;font-size:64px;color:rgba(255,255,255,.28);pointer-events:none}
+.tv-mp{display:none}
+.tvplayer.mini .tv-mp{display:grid}
+.tvplayer.mini .tv-bar>:not(span):not(.tv-mp):not(.tv-mn):not(:last-child){display:none}
+.tvplayer.mini .tv-seek,.tvplayer.mini .tv-ctr,.tvplayer.mini .tv-rx,.tvplayer.mini .tv-pl,.tvplayer.mini .tv-cmp{display:none!important}
+.tvplayer.mini .tv-screen{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;overflow:hidden;pointer-events:none}
+.tvplayer.mini{width:auto!important;min-width:210px;max-width:92vw;height:auto!important}

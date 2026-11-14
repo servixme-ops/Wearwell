@@ -28,7 +28,7 @@ const IC={
   flip:'<path d="M4 10a8 8 0 0 1 14-3M20 14a8 8 0 0 1-14 3M18 3v4h-4M6 21v-4h4"/>',
   send:'<path d="M4 12l16-8-6 16-3-7z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>',
   lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
-  chevR:'<path d="M9 5l7 7-7 7"/>',chevD:'<path d="M5 9l7 7 7-7"/>',
+  chevU:'<path d="M6 15l6-6 6 6"/>',chevR:'<path d="M9 5l7 7-7 7"/>',chevD:'<path d="M5 9l7 7 7-7"/>',
   share:'<path d="M12 4v11M7.5 8.5L12 4l4.5 4.5M5 13v6h14v-6"/>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   bell:'<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/>',
