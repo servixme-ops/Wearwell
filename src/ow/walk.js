@@ -60,6 +60,7 @@ P.interactOf=function(it){
   if(it.kind==='furniture'){
     if(SEATS[it.type])return{k:'sit',label:'Sit'};if(BEDS[it.type])return{k:'lie',label:'Lie down'};if(LAMPS[it.type])return{k:'lamp',label:'Switch light'};
     if(MIRRORS[it.type])return{k:'look',label:MIRRORS[it.type]};if(it.type==='gaming_desk'||it.type==='console')return{k:'play',label:'Play'};
+    if(it.type==='speaker')return{k:'open',label:'Play music'};
     if(USES[it.type]&&(it.link||it.title||it.description))return{k:'open',label:USES[it.type]};return null;}
   if(it.image_path||it.title||it.description||it.link||(it.props&&it.props.images&&it.props.images.length))return{k:'open',label:it.link?'Open':'View'};return null;};
 P.itemSpot=function(it){ /* world position of an item and a rough reach distance */
