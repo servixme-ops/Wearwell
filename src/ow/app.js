@@ -285,22 +285,46 @@ async function editorView(){
   }
   /* ----- selected item panel ----- */
   function showPanel(it){
-    if(panel){panel.remove();panel=null;}R.setInset(0);if(!it)return;const def=OW.def(it.type);
+    if(panel){panel.remove();panel=null;}R.setInset(0);const dk=host.querySelector('.dock');dk&&dk.classList.remove('off');if(!it)return;const def=OW.def(it.type);
     const rs=h('input',{type:'range',min:'-180',max:'180',step:'1',value:String(Math.round((it.rot||0)*180/Math.PI))});
     rs.addEventListener('input',()=>R.update(it.id,{rot:rs.value*Math.PI/180}));
     const sc=h('input',{type:'range',min:'40',max:'220',step:'1',value:String(Math.round((it.scale||1)*100))});sc.addEventListener('input',()=>R.update(it.id,{scale:sc.value/100}));
     const rows=h('div',{class:'rows'},h('label',null,'Rotate'),rs,h('label',null,'Size'),sc);
     const acts=h('div',{class:'acts'});
     if(it.kind==='decor'&&def.img){acts.append(h('button',{class:'btn',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;await guard(null,async()=>{toast('Uploading…');const up=await Store.uploadPicture(f);const asp=up.width/up.height,area=(it.width||def.w)*(it.height||def.h),hh=def.id==='album'?it.height:Math.sqrt(area/asp);R.update(it.id,{image_path:up.path,height:+hh.toFixed(3),width:+(def.id==='album'?it.width:hh*asp).toFixed(3)});});}},icon('image'),it.image_path?'Change picture':'Add picture'));
-      const fr=h('div',{class:'chips',style:{width:'100%'}});const pf=()=>fr.replaceChildren(...Object.entries(OW.FRAMES).map(([k,l])=>h('button',{class:'chip'+((it.frame||'none')===k?' on':''),onclick:()=>{R.update(it.id,{frame:k});pf();}},l)));pf();acts.append(fr);}
-    if(it.type==='neon'||it.type==='curtains'||it.kind==='furniture'&&def.col){const cols=['#ff3d81','#3ddc97','#ffd23f','#6c4bff','#ff5a3c','#2d7bff','#c4532d','#2f6b4f','#d9a441','#e8d5b9','#1c1f2e','#f4f1ea'];const sw=h('div',{class:'swatches',style:{width:'100%'}});const pc=()=>sw.replaceChildren(...cols.map(c=>h('button',{class:'sw'+((it.color||def.col)===c?' on':''),style:{background:c},'aria-label':'Colour '+c,onclick:()=>{R.update(it.id,{color:c});pc();}})));pc();acts.append(sw);}
-    const info=OW.INTERACT_HINT[def.hint]||(def.link?'Add a link and description':'');
+      const fr=h('div',{class:'chips'});const pf=()=>fr.replaceChildren(...Object.entries(OW.FRAMES).map(([k,l])=>h('button',{class:'chip'+((it.frame||'none')===k?' on':''),onclick:()=>{R.update(it.id,{frame:k});pf();}},l)));pf();acts.append(fr);}
+    if(it.type==='neon'||it.type==='curtains'||it.kind==='furniture'&&def.col){const cols=['#ff3d81','#3ddc97','#ffd23f','#6c4bff','#ff5a3c','#2d7bff','#c4532d','#2f6b4f','#d9a441','#e8d5b9','#1c1f2e','#f4f1ea'];const sw=h('div',{class:'swatches'});const pc=()=>sw.replaceChildren(...cols.map(c=>h('button',{class:'sw'+((it.color||def.col)===c?' on':''),style:{background:c},'aria-label':'Colour '+c,onclick:()=>{R.update(it.id,{color:c});pc();}})));pc();acts.append(sw);}
     if(it.type==='collage'){acts.append(h('button',{class:'btn',onclick:async()=>{const have=((it.props&&it.props.images)||[]).length;if(have>=6){toast('The board holds 6 photos');return;}const fs=await pickFiles('image/jpeg,image/png,image/webp',6-have);if(!fs||!fs.length)return;await guard(null,async()=>{toast('Uploading…');const out=[...((it.props&&it.props.images)||[])];for(const f of fs.slice(0,6-have)){const up=await Store.uploadPicture(f);out.push(up.path);}R.update(it.id,{props:Object.assign({},it.props,{images:out})});});}},icon('image'),'Add photos'),((it.props&&it.props.images)||[]).length?h('button',{class:'btn',onclick:()=>R.update(it.id,{props:Object.assign({},it.props,{images:[]})})},'Clear photos'):null);}
-    acts.append(h('button',{class:'btn',onclick:()=>R.duplicate(it.id)},icon('copy'),'Duplicate'));
-    acts.append(h('button',{class:'btn',onclick:()=>detailsSheet(it,def)},icon('link'),it.kind==='decor'&&!def.img?'Text & link':'Details & link'));
-    acts.append(h('button',{class:'btn danger',onclick:async()=>{if(await confirmBox('Remove this?','It will be taken out of your room.','Remove',true)){R.remove(it.id);}}},icon('trash'),'Remove'));
-    panel=h('div',{class:'panel'},h('div',{class:'ph'},h('b',null,def.name),h('button',{class:'icon-btn','aria-label':'Close',onclick:()=>R.select(null)},icon('close'))),rows,acts,info?h('div',{class:'f-hint',style:{marginTop:'6px'}},info):null);
-    host.append(panel);R.setInset((panel.offsetHeight+88)/2);
+    const ib=(ic,label,fn,cls)=>h('button',{class:'icon-btn'+(cls?' '+cls:''),'aria-label':label,title:label,onclick:fn},icon(ic));
+    const hdr=h('div',{class:'ph'},h('b',null,def.name),
+      ib('move','Move with arrows',()=>moveMode(it,def)),ib('copy','Duplicate',()=>R.duplicate(it.id)),ib('link',it.kind==='decor'&&!def.img?'Text and link':'Details and link',()=>detailsSheet(it,def)),
+      ib('trash','Remove',async()=>{if(await confirmBox('Remove this?','It will be taken out of your room.','Remove',true)){R.remove(it.id);}},'danger'),
+      ib('close','Close',()=>R.select(null)));
+    panel=h('div',{class:'panel compact'},hdr,rows,acts.children.length?acts:null);
+    host.append(panel);dk&&dk.classList.add('off');R.setInset((panel.offsetHeight+20)/2);
+  }
+  /* move with arrows: the arrows follow the way you are looking; Cancel puts it back, Done keeps it */
+  function moveMode(it,def){
+    const start={x:it.x,y:it.y,z:it.z};const STEP=.08;
+    const stepBy=(dir)=>{
+      const live=R.get(it.id);if(!live)return;const az=R.az;
+      if(live.kind==='furniture'){
+        const fx=-Math.sin(az),fz=-Math.cos(az),rx=Math.cos(az),rz=-Math.sin(az);
+        const dx=dir==='u'?fx:dir==='d'?-fx:dir==='r'?rx:-rx,dz=dir==='u'?fz:dir==='d'?-fz:dir==='r'?rz:-rz;
+        R.update(live.id,{x:+(live.x+dx*STEP).toFixed(3),z:+(live.z+dz*STEP).toFixed(3)});
+      }else{
+        if(dir==='u'||dir==='d'){R.update(live.id,{y:+(live.y+(dir==='u'?STEP:-STEP)).toFixed(3)});return;}
+        const f=R.wf()[live.wall||'back'],rx=Math.cos(az),rz=-Math.sin(az),sg=(f&&(f.u[0]*rx+f.u[2]*rz)<0)?-1:1;
+        R.update(live.id,{x:+(live.x+(dir==='r'?1:-1)*sg*STEP).toFixed(3)});
+      }
+    };
+    const arrow=(d,ic,label)=>{let t=null;const stop=()=>{clearInterval(t);t=null;};const b=h('button',{class:'ar ar-'+d,'aria-label':label},icon(ic));
+      b.addEventListener('pointerdown',e=>{e.preventDefault();stepBy(d);stop();t=setInterval(()=>stepBy(d),90);});['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));return b;};
+    const pad=h('div',{class:'pad'},arrow('u','arrU','Move up'),arrow('l','arrL','Move left'),h('span',{class:'pad-c'},icon('move')),arrow('r','arrR','Move right'),arrow('d','arrD','Move down'));
+    const back=()=>showPanel(R.get(it.id)||null);
+    const cancel=h('button',{class:'btn',onclick:()=>{R.update(it.id,{x:start.x,y:start.y,z:start.z});back();}},'Cancel'),done=h('button',{class:'btn coral',onclick:back},icon('check'),'Done');
+    panel.replaceChildren(h('div',{class:'mv'},pad,h('div',{class:'mv-side'},h('b',null,def.name),h('span',{class:'f-hint'},it.kind==='decor'?'Slide it along the wall, or up and down.':'Nudge it across the floor. Hold to keep moving.'),h('div',{class:'mv-btns'},cancel,done))));
+    R.setInset((panel.offsetHeight+20)/2);
   }
   function detailsSheet(it,def){
     sheet('Details',(body,close)=>{
