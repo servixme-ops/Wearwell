@@ -253,6 +253,9 @@ async function editorView(){
   const R=new OWRoom(host,{edit:true,onHistory:()=>{try{hist();}catch(e){}},onSelect:it=>showPanel(it),onChange:()=>{dirty=true;statusEl.textContent='Unsaved changes';clearTimeout(timer);timer=setTimeout(()=>save(),2200);}});
   window.__room=R;
   R.load(room,data.items);
+  try{const raw=localStorage.getItem('ow_pending_deco');if(raw){localStorage.removeItem('ow_pending_deco');const pd=JSON.parse(raw);
+    if(pd&&pd.path&&Date.now()-pd.at<10*60*1000){const asp=pd.asp||.8,hh=+Math.sqrt(.63/asp).toFixed(3),w=+(hh*asp).toFixed(3);
+      setTimeout(()=>{try{R.addDecor('artwork',{image_path:pd.path,width:w,height:hh});toast('Artwork added to your wall');}catch(e){toast('Could not add the artwork','err');}},700);}}}catch(e){}
   let previewTimer=0,stale=!room.theme||!room.theme.preview;
   async function persist(rm,items,withPreview,ui){
     const say=t=>{if(ui)statusEl.textContent=t;};
