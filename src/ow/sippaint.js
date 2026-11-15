@@ -164,7 +164,7 @@ function openArtwork(a){
 async function myArtworks(){
   sheet('My artworks',async(body)=>{body.append(spinner());
     const r=await sb.from('paint_artworks').select('id,image_path,title,space_title,created_at').eq('user_id',Auth.user.id).order('created_at',{ascending:false}).limit(60);
-    if(r.error||!r.data.length){body.replaceChildren(empty('No artworks yet','Finish a painting in a Sip & Paint space and save it here.'));return;}
+    if(r.error||!(r.data||[]).length){body.replaceChildren(empty('No artworks yet','Finish a painting in a Sip & Paint space and save it here.'));return;}
     body.replaceChildren(h('div',{class:'pt-gg'},r.data.map(a=>h('div',{class:'pt-gc',role:'button',tabindex:'0','aria-label':'Open artwork',style:{cursor:'pointer'},onclick:()=>openArtwork(a)},h('img',{src:publicUrl('room-images',a.image_path),alt:a.title||'Artwork',loading:'lazy'}),h('div',{class:'pt-gw'},h('div',null,h('b',null,a.space_title||'Sip & Paint'),h('span',null,new Date(a.created_at).toLocaleDateString())))))));
   });
 }

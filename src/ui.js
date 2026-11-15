@@ -1,3 +1,6 @@
+/* Safety net: DOM append/prepend/replaceChildren turn null/undefined/false into the words "null"/"undefined"/"false". Skip them instead, everywhere. */
+(()=>{const clean=a=>a.filter(x=>x!=null&&x!==false);
+  [Element.prototype,DocumentFragment.prototype].forEach(P=>['append','prepend','replaceChildren'].forEach(m=>{const o=P[m];if(!o||o.__ow)return;const f=function(...a){return o.apply(this,clean(a));};f.__ow=1;P[m]=f;}));})();
 /* ---------- UI helpers shared by the phone and its apps ---------- */
 const h=(tag,attrs,...kids)=>{
   const el=document.createElement(tag);
