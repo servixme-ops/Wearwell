@@ -235,7 +235,7 @@ async function room(id){
       const r=new OWRoom(box,{edit:false});r.load(d&&d.room?d.room:{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}},d&&d.room?d.items:[]);
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
       r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');
-      if(paintMode()&&window.OWPaint){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
+      if(paintMode()&&typeof OWPaint!=='undefined'){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
       paintStage();R.stageSpeaking(speaking);
     }catch(e){console.error(e);R=null;}
   }
@@ -312,7 +312,7 @@ async function room(id){
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
     const end=h('div',{class:'sp-ended'},h('h2',null,'This space has ended'),h('p',{class:'tag'},msg||'Thanks for listening.'),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces'));
     v.replaceChildren(end);
-    if(wasPaint&&window.OWPaint){v.classList.add('pt-endv');end.after(await OWPaint.galleryView(id,title));}
+    if(wasPaint&&typeof OWPaint!=='undefined'){v.classList.add('pt-endv');end.after(await OWPaint.galleryView(id,title));}
   }
 
   let unread=0;
