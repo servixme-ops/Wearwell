@@ -381,7 +381,7 @@ function paintHub(){
     const host=h('button',{class:'btn coral block',onclick:()=>{close();createSheet(()=>{},'sipandpaint');}},'Host a Sip & Paint');
     const list=h('div',{class:'sp-list'},spinner());body.append(host,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Live now'),list);
     rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows=>{
-      list.replaceChildren(...(rows.length?rows.map(r=>h('button',{class:'sp-invite',style:{width:'100%',textAlign:'left'},onclick:()=>{close();go('#/space/'+r.id);}},h('div',null,h('b',null,r.title),h('span',{style:{display:'block'}},'Hosted by '+(r.host||'a creator')))),h('span',null)):[h('p',{class:'f-hint'},'No sessions live right now. Host one and invite friends.')]));
+      list.replaceChildren(...(rows.length?rows.map(r=>h('button',{class:'sp-invite',style:{width:'100%',textAlign:'left'},onclick:()=>{close();go('#/space/'+r.id);}},h('div',null,h('b',null,r.title),h('span',{style:{display:'block'}},'Hosted by '+(r.host&&typeof r.host==='object'?person(r.host):(r.host||'a creator'))))),h('span',null)):[h('p',{class:'f-hint'},'No sessions live right now. Host one and invite friends.')]));
     }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
   });
 }
