@@ -59,7 +59,7 @@ const OWAds=(()=>{
   /* ---- sponsored wall post: same framed, pinned, tilted piece as a room ---- */
   function wallPiece(ad){
     const m=art(ad,'pshot'),fr=link(ad,'wall','pframe',[m,tag()]);
-    const el=h('div',{class:'piece ad-piece'},fr,h('div',{class:'plaque'},logo(ad),h('div',{class:'who'},h('b',null,ad.headline),h('span',{class:'s'},ad.body||ad.business)),h('span',{class:'visit'},ad.cta||'Learn more')));
+    const el=h('div',{class:'piece ad-piece'},fr,h('div',{class:'plaque'},logo(ad),h('div',{class:'who'},h('b',null,ad.headline),h('span',{class:'s'},ad.body||ad.business)),h('span',{class:'visit'},((ad.cta||'Visit').split(' ')[0]).slice(0,9))));
     el.querySelector('.plaque .visit').addEventListener('click',()=>{window.open(ad.url,'_blank','noopener,noreferrer');send(ad.id,'click','wall');});
     watch(el,ad,'wall',m.tagName==='VIDEO'?m:null);
     return el;

@@ -412,3 +412,5 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .ad-chart{display:flex;align-items:flex-end;gap:3px;height:110px;padding:8px 0}.ad-bar{position:relative;flex:1;height:100%;display:flex;align-items:flex-end}.ad-bar i{position:absolute;bottom:0;left:0;right:0;background:#bba8ff;border-radius:3px 3px 0 0}.ad-bar u{position:absolute;bottom:0;left:25%;right:25%;background:var(--coral);border-radius:3px 3px 0 0}
 .ad-leg{display:flex;gap:14px;font-size:12px;color:var(--ink2)}.ad-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}.ad-leg .a{background:#bba8ff}.ad-leg .b{background:var(--coral)}
 .ad-pr{display:flex;padding:10px 12px;font-size:13px}
+.ad-art.ph{font-size:0;color:transparent}
+.ad-piece .plaque .who{min-width:42%}.ad-piece .plaque .visit{max-width:50%;overflow:hidden;text-overflow:ellipsis;padding:6px 9px}
