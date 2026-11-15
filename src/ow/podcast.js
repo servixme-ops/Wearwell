@@ -31,14 +31,15 @@ P.stageReact=function(uid,name){
   const st=this.stage;if(!st)return;const e=st.map.get(uid);if(!e||!GDUR[name])return;
   e.gest={n:name,t:0,dur:GDUR[name]};e.nextDrink=25+Math.random()*25;
 };
-P.stageStart=function(cb){
+P.stageStart=function(cb,opts){
   if(this.stage)return;
   const st=this.stage={g:new T.Group(),seats:[null,null,null,null],map:new Map(),mics:[],speaking:new Set(),focus:null,hold:0,auto:true,cb:cb||{},hidden:[],t:0,
-    cur:{az:0,el:.2,dist:5,tx:0,ty:1.05,tz:SZ},lbl:h('div',{class:'sp-lbls'}),acc:0,fov0:this.cam.fov};
+    paint:!!(opts&&opts.paint),cur:{az:0,el:.2,dist:5,tx:0,ty:1.05,tz:SZ},lbl:h('div',{class:'sp-lbls'}),acc:0,fov0:this.cam.fov};
   const wood=M(0x8a6a4a,.6);
   const rug=new T.Mesh(new T.CylinderGeometry(1.75,1.75,.02,40),M(0x3b3350,.95));rug.position.set(0,.011,SZ+.2);rug.receiveShadow=true;
   st.g.add(rug,box(2.6,.05,.62,wood,0,.74,SZ+.78),box(2.6,.7,.04,M(0x2b2f3a,.8),0,.38,SZ+1.06));
   st.bottles=[];SX.forEach((x,i)=>{st.g.add(chair(x));const m=mic(x);st.mics[i]=m;st.g.add(m);const b=bottle();b.userData.home=new T.Vector3(x+BX,DESKY+.085,BZ);b.position.copy(b.userData.home);st.bottles[i]=b;st.g.add(b);});
+  if(st.paint){st.mics.forEach(m=>m.visible=false);st.bottles.forEach(b=>b.visible=false);}
   this.root.add(st.g);
   /* clear the furniture that would sit inside the studio */
   this.items.forEach(it=>{if(it.kind!=='furniture')return;const d=OW.furn(it.type);if(!d||d.floor)return;const n=this.nodes.get(it.id);if(!n)return;
@@ -62,7 +63,7 @@ P.stageAdd=function(uid,cfg){
   if(e){this.root.remove(e.f.holder);e.f.av.dispose();}
   const f=this._fig(this,cfg);f.x=SX[idx];f.z=SZ;f.yaw=-SX[idx]*.15;f.av.seatTop=SEAT;
   f.av.ready.then(()=>{if(!this.stage)return;f.av.seatTop=SEAT;f.av.setPose('sit');f.pose='sit';this.placeFigure(f);this.markDirty(true);}).catch(()=>{});
-  f.sh.visible=false;this.placeFigure(f);st.map.set(uid,{f,idx,key,gest:null,nextDrink:12+Math.random()*25});st.seats[idx]=uid;st.bottles[idx].visible=true;this.stageLabel(uid);this.markDirty(true);
+  f.sh.visible=false;this.placeFigure(f);st.map.set(uid,{f,idx,key,gest:null,nextDrink:12+Math.random()*25});st.seats[idx]=uid;st.bottles[idx].visible=!st.paint;this.stageLabel(uid);this.markDirty(true);
 };
 P.stageRemove=function(uid){
   const st=this.stage;if(!st)return;const e=st.map.get(uid);if(!e)return;
@@ -74,15 +75,16 @@ P.stageInfo=function(uid,info){const e=this.stage&&this.stage.map.get(uid);if(!e
 P.stageSpeaking=function(set){
   const st=this.stage;if(!st)return;st.speaking=set;
   let pick=null;set.forEach(u=>{if(!pick&&st.map.has(u))pick=u;});
-  if(pick){st.focus=pick;st.hold=1.4;}
+  if(pick&&!st.paint){st.focus=pick;st.hold=1.4;}
 };
 P.stageTick=function(dt){
   const st=this.stage;if(!st)return;st.t+=dt;st.acc+=dt;let dirty=false;
   if(st.hold>0){st.hold-=dt;if(st.hold<=0&&!st.speaking.size)st.focus=null;}
   if(st.acc>.045){const sdt=st.acc;st.map.forEach((e,u)=>{const sp=st.speaking.has(u);e.f.av.setTalk(sp?1:0);
       const bt=st.bottles[e.idx];
-      if(!e.gest&&!sp){e.nextDrink-=sdt;if(e.nextDrink<=0){e.gest={n:'drink',t:0,dur:GDUR.drink};e.nextDrink=30+Math.random()*30;}}
+      if(!e.gest&&!sp&&!st.paint){e.nextDrink-=sdt;if(e.nextDrink<=0){e.gest={n:'drink',t:0,dur:GDUR.drink};e.nextDrink=30+Math.random()*30;}}
       if(e.gest){const gs=e.gest;gs.t+=sdt;const w=Math.max(0,Math.min(1,gs.t/.5,(gs.dur-gs.t)/.5));let tg=null;
+        if(gs.n==='paint'){const cv=st.cv&&st.cv[e.idx];if(cv)tg={canvas:cv.userData.pt.clone()};}
         if(gs.n==='angry')tg={desk:new T.Vector3(SX[e.idx],DESKY,SZ+.7)};
         if(gs.n==='drink'){const hm=bt.userData.home,t=gs.t,H=e.f.av.headPos(new T.Vector3()),M_=new T.Vector3(H.x+Math.sin(e.f.yaw)*.1,H.y+.0,H.z+Math.cos(e.f.yaw)*.1).add(new T.Vector3(0,-.02,0));
           const ez=x=>x*x*(3-2*x);let k=0;if(t<.9)k=0;else if(t<1.8)k=ez((t-.9)/.9);else if(t<2.4)k=1;else if(t<3.3)k=1-ez((t-2.4)/.9);
@@ -96,6 +98,7 @@ P.stageTick=function(dt){
   const fit=w=>Math.max(2.1,w/2/Math.min(tanH,Math.tan(this.cam.fov*Math.PI/360)*1.4)*1.06);
   let want;const e=st.auto&&st.focus&&st.map.get(st.focus);
   if(e){const x=SX[e.idx];want={az:-x*.14,el:.16,dist:fit(1.05),tx:x*.92,ty:1.1,tz:SZ+.25};}
+  else if(st.paint)want={az:0,el:.1,dist:fit(2.5),tx:0,ty:1.42,tz:SZ+.1};
   else want={az:0,el:.26,dist:fit(2.25),tx:0,ty:1.05,tz:SZ+.1};
   const k=Math.min(1,dt*3.2);let mv=0;for(const q in want){const d=want[q]-c[q];c[q]+=d*k;mv+=Math.abs(d);}
   if(mv>.002||dirty||this.camForce){this.camForce=false;
@@ -107,5 +110,7 @@ P.stageTick=function(dt){
     this.markDirty();
   }
 };
+P.stagePaint=function(uid){const st=this.stage,e=st&&st.map.get(uid);if(!e)return;if(e.gest&&e.gest.n==='paint'){e.gest.dur=e.gest.t+1.3;}else if(!e.gest)e.gest={n:'paint',t:0,dur:1.8};};
+P.STAGE={SX,SZ,DESKY,SEAT};
 P.stageAuto=function(on){if(this.stage)this.stage.auto=on;};
 })();

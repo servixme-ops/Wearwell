@@ -221,6 +221,7 @@ function build(cfg){
     else if(n==='cheek'){go('Right',-1,V(head.x-.075*m,head.y-.09*m,head.z+.09*m),V(-.2,-1,.35));rot('Head',0,0,1,-.1*w);}
     else if(n==='quiet'){go('Right',-1,V(head.x-.012*m,head.y-.075*m,head.z+.135*m),V(-.4,-1,.25));}
     else if(n==='angry'&&tg&&tg.desk){const d=root.worldToLocal(tg.desk.clone());both(sg=>V(d.x+sg*.2*m,d.y+.02*m,d.z),[.5,-.5,-.6]);rot('Spine1',1,0,0,.12*w);rot('Head',1,0,0,.1*w);}
+    else if(n==='paint'&&tg&&tg.canvas){const d=root.worldToLocal(tg.canvas.clone()),ph=t*3.4;go('Right',-1,V(d.x-.03*m+Math.sin(ph)*.075*m,d.y+Math.sin(ph*.63+1)*.06*m,d.z-.06*m),V(-.5,-1,-.3));rot('Head',1,0,0,.06*w);}
     else if(n==='drink'&&tg&&tg.bottle){const b=root.worldToLocal(tg.bottle.clone());go('Right',-1,b,V(-.4,-1,-.2));rot('Head',1,0,0,-.2*(tg.near||0)*w);}
   }
   function sitUpper(dt){
