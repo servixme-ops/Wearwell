@@ -150,7 +150,7 @@ async function room(id){
   const v=setView(true);v.classList.add('sp-view');
   let D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
-  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl);let R=null,camAuto=true;
+  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl);let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
   const chatBox=h('div',{class:'sp-chat'},msgs,h('div',{class:'cin'},inp,sendB));
   const top=h('div',{class:'sp-topbar'});
@@ -213,7 +213,8 @@ async function room(id){
   }
   function paintStage(){
     if(!D)return;const ps=D.participants.filter(p=>!p.blocked||p.role==='host');
-    const on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
+    let on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
+    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));on=all.slice(0,4);ls=all.slice(4);}
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},'No listeners yet. Share the link to invite people.')]));
     metaEl.replaceChildren(...[h('span',{class:'sp-live'},h('i'),'LIVE'),h('span',{class:'sp-cat'},catLabel(D.space.category)),D.space.visibility==='private'&&h('span',{class:'sp-lock'},icon('lock')),h('span',{class:'sp-count'},icon('mic'),String(on.length),' · ',icon('people'),String(ls.length))].filter(Boolean));
@@ -223,6 +224,7 @@ async function room(id){
     const seated=on.slice(0,4),ids=new Set(seated.map(p=>p.id));
     R.stage.map.forEach((e,u)=>{if(!ids.has(u))R.stageRemove(u);});
     seated.forEach(p=>{R.stageAdd(p.id,avCfg(p));R.stageInfo(p.id,{name:person(p).split(' ')[0]+(p.id===Auth.user.id?' (you)':''),role:p.role==='host'?'Host':'',mic:!(p.muted||(audio.room&&!audio.isMicOn(p.id)))});});
+    PT&&PT.seatSync();
   }
   async function initStage(){
     if(!OWRoom.supported())return;
@@ -231,11 +233,12 @@ async function room(id){
       const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
       const r=new OWRoom(box,{edit:false});r.load(d&&d.room?d.room:{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}},d&&d.room?d.items:[]);
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
-      r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}});R=r;v.classList.add('sp-has3d');
+      r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');
+      if(paintMode()&&window.OWPaint){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
       paintStage();R.stageSpeaking(speaking);
     }catch(e){console.error(e);R=null;}
   }
-  function killStage(){if(R){try{R.stageStop();R.destroy();}catch(e){}R=null;}}
+  function killStage(){if(PT){try{PT.destroy();}catch(e){}PT=null;}if(R){try{R.stageStop();R.destroy();}catch(e){}R=null;}}
   function paintSpeaking(){
     document.querySelectorAll('.sp-view [data-uid]').forEach(el=>{const r=el.querySelector('.sp-ring');if(r)r.classList.toggle('on',speaking.has(el.dataset.uid));});
   }
@@ -299,13 +302,16 @@ async function room(id){
   }
   async function leave(){
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);
-    killStage();try{await audio.close();}catch(e){}
+    if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
     try{await rpc('space_leave',{p_space:id});}catch(e){}
     go('#/spaces');
   }
   async function finish(msg){
-    dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();try{await audio.close();}catch(e){}
-    v.replaceChildren(h('div',{class:'sp-ended'},h('h2',null,'This space has ended'),h('p',{class:'tag'},msg||'Thanks for listening.'),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces')));
+    const wasPaint=paintMode(),title=D&&D.space&&D.space.title;
+    dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
+    const end=h('div',{class:'sp-ended'},h('h2',null,'This space has ended'),h('p',{class:'tag'},msg||'Thanks for listening.'),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces'));
+    v.replaceChildren(end);
+    if(wasPaint&&window.OWPaint){v.classList.add('pt-endv');end.after(await OWPaint.galleryView(id,title));}
   }
 
   let unread=0;
@@ -341,7 +347,7 @@ async function room(id){
       const d=await rpc('space_get',{p_space:id});if(dead)return;D=d;
       if(d.space.status==='ended')return finish(d.space.ends_at&&new Date(d.space.ends_at)<=new Date()?'This space reached its 30 minute limit.':'The host ended this space.');
       if(d.me&&d.me.status==='removed'){toast('You were removed from this space.','err');return finish('You were removed by the host.');}
-            paintTop();paintTimer();paintStage();paintReq();paintBar();
+            paintTop();paintTimer();paintStage();PT&&PT.update(D);paintReq();paintBar();
       if(audio.room)audio.setBlocked(d.participants.filter(p=>p.blocked).map(p=>p.id));
       if(role()!==lastRole&&audio.room&&connState==='connected')syncMic();
     }catch(e){if(/not found/i.test(e.message||'')){finish('This space is no longer available.');}}

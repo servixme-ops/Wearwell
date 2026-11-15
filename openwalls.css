@@ -426,3 +426,31 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .creator .now.movie{background:#5b3fd4}.creator .now.music{background:#14a37f}
 .creator.live{padding-top:0}.creator.live .ring+.now+*{margin-top:0}
 @media (prefers-reduced-motion:reduce){.creator.live .ring{animation:none}}
+
+/* ---------- Sip & Paint ---------- */
+.pt-hud{position:absolute;left:0;right:0;bottom:84px;z-index:6;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 12px;pointer-events:none}
+.pt-hud>*{pointer-events:auto}
+.pt-hb{padding:10px 16px;border-radius:99px;border:0;background:rgba(255,255,255,.92);color:#1d1a2b;font:800 14px var(--disp);box-shadow:0 6px 16px -6px rgba(0,0,0,.5)}.pt-hb.coral{background:var(--coral);color:#fff}
+.pt-hs{flex-basis:100%;text-align:center;color:#fff;font:700 12.5px var(--disp);text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.sp-has3d .sp-scroll{bottom:130px}
+.pt-badge{position:absolute;left:0;top:0;padding:2px 9px;border-radius:99px;background:rgba(15,10,30,.7);color:#fff;font:800 11px var(--disp);white-space:nowrap;pointer-events:none}
+.pt-badge.s1{background:#c98a00}.pt-badge.s2{background:#13a05c}
+.pt-ov{position:fixed;inset:0;z-index:300;background:#1c1630;display:flex;flex-direction:column;color:#fff;overscroll-behavior:contain;touch-action:none}
+.pt-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(10px + var(--sat)) 12px 8px}.pt-top b{font:800 16px var(--disp)}
+.pt-done,.pt-ref{border:0;border-radius:99px;padding:9px 16px;font:800 14px var(--disp)}.pt-done{background:var(--coral);color:#fff}.pt-ref{background:rgba(255,255,255,.15);color:#fff}
+.pt-ban{margin:0 12px 6px;padding:8px 12px;border-radius:12px;background:#c98a00;font:700 13px var(--disp);text-align:center}
+.pt-frame{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 12px}
+.pt-cv{display:block;background:#fffdf8;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.5);touch-action:none;cursor:crosshair}
+.pt-mini{position:absolute;right:14px;top:calc(64px + var(--sat));width:64px;padding:0;border:2px solid #fff;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.5)}.pt-mini canvas{display:block;width:100%;height:auto}
+.pt-dock{padding:8px 10px calc(10px + var(--sat));background:#251d42;display:flex;flex-direction:column;gap:8px}
+.pt-tools{display:flex;gap:6px;overflow-x:auto}.pt-b{flex:none;padding:8px 13px;border-radius:12px;border:0;background:rgba(255,255,255,.12);color:#fff;font:700 13px var(--disp)}.pt-b.on{background:#fff;color:#1d1a2b}.pt-b.warn{color:#ff9a9a}
+.pt-sz{display:flex;align-items:center;gap:10px;font:700 12px var(--disp)}.pt-sz input{flex:1}
+.pt-sw{display:flex;gap:8px;overflow-x:auto;padding:2px}.pt-c{flex:none;width:34px;height:34px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 1.5px rgba(255,255,255,.5)}.pt-c.on{border-color:#fff;box-shadow:0 0 0 2px var(--coral)}
+.pt-st{display:flex;gap:6px}.pt-sc{flex:1;padding:8px 4px;border-radius:12px;border:0;background:rgba(255,255,255,.1);color:#fff;font:700 12.5px var(--disp)}.pt-sc.on{background:#13a05c}
+.pt-view{display:block;width:100%;max-width:360px;margin:0 auto;border-radius:8px;background:#fffdf8;box-shadow:0 6px 20px rgba(40,20,70,.3)}
+.pt-refs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pt-rb{padding:4px;border-radius:12px;border:2px solid transparent;background:#f3efff;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px}.pt-rb.on{border-color:var(--violet)}.pt-rb canvas{width:100%;height:auto;border-radius:8px}
+.pt-hc{display:flex;gap:8px;flex-wrap:wrap}
+.pt-gal{padding:8px 14px 90px;color:inherit}.pt-gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.pt-gc{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 20px -10px rgba(40,20,70,.45);color:#1d1a2b}.pt-gc img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#fffdf8}
+.pt-gw{display:flex;align-items:center;gap:8px;padding:8px 10px}.pt-gw b{display:block;font:800 13px var(--disp)}.pt-gw span{font-size:11.5px;color:var(--ink2)}.pt-gc .btn{margin:0 10px 10px;width:calc(100% - 20px)}
+.pt-endv{overflow-y:auto}
