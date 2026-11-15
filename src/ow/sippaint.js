@@ -240,7 +240,11 @@ function attach(R,ctx){
   /* ---- host studio panel ---- */
   function studio(){
     sheet('Studio controls',(body,close)=>{
-      const send_=(a,v)=>guard(null,async()=>{const r=await sb.rpc('paint_host',{p_space:spaceId,p_action:a,p_val:v==null?null:v});if(r.error)throw r.error;ctx.refresh&&ctx.refresh();});
+      const draw=()=>{body.replaceChildren();build();};
+      const build=()=>{
+      const send_=(a,v)=>guard(null,async()=>{const r=await sb.rpc('paint_host',{p_space:spaceId,p_action:a,p_val:v==null?null:v});if(r.error)throw r.error;
+        if(a==='ref')sp.ref=v||null;else if(a==='note')sp.note=(v||'').trim().slice(0,200);else if(a==='start'||a==='resume')sp.state='painting';else if(a==='pause')sp.state='paused';
+        seatSync();paintHud();ov&&ov._upd&&ov._upd();ctx.refresh&&ctx.refresh();if(a==='start'||a==='resume'){toast('Painting started');close();}else if(a!=='note')draw();});
       const grid=h('div',{class:'pt-refs'},REFS.map(([id,n])=>{const c=refCanvas('ref:'+id);const t=h('canvas',{width:100,height:125});t.getContext('2d').drawImage(c,0,0,100,125);return h('button',{class:'pt-rb'+(sp.ref==='ref:'+id?' on':''),onclick:async()=>{await send_('ref','ref:'+id);toast('Reference changed');}},t,h('span',null,n));}));
       const up=h('button',{class:'btn small'},'Upload my own picture');up.onclick=async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;await guard(up,async()=>{const p=await prepareImage(f,{max:900,quality:.85,maxMB:12});const path=await uploadFile('room-images',p.blob,'jpg','image/jpeg');await send_('ref','img:'+path);toast('Reference changed');});};
       const note=h('textarea',{maxlength:'200',rows:'2',placeholder:'Instructions for everyone (optional)'});note.value=sp.note||'';
@@ -249,6 +253,7 @@ function attach(R,ctx){
       const ctl=h('div',{class:'pt-hc'},sp.state==='waiting'?h('button',{class:'btn coral',onclick:()=>send_('start')},'Start painting'):sp.state==='painting'?h('button',{class:'btn',onclick:()=>send_('pause')},'Pause'):h('button',{class:'btn coral',onclick:()=>send_('resume')},'Resume'));
       body.append(h('p',{class:'f-hint'},'Session: '+(sp.state==='waiting'?'waiting to start':sp.state)),ctl,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Reference picture'),grid,h('div',{class:'pt-hc',style:{marginTop:'8px'}},up,clr),h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Instructions'),note,h('div',{style:{marginTop:'6px'}},saveN),
         h('div',{class:'pt-hc',style:{marginTop:'14px'}},h('button',{class:'btn small',onclick:()=>{close();galleryModal();}},'Show all paintings')));
+    };build();
     });
   }
   function galleryModal(){sheet('Gallery',async(body)=>{body.append(spinner());await saveNow();const gv=await galleryView(spaceId,sp.title);const t0=gv.querySelector('h3');t0&&t0.remove();body.replaceChildren(gv);});}
