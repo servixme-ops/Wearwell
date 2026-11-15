@@ -511,6 +511,11 @@ function fallback(d){
 const introSeen=()=>{try{return localStorage.getItem('ow_intro')==='1';}catch(e){return false;}};
 const introDone=()=>{try{localStorage.setItem('ow_intro','1');}catch(e){}};
 function introView(){
+  try{return introBuild();}catch(e){console.error(e);
+    const v=setView(true);v.classList.add('intro-view');
+    v.append(h('div',{class:'in-wrap'},h('div',{class:'in-hero',style:{marginTop:'20vh'}},logoEl(64),h('h1',null,'Your room. Your wall. Your people.')),h('div',{class:'in-cta',style:{marginTop:'auto'}},h('button',{class:'btn coral block',onclick:()=>{introDone();authSheet('signup','Create an account to build your room');}},'Create account'),h('button',{class:'btn block',onclick:()=>{introDone();authSheet('signin');}},'Sign in'))));}
+}
+function introBuild(){
   document.title='Welcome to OpenWalls';
   const v=setView(true);v.classList.add('intro-view');
   const C={v:'#6c4bff',c:'#ff5a3c',s:'#ffd23f',m:'#3ddc97',i:'#1d1a2b',p:'#f6efe4',b:'#3b82f6',k:'#ff7ab8'};
