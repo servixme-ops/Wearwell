@@ -118,8 +118,21 @@ async function discoverView(){
   const v=setView(false);drawNav('discover');let feed=[],trend=[],feat=[],cat=null;
   const chips=h('div',{class:'scrollx'}),sec=h('div');
   const adHost=h('div',{class:'ad-host'}),sr=h('div'),qi=h('input',{type:'search',class:'ds-search',placeholder:'Search rooms, creators, interests','aria-label':'Search',maxlength:'60'});let qv='',qt=null,qn=0;
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now')),qi),chips,adHost,sr,sec);
-  App.teardown=()=>OWAds.stop();
+  let act=[];const crBox=h('div',{class:'cr-box'});
+  const KIND={space:'LIVE',movie:'WATCHING',music:'LISTENING'};
+  const drawCreators=()=>{
+    const seenU={},rows=[];
+    act.forEach(a=>{if(!seenU[a.username]){seenU[a.username]=1;rows.push({username:a.username,display_name:a.display_name,avatar_url:a.avatar_url,a});}});
+    [...feed].sort((x,y)=>y.visits-x.visits).forEach(r=>{if(!seenU[r.username]&&rows.length<14){seenU[r.username]=1;rows.push(r);}});
+    if(!rows.length){crBox.replaceChildren();return;}
+    crBox.replaceChildren(h('h2',{class:'sec'},'Creators'),h('p',{class:'sec-sub'},act.length?'A glowing ring means they are live right now. Tap to join.':'Rings light up when a creator goes live, watches a video or plays music.'),
+      h('div',{class:'creators'},rows.map(r=>{const a=r.a,u={avatar_url:r.avatar_url,display_name:r.display_name,username:r.username};
+        return h('button',{class:'creator'+(a?' live':''),title:a?(a.label||''):'','aria-label':'@'+r.username+(a?', '+KIND[a.kind].toLowerCase()+' now: '+a.label:''),onclick:()=>go(a&&a.kind==='space'?'#/space/'+a.target:'#/@'+r.username)},
+          h('span',{class:'ring'},avatarEl(u)),a?h('span',{class:'now '+a.kind},KIND[a.kind]):null,'@'+r.username);}))); };
+  const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
+  loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now')),qi),crBox,chips,adHost,sr,sec);
+  App.teardown=()=>{OWAds.stop();clearInterval(actT);};
   const searchRun=async()=>{const q=qv.trim().toLowerCase(),my=++qn;
     if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';return;}
     sec.style.display='none';adHost.style.display='none';
@@ -133,16 +146,15 @@ async function discoverView(){
     chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();OWAds.stop();OWAds.banner(adHost,cat);}},c||'All')));
     const f=feat.filter(ok),t=trend.filter(ok),rows=feed.filter(ok);
     if(!f.length&&!t.length&&!rows.length){sec.replaceChildren(empty(cat?'No '+cat+' rooms yet':'No rooms yet',cat?'Rooms can pick interests in Room settings.':'Check back soon.'));return;}
-    const seen={},creators=[...rows].sort((a,b)=>b.visits-a.visits).filter(r=>!seen[r.username]&&(seen[r.username]=1)).slice(0,12);
-    const fresh=[...rows].sort((a,b)=>new Date(b.created_at||b.updated_at)-new Date(a.created_at||a.updated_at));
+        const fresh=[...rows].sort((a,b)=>new Date(b.created_at||b.updated_at)-new Date(a.created_at||a.updated_at));
     sec.replaceChildren(...[
+      [h('h2',{class:'sec'},'Rooms'),h('p',{class:'sec-sub'},'Walk into someone\u2019s room and look around.')],
       f.length?[h('h2',{class:'sec'},'Featured rooms'),h('div',{class:'trend'},f.map(tcard))]:null,
       t.length?[h('h2',{class:'sec'},'Trending rooms'),h('div',{class:'trend'},t.map(tcard))]:null,
-      creators.length?[h('h2',{class:'sec'},'Popular creators'),h('div',{class:'creators'},creators.map(r=>h('button',{class:'creator',onclick:()=>go('#/@'+r.username)},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username}),'@'+r.username)))]:null,
       rows.length?[h('h2',{class:'sec'},'New rooms'),h('div',{class:'ex-grid',style:{background:'none'}},fresh.map(roomPiece))]:null].flat().filter(Boolean));
   };
   sec.replaceChildren(spinner());OWAds.banner(adHost,null);
-  try{[feed,trend,feat]=await Promise.all([Store.feed(50,0,WALL_SEED),Store.trending(10).catch(()=>[]),Store.featured().catch(()=>[])]);paint();}catch(e){sec.replaceChildren(empty('Could not load rooms',friendlyError(e)));}
+  try{[feed,trend,feat]=await Promise.all([Store.feed(50,0,WALL_SEED),Store.trending(10).catch(()=>[]),Store.featured().catch(()=>[])]);paint();drawCreators();}catch(e){sec.replaceChildren(empty('Could not load rooms',friendlyError(e)));}
 }
 /* ---------- ME ---------- */
 async function meView(){

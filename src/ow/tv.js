@@ -303,7 +303,8 @@ const OWTv=(()=>{
         (o.isOwner||q.by===me)?h('button',{class:'tv-x','aria-label':'Remove from queue',onclick:()=>remove(k)},ic('close')):null)):[h('p',{class:'tv-none'},'The queue is empty. Paste a video link above.')]));
     }
     tick=setInterval(()=>{if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
-    hb=setInterval(()=>{if(alive&&lead&&S.play&&S.q.length)send(snap());},8000);
+    let lastRep=0;const report=on=>{if(!o.isOwner||!o.roomId)return;try{sb.rpc('ow_activity_set',{p_room:o.roomId,p_kind:on?(o.music?'music':'movie'):null,p_title:on?((S.q[S.i]&&S.q[S.i].t)||null):null}).then(()=>{},()=>{});}catch(e){}};
+    hb=setInterval(()=>{if(alive&&lead&&S.play&&S.q.length)send(snap());if(alive&&o.isOwner&&S.play&&S.q.length&&Date.now()-lastRep>45000){lastRep=Date.now();report(true);}},8000);
 
     /* ----- channel ----- */
     if(typeof sb!=='undefined'&&sb.channel){
@@ -318,7 +319,7 @@ const OWTv=(()=>{
 
     const api={alive:true,
       addOrFocus(src){if(!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
-      destroy(){if(!alive)return;alive=false;api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
+      destroy(){if(!alive)return;alive=false;if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
     cur[ck]=api;return api;
   }
