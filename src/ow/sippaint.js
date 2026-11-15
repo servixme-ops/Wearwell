@@ -288,9 +288,33 @@ function attach(R,ctx){
     const paintSw=()=>sw.replaceChildren(...COLS.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:n,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));
     const T3=[['b','Brush'],['p','Pencil'],['e','Eraser']];
     const act=(l,fn,cls)=>h('button',{class:'pt-b '+(cls||''),onclick:fn},l);
-    function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),h('button',{class:'pt-b'+(guideOn?' on':''),onclick:()=>{guideOn=!guideOn;drawGuide();paintTools();}},'Guide'),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
-    function paintState(){stch.replaceChildren(...STATES.map((l,i)=>h('button',{class:'pt-sc'+(mine.state()===i?' on':''),onclick:()=>{mine.setState(i);changed(true);paintState();}},l)));}
+    function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),h('button',{class:'pt-b'+(guideOn?' on':''),onclick:()=>{guideOn=!guideOn;drawGuide();paintTools();}},'Guide'),act('Sign',()=>signPad(false)),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
+    function paintState(){stch.replaceChildren(...STATES.map((l,i)=>h('button',{class:'pt-sc'+(mine.state()===i?' on':''),onclick:()=>{mine.setState(i);changed(true);paintState();if(i===2&&!mine.ops.some(o=>o.sig))signPad(true);}},l)));}
     function changed(full){redraw();if(full)sendSync();saveSoon();}
+    /* sign the artwork: draw a signature on a small pad, it is stamped small in the bottom-right corner as ordinary strokes (so it syncs, saves and shows in the gallery) */
+    function signPad(offer){
+      if(!ov)return;ov.querySelector('.pt-sig')&&ov.querySelector('.pt-sig').remove();
+      const W=320,H=120,pad=h('canvas',{width:W,height:H,class:'pt-sigpad'}),g=pad.getContext('2d');let strokes=[],cur=null,id=null;
+      const paint=()=>{g.clearRect(0,0,W,H);g.fillStyle='#fffdf8';g.fillRect(0,0,W,H);g.strokeStyle='#e3d9c8';g.lineWidth=2;g.beginPath();g.moveTo(16,H-30);g.lineTo(W-16,H-30);g.stroke();
+        g.strokeStyle='#1d1a2b';g.lineWidth=3;g.lineCap=g.lineJoin='round';strokes.forEach(st=>{g.beginPath();st.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));if(st.length===1)g.lineTo(st[0][0]+.1,st[0][1]);g.stroke();});};
+      const pt=e=>{const r=pad.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];};
+      pad.addEventListener('pointerdown',e=>{e.preventDefault();id=e.pointerId;try{pad.setPointerCapture(id);}catch(x){}cur=[pt(e)];strokes.push(cur);paint();});
+      pad.addEventListener('pointermove',e=>{if(id!==e.pointerId||!cur)return;e.preventDefault();cur.push(pt(e));paint();});
+      const up=e=>{if(id===e.pointerId){cur=null;id=null;}};pad.addEventListener('pointerup',up);pad.addEventListener('pointercancel',up);
+      const box=h('div',{class:'pt-sig'});const closeS=()=>box.remove();
+      const stamp=()=>{
+        const pts=strokes.flat();if(!pts.length){toast('Draw your signature first');return;}
+        const xs=pts.map(q=>q[0]),ys=pts.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);
+        const TW=170,TH=60,sc=Math.min(TW/bw,TH/bh,1.4),ox=CW-24-bw*sc,oy=CH-26-bh*sc;
+        mine.ops=mine.ops.filter(o=>!o.sig);
+        const conv=st=>st.reduce((a,q)=>{a.push(Math.round(ox+(q[0]-x0)*sc),Math.round(oy+(q[1]-y0)*sc));return a;},[]);
+        strokes.forEach(st=>{const c=conv(st);if(c.length<4)c.push(c[0]+1,c[1]);mine.ops.push({k:'s',t:'p',c:'#ffffff',z:20,p:c,id:null,sig:1});});
+        strokes.forEach(st=>{const c=conv(st);if(c.length<4)c.push(c[0]+1,c[1]);mine.ops.push({k:'s',t:'p',c:'#1d1a2b',z:11,p:c,id:null,sig:1});});
+        mine.render();changed(true);closeS();toast('Signed');};
+      box.append(h('div',{class:'pt-sigc'},h('b',null,offer?'Your painting is complete. Sign it?':'Sign your artwork'),h('p',{class:'f-hint',style:{margin:'4px 0 8px'}},'Draw your signature with your finger. It goes small in the bottom-right corner.'),pad,
+        h('div',{class:'pt-hc',style:{marginTop:'10px'}},h('button',{class:'btn small',onclick:()=>{strokes=[];paint();}},'Clear'),h('button',{class:'btn small',onclick:()=>{mine.ops=mine.ops.filter(o=>!o.sig);mine.render();changed(true);closeS();}},'Remove signature'),h('button',{class:'btn small',onclick:closeS},offer?'Skip':'Cancel'),h('button',{class:'btn coral small',onclick:stamp},'Sign'))));
+      ov.append(box);paint();
+    }
     const allowed=()=>sp.state==='painting';
     function paintBan(){banner.textContent=sp.state==='painting'?'':(sp.state==='paused'?'Painting is paused by the host':'Waiting for the host to start the session');banner.style.display=sp.state==='painting'?'none':'';}
     const pos=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*CW,(e.clientY-r.top)/r.height*CH];};
