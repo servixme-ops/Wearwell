@@ -513,18 +513,37 @@ const introDone=()=>{try{localStorage.setItem('ow_intro','1');}catch(e){}};
 function introView(){
   document.title='Welcome to OpenWalls';
   const v=setView(true);v.classList.add('intro-view');
-  const card=(ic,t,d)=>h('div',{class:'in-card'},h('span',{class:'in-ic'},icon(ic)),h('div',null,h('b',null,t),h('p',null,d)));
+  const C={v:'#6c4bff',c:'#ff5a3c',s:'#ffd23f',m:'#3ddc97',i:'#1d1a2b',p:'#f6efe4',b:'#3b82f6',k:'#ff7ab8'};
+  const av=(x,y,col,r)=>`<circle cx="${x}" cy="${y-r*1.5}" r="${r*.62}" fill="#f2c9a0"/><path d="M${x-r} ${y+r*1.1}q0-${r*1.5} ${r}-${r*1.5}t${r} ${r*1.5}z" fill="${col}"/>`;
+  const S=[
+    {t:'Build your room',d:'Pick walls and floors, add furniture, hang posters and photos. Make it feel like you.',
+     art:`<rect x="20" y="14" width="160" height="92" rx="6" fill="#efe4d2"/><path d="M20 106h160l14 34H6z" fill="#d9a066"/><rect x="38" y="28" width="38" height="30" rx="3" fill="${C.v}"/><circle cx="50" cy="40" r="6" fill="${C.s}"/><path d="M40 56l12-10 10 8 10-8" stroke="#fff" stroke-width="3" fill="none"/><rect x="92" y="26" width="26" height="36" rx="3" fill="${C.c}"/><rect x="128" y="32" width="34" height="24" rx="3" fill="${C.m}"/><rect x="52" y="84" width="96" height="28" rx="12" fill="${C.i}"/><rect x="44" y="92" width="16" height="24" rx="7" fill="${C.i}"/><rect x="140" y="92" width="16" height="24" rx="7" fill="${C.i}"/><rect x="150" y="62" width="4" height="48" fill="#8a6b4a"/><path d="M142 62h20l-4-14h-12z" fill="${C.s}"/>`},
+    {t:'Walk in as your avatar',d:'Create your look, explore your room, sit on the sofa and visit other people’s rooms.',
+     art:`<rect x="30" y="20" width="140" height="118" rx="10" fill="${C.v}" opacity=".18"/><rect x="118" y="40" width="40" height="86" rx="4" fill="#8a6b4a"/><circle cx="150" cy="86" r="3" fill="${C.s}"/>${av(78,112,C.c,22)}<circle cx="46" cy="40" r="8" fill="${C.s}"/><path d="M40 118h56" stroke="#00000022" stroke-width="6" stroke-linecap="round"/>`},
+    {t:'Discover the Wall',d:'Browse rooms from creators everywhere. React, comment and message the ones you love. Rings show who is active right now.',
+     art:`<g transform="rotate(-4 50 80)"><rect x="18" y="66" width="56" height="68" rx="6" fill="#fff"/><rect x="24" y="72" width="44" height="42" rx="3" fill="${C.k}"/></g><g transform="rotate(3 100 80)"><rect x="72" y="60" width="56" height="68" rx="6" fill="#fff"/><rect x="78" y="66" width="44" height="42" rx="3" fill="${C.m}"/></g><g transform="rotate(-2 150 80)"><rect x="126" y="70" width="56" height="68" rx="6" fill="#fff"/><rect x="132" y="76" width="44" height="42" rx="3" fill="${C.s}"/></g><g fill="none" stroke-width="4"><circle cx="46" cy="30" r="16" stroke="${C.c}"/><circle cx="100" cy="30" r="16" stroke="${C.v}"/><circle cx="154" cy="30" r="16" stroke="${C.m}"/></g><circle cx="46" cy="30" r="11" fill="#f2c9a0"/><circle cx="100" cy="30" r="11" fill="#e0a77a"/><circle cx="154" cy="30" r="11" fill="#c98b60"/>`},
+    {t:'Live Spaces and Sip & Paint',d:'Host audio talks for up to 30 minutes, or paint together on easels while a host shares a picture to follow.',
+     art:`<rect x="14" y="16" width="172" height="118" rx="10" fill="${C.i}"/><g>${[0,1,2,3].map(n=>`<rect x="${26+n*40}" y="40" width="32" height="42" rx="3" fill="#fffdf8"/>`).join('')}</g><circle cx="42" cy="58" r="9" fill="${C.k}"/><circle cx="82" cy="62" r="10" fill="${C.b}"/><circle cx="122" cy="56" r="8" fill="${C.s}"/><circle cx="162" cy="62" r="10" fill="${C.m}"/><g>${[0,1,2,3].map(n=>av(42+n*40,122,[C.c,C.v,C.s,C.m][n],9)).join('')}</g><rect x="84" y="20" width="32" height="10" rx="5" fill="${C.c}"/>`},
+    {t:'Watch and listen together',d:'Play a video or music on your room’s TV in sync, so everyone inside sees and hears the same thing.',
+     art:`<rect x="32" y="22" width="136" height="82" rx="8" fill="${C.i}"/><rect x="40" y="30" width="120" height="66" rx="4" fill="${C.v}"/><path d="M92 48l30 15-30 15z" fill="#fff"/><rect x="88" y="104" width="24" height="8" fill="${C.i}"/><rect x="60" y="112" width="80" height="6" rx="3" fill="${C.i}"/><path d="M22 52v-14l14-3v14" stroke="${C.c}" stroke-width="4" fill="none"/><circle cx="22" cy="54" r="5" fill="${C.c}"/><circle cx="36" cy="49" r="5" fill="${C.c}"/>${av(60,138,C.c,10)}${av(100,138,C.m,10)}${av(140,138,C.s,10)}`}
+  ];
+  const track=h('div',{class:'in-track'},S.map(s=>{const art=h('div',{class:'in-art'});art.innerHTML='<svg viewBox="0 0 200 150" aria-hidden="true">'+s.art+'</svg>';return h('div',{class:'in-slide'},art,h('h2',null,s.t),h('p',null,s.d));}));
+  const dots=h('div',{class:'in-dots'},S.map((_,i)=>h('button',{class:'in-dot','aria-label':'Slide '+(i+1),onclick:()=>show(i,true)})));
+  let cur=0,timer=0,dx=0,sx=null;
+  function show(i,user){cur=(i+S.length)%S.length;track.style.transform='translateX(-'+cur*100+'%)';track.style.transition='transform .35s ease';[...dots.children].forEach((d,k)=>d.classList.toggle('on',k===cur));if(user)restart();}
+  function restart(){clearInterval(timer);timer=setInterval(()=>{if(!document.body.contains(track)){clearInterval(timer);return;}show(cur+1);},4800);}
+  const view=h('div',{class:'in-view'},track);
+  view.addEventListener('pointerdown',e=>{sx=e.clientX;dx=0;clearInterval(timer);track.style.transition='none';});
+  view.addEventListener('pointermove',e=>{if(sx==null)return;dx=e.clientX-sx;track.style.transform='translateX(calc(-'+cur*100+'% + '+dx+'px))';});
+  const end=()=>{if(sx==null)return;const d=dx;sx=null;if(d<-45)show(cur+1,true);else if(d>45)show(cur-1,true);else show(cur,true);};
+  view.addEventListener('pointerup',end);view.addEventListener('pointercancel',end);
   v.append(h('div',{class:'in-wrap'},
-    h('div',{class:'in-hero'},logoEl(72),h('h1',null,'Your room. Your wall. Your people.'),h('p',null,'OpenWalls is a place where everyone gets their own 3D room to decorate, share and invite people into.')),
-    h('div',{class:'in-cards'},
-      card('house','Build your room','Pick the walls and floor, add furniture, hang posters and photos, and make it feel like you.'),
-      card('user','Walk in as your avatar','Create an avatar, explore your room, sit on the sofa, and visit other people\u2019s rooms to say hello.'),
-      card('compass','Discover the Wall','Browse rooms from people all over. React, comment and message the ones you like.'),
-      card('mic','Watch and talk together','Play a video on your room\u2019s TV in sync for everyone inside, and host Live Spaces: audio talks that last 30 minutes.'),
-      card('lock','You are in control','Keep your room public or make it private whenever you like.')),
+    h('div',{class:'in-hero'},logoEl(52),h('h1',null,'Your room. Your wall. Your people.')),
+    view,dots,
     h('div',{class:'in-cta'},
       h('button',{class:'btn coral block',onclick:()=>{introDone();authSheet('signup','Create an account to build your room');}},'Create account'),
       h('button',{class:'btn block',onclick:()=>{introDone();authSheet('signin');}},'Sign in'))));
+  show(0);restart();
 }
 function route(){
   document.querySelectorAll('.sheet-ov,.dlg-ov').forEach(e=>e.remove());teardown();const hs=decodeURIComponent(location.hash.replace(/^#\/?/,''));App.hadRoute=App.route!=='';App.route=hs||'wall';
