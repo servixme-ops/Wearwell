@@ -29,3 +29,16 @@ html,body{margin:0;height:100%;background:#f2f2f7;color:#111;font-family:var(--i
 .toasts{position:fixed;bottom:24px;left:0;right:0}
 .chat-wrap{max-height:50vh;overflow:auto}
 @media(max-width:760px){.adm{grid-template-columns:1fr}.adm nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap}.adm nav h2{width:100%}}
+
+.ad-set{padding:12px;border-radius:12px;background:#fff;border:1px solid rgba(0,0,0,.08)}.ad-chk{display:flex;gap:6px;align-items:center;font-size:14px}
+.ad-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.ad-row>*{flex:1;min-width:150px}
+.ad-arow{display:flex;gap:14px;flex-wrap:wrap;padding:12px;margin-bottom:12px;border-radius:12px;background:#fff;border:1px solid rgba(0,0,0,.08)}
+.ad-aprev{flex:0 0 280px;max-width:100%}.ad-ainfo{flex:1;min-width:240px;display:flex;flex-direction:column;gap:4px}
+.ad-banner{position:relative;display:block;border-radius:16px;overflow:hidden;min-height:150px;color:#fff;background:linear-gradient(135deg,#5b3fd4,#9a7bff);pointer-events:none}
+.ad-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.ad-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,12,40,.15),rgba(20,12,40,.78))}
+.ad-txt{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-height:150px;padding:12px}.ad-txt h3{margin:0;font-size:17px}.ad-txt p{margin:0;font-size:12.5px}
+.ad-tag{position:absolute;top:8px;left:8px;z-index:4;padding:2px 8px;border-radius:99px;background:#fff;color:#111;font-size:11px;font-weight:700}
+.ad-by{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700}.ad-logo{width:20px;height:20px;border-radius:6px;object-fit:cover;background:#fff}.ad-logo.mono{display:grid;place-items:center;color:#5b3fd4}
+.ad-cta{align-self:flex-start;padding:6px 12px;border-radius:99px;background:#ff5a3d;color:#fff;font-weight:700;font-size:12px}
+.ad-chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700;background:#eee;width:max-content}.ad-chip.ok{background:#d9f4e3;color:#13763a}.ad-chip.warn{background:#fff0d1;color:#8a5a00}.ad-chip.bad{background:#fde0e0;color:#a32121}
+.ad-art.ph{font-size:0;color:transparent}.ad-chk input{width:20px;height:20px;min-height:0;padding:0;flex:none}.ad-chk{flex:none!important}
