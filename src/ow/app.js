@@ -570,6 +570,11 @@ window.addEventListener('hashchange',route);
     if(Auth.user&&window.OWA&&OWA.prefetch){let g='f';try{g=(JSON.parse(localStorage.getItem('ow_avatar')||'{}').g)||'f';}catch(e){}OWA.prefetch([g]);setTimeout(()=>OWA.prefetch(['m','f']),5000);}
     refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
   Auth.on(ev=>{if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});
+  /* when the connection comes back, reload what is on screen by itself (never inside a room, editor, chat or space, where it would interrupt) */
+  let wasOff=!navigator.onLine;
+  window.addEventListener('offline',()=>{wasOff=true;});
+  window.addEventListener('online',()=>{if(!wasOff&&!document.querySelector('.empty-state,.spin-wrap'))return;wasOff=false;
+    setTimeout(()=>{if(!navigator.onLine)return;toast('Back online','ok');if(/^(edit|@|chat|space\/)/.test(App.route))return;try{route();refreshUnread();}catch(e){}},600);});
   window.__ready=true;const l=document.getElementById('loading');setTimeout(()=>l&&l.classList.add('gone'),250);
   try{sessionStorage.removeItem('ow_try');}catch(e){}
   PWA.init();
