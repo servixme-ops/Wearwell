@@ -240,7 +240,7 @@ const OWAds=(()=>{
             c.status!=='archived'?b('Remove',async()=>{const n=await ask('Remove this advertisement');if(n!==null)set(c.id,'remove',n);},'danger'):null,
             c.pay_status!=='paid'&&c.status!=='archived'?b('Mark as paid (offline)',()=>{if(confirm('Only do this after the money has actually arrived. Continue?'))set(c.id,'mark_paid');}):null,
             b('Analytics',()=>statSheet(c)))));};
-    box.replaceChildren(settings,h('div',{style:{height:'14px'}}),...(r.data.length?r.data.map(row):[h('p',null,'No campaigns yet.')]));
+    box.replaceChildren(settings,h('div',{style:{height:'14px'}}),...((r.data||[]).length?r.data.map(row):[h('p',null,'No campaigns yet.')]));
   }
   return{serve,banner,wallPiece,searchBlock,searchRow,dashboard,adminPanel,stop,cfg,checkReturn,formSheet,statSheet};
 })();

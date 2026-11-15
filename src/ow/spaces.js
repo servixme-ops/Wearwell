@@ -107,7 +107,7 @@ function inviteSheet(space){
     let role='listener';const q=h('input',{type:'search',placeholder:'Search by name or @username'}),res=h('div',{class:'sp-list'});
     const seg=h('div',{class:'sp-seg'});const paintSeg=()=>seg.replaceChildren(...[['listener','As listener'],['speaker','As speaker']].map(([k,l])=>h('button',{class:role===k?'on':'',onclick:()=>{role=k;paintSeg();}},l)));paintSeg();
     let t;q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(async()=>{const s=q.value.trim().replace(/^@/,'');if(s.length<2){res.replaceChildren();return;}
-      try{const rows=await rpc('space_find_people',{p_q:s});res.replaceChildren(...(rows.length?rows.map(p=>{const bt=h('button',{class:'btn small'},'Invite');bt.onclick=()=>guard(bt,async()=>{await rpc('space_invite',{p_space:space.id,p_user:p.id,p_role:role});bt.textContent='Invited';bt.disabled=true;});return h('div',{class:'sp-person'},sp_av(p,'sm'),h('div',{class:'who'},h('b',null,person(p)),h('span',null,'@'+p.username)),bt);}):[h('p',{class:'tag'},'No one found.')]));}catch(e){toast(friendlyError(e),'err');}},250);});
+      try{const rows=(await rpc('space_find_people',{p_q:s}))||[];res.replaceChildren(...(rows.length?rows.map(p=>{const bt=h('button',{class:'btn small'},'Invite');bt.onclick=()=>guard(bt,async()=>{await rpc('space_invite',{p_space:space.id,p_user:p.id,p_role:role});bt.textContent='Invited';bt.disabled=true;});return h('div',{class:'sp-person'},sp_av(p,'sm'),h('div',{class:'who'},h('b',null,person(p)),h('span',null,'@'+p.username)),bt);}):[h('p',{class:'tag'},'No one found.')]));}catch(e){toast(friendlyError(e),'err');}},250);});
     b.append(seg,field('Find people',q),res);
   });
 }
@@ -135,8 +135,9 @@ async function discover(){
     if(!Auth.user){list.replaceChildren(empty('Sign in to join Live Spaces','Listen in, raise your hand, or host your own.',h('button',{class:'btn coral',onclick:()=>authSheet('signin','Sign in to join Live Spaces')},'Sign in')));return;}
     list.replaceChildren(spinner());
     try{
-      const [rows,invs]=await Promise.all([rpc('space_discover',{p_filter:tab,p_category:cat||null}),tab==='live'?rpc('space_my_invites'):Promise.resolve([])]);
-      inv.replaceChildren(...invs.map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,i.host+' invited you '),h('span',null,(i.role==='speaker'?'to speak in ':'to join ')+i.title)),
+      const [rows0,invs0]=await Promise.all([rpc('space_discover',{p_filter:tab,p_category:cat||null}),tab==='live'?rpc('space_my_invites'):Promise.resolve([])]);
+      const rows=rows0||[],invs=invs0||[];
+      inv.replaceChildren(...invs.map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,(i.host||('@'+(i.host_username||'someone')))+' invited you '),h('span',null,(i.role==='speaker'?'to speak in ':'to join ')+i.title)),
         h('div',{class:'sp-iacts'},h('button',{class:'btn small',onclick:async()=>{await rpc('space_respond_invite',{p_invite:i.id,p_accept:false});load();}},'Decline'),h('button',{class:'btn small coral',onclick:()=>guard(null,async()=>{const sid=await rpc('space_respond_invite',{p_invite:i.id,p_accept:true});go('#/space/'+sid);})},'Join')))));
       list.replaceChildren(...(rows.length?rows.map(card):[empty(tab==='upcoming'?'Nothing scheduled':tab==='following'?'No one you follow is live':'No live spaces yet',tab==='following'?'Follow people to see their spaces here.':'Be the first. Start a space and invite people in.',h('button',{class:'btn coral',onclick:()=>createSheet(t=>{tab=t;load();})},'Start a space'))]));
     }catch(e){list.replaceChildren(empty('Could not load spaces',friendlyError(e),h('button',{class:'btn',onclick:load},'Try again')));}
@@ -380,7 +381,7 @@ function paintHub(){
     body.append(h('p',{class:'f-hint',style:{margin:'0 0 10px'}},'Paint with friends. The host picks a picture, everyone paints their own canvas, and you share the results at the end.'));
     const host=h('button',{class:'btn coral block',onclick:()=>{close();createSheet(()=>{},'sipandpaint');}},'Host a Sip & Paint');
     const list=h('div',{class:'sp-list'},spinner());body.append(host,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Live now'),list);
-    rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows=>{
+    rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
       list.replaceChildren(...(rows.length?rows.map(r=>h('button',{class:'sp-invite',style:{width:'100%',textAlign:'left'},onclick:()=>{close();go('#/space/'+r.id);}},h('div',null,h('b',null,r.title),h('span',{style:{display:'block'}},'Hosted by '+(r.host&&typeof r.host==='object'?person(r.host):(r.host||'a creator'))))),h('span',null)):[h('p',{class:'f-hint'},'No sessions live right now. Host one and invite friends.')]));
     }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
   });
