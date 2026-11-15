@@ -34,7 +34,7 @@ const REFDRAW={
   g.fillStyle='#f29a3d';g.beginPath();g.ellipse(w*.5,h*.68,w*.3,h*.2,0,0,7);g.fill();g.beginPath();g.arc(w*.5,h*.42,w*.24,0,7);g.fill();
   g.beginPath();g.moveTo(w*.29,h*.3);g.lineTo(w*.31,h*.14);g.lineTo(w*.44,h*.24);g.fill();g.beginPath();g.moveTo(w*.71,h*.3);g.lineTo(w*.69,h*.14);g.lineTo(w*.56,h*.24);g.fill();
   g.strokeStyle='#5a3414';g.lineWidth=5;g.lineCap='round';g.beginPath();g.arc(w*.4,h*.42,w*.04,.2,Math.PI-.2);g.stroke();g.beginPath();g.arc(w*.6,h*.42,w*.04,.2,Math.PI-.2);g.stroke();
-  g.fillStyle='#ff6f91';g.beginPath();g.arc(w*.5,h*.48,w*.02,0,7);g.fill();g.strokeStyle='#5a3414';g.lineWidth=3;[[-1,-.01],[-1,.02],[1,-.01],[1,.02]].forEach(([s,d])=>{g.beginPath();g.moveTo(w*(.5+s*.05),h*(.49+d));g.lineTo(w*(.5+s*.16),h*(.47+d*2));g.stroke();});
+  g.fillStyle='#ff6f91';g.beginPath();g.arc(w*.5,h*.48,w*.02,0,7);g.fill();g.strokeStyle='#5a3414';g.lineWidth=4;[[-1,-.01],[-1,.02],[1,-.01],[1,.02]].forEach(([s,d])=>{g.beginPath();g.moveTo(w*(.5+s*.05),h*(.49+d));g.lineTo(w*(.5+s*.16),h*(.47+d*2));g.stroke();});
   g.strokeStyle='#f29a3d';g.lineWidth=16;g.beginPath();g.moveTo(w*.78,h*.72);g.quadraticCurveTo(w*.95,h*.6,w*.86,h*.46);g.stroke();}
 };
 const refCache=new Map();
@@ -44,6 +44,38 @@ function refCanvas(id,onLoad){
   if(/^ref:/.test(id||'')){const f=REFDRAW[id.slice(4)];if(f)try{f(g,400,500);}catch(e){}refCache.set(id,c);}
   else if(/^img:/.test(id||'')){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const s=Math.max(400/im.width,500/im.height),dw=im.width*s,dh=im.height*s;g.drawImage(im,(400-dw)/2,(500-dh)/2,dw,dh);onLoad&&onLoad();};im.src=publicUrl('room-images',id.slice(4));refCache.set(id,c);}
   return c;
+}
+
+/* ---------------- stroke guide: an outline "skeleton" of the reference with arrows showing which way to stroke ---------------- */
+const guideCache=new Map();
+function guideCanvas(id,onLoad){
+  const key=id||'';if(guideCache.has(key))return guideCache.get(key);
+  const out=document.createElement('canvas');out.width=CW;out.height=CH;guideCache.set(key,out);
+  if(!id)return out;
+  const src=refCanvas(id,()=>{guideCache.delete(key);onLoad&&onLoad();});
+  try{
+    const w=128,hh=160,t=document.createElement('canvas');t.width=w;t.height=hh;const tg=t.getContext('2d');tg.imageSmoothingQuality='high';tg.drawImage(src,0,0,w,hh);
+    const d=tg.getImageData(0,0,w,hh).data;
+    const at=(x,y,c)=>d[((Math.min(hh-1,Math.max(0,y))*w)+Math.min(w-1,Math.max(0,x)))*4+c];
+    const mag=new Float32Array(w*hh),gxs=new Float32Array(w*hh),gys=new Float32Array(w*hh);let mx=0;
+    for(let y=0;y<hh;y++)for(let x=0;x<w;x++){let gx=0,gy=0;for(let c=0;c<3;c++){gx+=at(x+1,y,c)-at(x-1,y,c);gy+=at(x,y+1,c)-at(x,y-1,c);}
+      const m=Math.hypot(gx,gy);const k=y*w+x;mag[k]=m;gxs[k]=gx;gys[k]=gy;if(m>mx)mx=m;}
+    const thr=Math.max(30,mx*.12),athr=Math.max(40,mx*.3),g=out.getContext('2d'),sx=CW/w,sy=CH/hh;
+    g.fillStyle='rgba(70,50,200,.55)';
+    for(let y=1;y<hh-1;y++)for(let x=1;x<w-1;x++){const k=y*w+x,m=mag[k];if(m<thr)continue;
+      g.fillRect(Math.round(x*sx-1),Math.round(y*sy-1),5,5);}
+    /* arrows along the edges: the direction to sweep the brush */
+    g.strokeStyle='#ff5a36';g.fillStyle='#ff5a36';g.lineWidth=4;g.lineCap='round';
+    const cell=15;let n=0;
+    for(let cy=0;cy<hh&&n<48;cy+=cell)for(let cx=0;cx<w&&n<48;cx+=cell){let bk=-1,bm=0;
+      for(let y=cy;y<Math.min(hh,cy+cell);y++)for(let x=cx;x<Math.min(w,cx+cell);x++){const k=y*w+x;if(mag[k]>bm){bm=mag[k];bk=k;}}
+      if(bk<0||bm<athr)continue;
+      let tx=-gys[bk],ty=gxs[bk];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;if(tx<-.2||(Math.abs(tx)<=.2&&ty<0)){tx=-tx;ty=-ty;}
+      const px=(bk%w)*sx,py=Math.floor(bk/w)*sy,L=22;const ax=px-tx*L,ay=py-ty*L,bx=px+tx*L,by=py+ty*L;
+      g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();
+      const a=Math.atan2(ty,tx);g.beginPath();g.moveTo(bx,by);g.lineTo(bx-12*Math.cos(a-.5),by-12*Math.sin(a-.5));g.lineTo(bx-12*Math.cos(a+.5),by-12*Math.sin(a+.5));g.closePath();g.fill();n++;}
+  }catch(e){/* an uploaded picture that the browser will not let us read: no guide */}
+  return out;
 }
 
 /* ---------------- the drawing engine: one painting = a list of strokes ---------------- */
@@ -94,7 +126,7 @@ async function myArtworks(){
 /* ---------------- attach the studio to a running Space stage ---------------- */
 function attach(R,ctx){
   const st=R.stage,S=R.STAGE,SX=S.SX,SZ=S.SZ,DESKY=S.DESKY,me=Auth.user.id,spaceId=ctx.id;
-  const canv=new Map();let dead=false,ch=null,chOk=false,saveT=null,flushT=null,pending=null,cur=null,sp={ref:null,state:'waiting',note:'',title:''},nSeated=0,lastPaintPing=0,ov=null;
+  const canv=new Map();let dead=false,ch=null,chOk=false,saveT=null,flushT=null,pending=null,cur=null,sp={ref:null,state:'waiting',note:'',title:''},nSeated=0,lastPaintPing=0,ov=null,lockUntil=0;
   const redraw=(()=>{let q=false;return()=>{if(q||dead)return;q=true;requestAnimationFrame(()=>{q=false;if(dead)return;canv.forEach(pc=>{if(pc.tex)pc.tex.needsUpdate=true;});R.markDirty&&R.markDirty();});};})();
   const get=uid=>{let pc=canv.get(uid);if(!pc){pc=new PC(redraw);canv.set(uid,pc);}return pc;};
   const mine=get(me);
@@ -201,7 +233,8 @@ function attach(R,ctx){
     if(ov)return;
     if(!st.map.has(me)){toast('All four painting seats are taken. You can watch until one frees up.');return;}
     let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true;
-    const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';frame.append(cv);
+    const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';let guideOn=true;const gcv=h('canvas',{class:'pt-guide',width:CW,height:CH});const stack=h('div',{class:'pt-stack'},cv,gcv);frame.append(stack);
+    function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&sp.ref?'':'none';if(guideOn&&sp.ref)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);}
     const banner=h('div',{class:'pt-ban'});
     const sw=h('div',{class:'pt-sw'}),tools=h('div',{class:'pt-tools'}),stch=h('div',{class:'pt-st'}),size_=h('input',{type:'range',min:'3',max:'44',value:String(size),'aria-label':'Brush size'});
     const mini=h('button',{class:'pt-mini','aria-label':'Show the reference larger',onclick:showRef});const mc=refCanvas(sp.ref||'',()=>drawMini());const mg=h('canvas',{width:120,height:150});mini.append(mg);
@@ -209,7 +242,7 @@ function attach(R,ctx){
     const paintSw=()=>sw.replaceChildren(...COLS.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:n,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));
     const T3=[['b','Brush'],['p','Pencil'],['e','Eraser']];
     const act=(l,fn,cls)=>h('button',{class:'pt-b '+(cls||''),onclick:fn},l);
-    function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
+    function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),h('button',{class:'pt-b'+(guideOn?' on':''),onclick:()=>{guideOn=!guideOn;drawGuide();paintTools();}},'Guide'),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
     function paintState(){stch.replaceChildren(...STATES.map((l,i)=>h('button',{class:'pt-sc'+(mine.state()===i?' on':''),onclick:()=>{mine.setState(i);changed(true);paintState();}},l)));}
     function changed(full){redraw();if(full)sendSync();saveSoon();}
     const allowed=()=>sp.state==='painting';
@@ -228,13 +261,13 @@ function attach(R,ctx){
     document.addEventListener('keydown',key);
     function fit(){const w=frame.clientWidth,hh=frame.clientHeight;if(!w||!hh)return;const s=Math.min(w/CW,hh/CH);cv.style.width=Math.floor(CW*s)+'px';cv.style.height=Math.floor(CH*s)+'px';}
     const ro=window.ResizeObserver?new ResizeObserver(fit):null;
-    function close(){if(!ov)return;flush();document.removeEventListener('keydown',key);ro&&ro.disconnect();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;redraw();saveNow();sendSync();}
+    function close(){if(!ov)return;flush();document.removeEventListener('keydown',key);ro&&ro.disconnect();stack.remove();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;redraw();saveNow();sendSync();}
     ov=h('div',{class:'pt-ov'},
       h('div',{class:'pt-top'},h('button',{class:'pt-done',onclick:close},'Done'),h('b',null,'My canvas'),h('button',{class:'pt-ref',onclick:showRef},'Reference')),
       banner,frame,mini,
       h('div',{class:'pt-dock'},tools,h('div',{class:'pt-sz'},h('span',null,'Size'),size_),sw,stch));
-    document.body.appendChild(ov);ro&&ro.observe(frame);fit();paintTools();paintSw();paintState();paintBan();drawMini();
-    ov._upd=()=>{paintBan();drawMini();};
+    document.body.appendChild(ov);ro&&ro.observe(frame);fit();paintTools();paintSw();paintState();paintBan();drawMini();drawGuide();
+    ov._upd=()=>{paintBan();drawMini();drawGuide();};
   }
 
   /* ---- host studio panel ---- */
@@ -243,7 +276,7 @@ function attach(R,ctx){
       const draw=()=>{body.replaceChildren();build();};
       const build=()=>{
       const send_=(a,v)=>guard(null,async()=>{const r=await sb.rpc('paint_host',{p_space:spaceId,p_action:a,p_val:v==null?null:v});if(r.error)throw r.error;
-        if(a==='ref')sp.ref=v||null;else if(a==='note')sp.note=(v||'').trim().slice(0,200);else if(a==='start'||a==='resume')sp.state='painting';else if(a==='pause')sp.state='paused';
+        lockUntil=Date.now()+6000;if(a==='ref')sp.ref=v||null;else if(a==='note')sp.note=(v||'').trim().slice(0,200);else if(a==='start'||a==='resume')sp.state='painting';else if(a==='pause')sp.state='paused';
         seatSync();paintHud();ov&&ov._upd&&ov._upd();ctx.refresh&&ctx.refresh();if(a==='start'||a==='resume'){toast('Painting started');close();}else if(a!=='note')draw();});
       const grid=h('div',{class:'pt-refs'},REFS.map(([id,n])=>{const c=refCanvas('ref:'+id);const t=h('canvas',{width:100,height:125});t.getContext('2d').drawImage(c,0,0,100,125);return h('button',{class:'pt-rb'+(sp.ref==='ref:'+id?' on':''),onclick:async()=>{await send_('ref','ref:'+id);toast('Reference changed');}},t,h('span',null,n));}));
       const up=h('button',{class:'btn small'},'Upload my own picture');up.onclick=async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;await guard(up,async()=>{const p=await prepareImage(f,{max:900,quality:.85,maxMB:12});const path=await uploadFile('room-images',p.blob,'jpg','image/jpeg');await send_('ref','img:'+path);toast('Reference changed');});};
@@ -269,11 +302,11 @@ function attach(R,ctx){
   paintHud();drawWall();
 
   return{hud,
-    update(D){if(dead)return;const s=D.space;const ch_=sp.ref!==s.paint_ref||sp.state!==s.paint_state||sp.note!==(s.paint_note||'');
+    update(D){if(dead)return;const s=Object.assign({},D.space);if(Date.now()<lockUntil){s.paint_ref=sp.ref;s.paint_state=sp.state;s.paint_note=sp.note;}const ch_=sp.ref!==s.paint_ref||sp.state!==s.paint_state||sp.note!==(s.paint_note||'');
       sp={ref:s.paint_ref||null,state:s.paint_state||'waiting',note:s.paint_note||'',title:s.title};seatSync();if(ch_){paintHud();ov&&ov._upd&&ov._upd();}},
     seatSync,
     async finalSave(){ctx.final=true;await saveNow();},
     destroy(){dead=true;clearTimeout(saveT);try{if(ov){mine.cv.remove();ov.remove();ov=null;}}catch(e){}try{R.host.removeEventListener('click',onClick);}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}badges.forEach(b=>b.remove());hud.remove();}};
 }
-return{attach,galleryView,myArtworks,PC,REFS};
+return{attach,galleryView,myArtworks,PC,REFS,guideCanvas,refCanvas};
 })();

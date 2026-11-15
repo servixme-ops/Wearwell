@@ -440,6 +440,7 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .pt-done,.pt-ref{border:0;border-radius:99px;padding:9px 16px;font:800 14px var(--disp)}.pt-done{background:var(--coral);color:#fff}.pt-ref{background:rgba(255,255,255,.15);color:#fff}
 .pt-ban{margin:0 12px 6px;padding:8px 12px;border-radius:12px;background:#c98a00;font:700 13px var(--disp);text-align:center}
 .pt-frame{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 12px}
+.pt-stack{position:relative;line-height:0}.pt-guide{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;opacity:.85}
 .pt-cv{display:block;background:#fffdf8;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.5);touch-action:none;cursor:crosshair}
 .pt-mini{position:absolute;right:14px;top:calc(64px + var(--sat));width:64px;padding:0;border:2px solid #fff;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.5)}.pt-mini canvas{display:block;width:100%;height:auto}
 .pt-dock{padding:8px 10px calc(10px + var(--sat));background:#251d42;display:flex;flex-direction:column;gap:8px}
