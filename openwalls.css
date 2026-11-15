@@ -34,7 +34,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .avatar{width:44px;height:44px;border-radius:50%;background:var(--violet);color:#fff;display:grid;place-items:center;font-weight:800;overflow:hidden;flex:none;background-size:cover;background-position:center;font-family:var(--disp)}.avatar.lg{width:88px;height:88px;font-size:32px}.avatar.sm{width:30px;height:30px;font-size:13px}
 .empty-state{text-align:center;padding:40px 28px;color:var(--ink2)}.empty-state h4{margin:0 0 6px;font:800 20px var(--disp);color:var(--ink)}.empty-state p{margin:0 0 16px}
 .spin-wrap{display:flex;flex-direction:column;align-items:center;padding:40px;gap:12px;color:var(--ink2)}
-#toasts{position:fixed;left:0;right:0;bottom:calc(100px + var(--sab));z-index:90;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 18px}
+#toasts{position:fixed;left:0;right:0;bottom:calc(100px + var(--sab));z-index:2000;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 18px}
 .toast{background:rgba(29,26,43,.94);color:#fff;padding:10px 16px;border-radius:99px;max-width:100%;animation:tin .3s both;transition:opacity .3s;text-align:center}.toast.err{background:#b3261e}.toast.ok{background:#1c7a4c}.toast.out{opacity:0}
 @keyframes tin{from{transform:translateY(10px);opacity:0}}
 .dlg-ov,.sheet-ov{position:fixed;inset:0;z-index:80;background:rgba(20,16,40,.45);display:flex;transition:opacity .2s}.dlg-ov{align-items:center;justify-content:center;padding:24px}.dlg-ov.out,.sheet-ov.out{opacity:0}
