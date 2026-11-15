@@ -270,6 +270,13 @@ function attach(R,ctx){
   }
   /* ---- reference viewer ---- */
   function showRef(){
+    if(ov){/* inside the painting screen: show it on top of that screen, not on the page behind it */
+      ov.querySelector('.pt-refbox')&&ov.querySelector('.pt-refbox').remove();
+      const c=h('canvas',{width:400,height:500,class:'pt-view',style:{width:'100%',height:'auto',borderRadius:'12px',display:'block'}}),g=c.getContext('2d');
+      const paint=()=>{if(sp.ref)g.drawImage(refCanvas(sp.ref,paint),0,0);};paint();
+      const box=h('div',{class:'pt-sig pt-refbox',onclick:e=>{if(e.target===box)box.remove();}},h('div',{class:'pt-sigc',style:{width:'min(360px,100%)',maxHeight:'100%',overflow:'auto'}},
+        h('b',null,'Reference'),h('div',{style:{margin:'8px 0'}},sp.ref?c:h('p',{class:'f-hint'},'The host has not picked a picture yet.')),sp.note?h('p',{style:{margin:'0 0 8px'}},sp.note):null,h('button',{class:'btn block',onclick:()=>box.remove()},'Close')));
+      ov.append(box);return;}
     sheet('Reference',(body)=>{const c=h('canvas',{width:400,height:500,class:'pt-view'});const g=c.getContext('2d');const paint=()=>{if(sp.ref){g.drawImage(refCanvas(sp.ref,paint),0,0);}else{g.fillStyle='#eee';g.fillRect(0,0,400,500);}};paint();
       body.append(sp.ref?c:h('p',{class:'f-hint'},'The host has not picked a picture yet.'),sp.note?h('p',null,sp.note):null);});
   }

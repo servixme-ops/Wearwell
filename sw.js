@@ -1,5 +1,5 @@
 /* OpenWalls service worker: offline shell, never caches API or payment traffic. */
-const VER='openwalls-v69';
+const VER='openwalls-v70';
 const SHELL=['vendor/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','openwalls.css','manifest.webmanifest','src/config.js','src/logo.js','src/ui.js','src/util.js','src/api.js','src/ow/ads.js','src/ow/catalog.js','src/ow/avatar-data.js','src/ow/glb-lite.js','src/ow/avatar-wear.js','src/ow/avatar.js','assets/avatars/female.glb','assets/avatars/male.glb','src/ow/room.js','src/ow/walk.js','src/ow/store.js','src/ow/tv.js','src/ow/previews.js','src/ow/app.js','src/ow/avatar-ui.js','src/ow/presence.js','src/ow/podcast.js','src/ow/sippaint.js','src/ow/spaces.js','https://cdn.jsdelivr.net/npm/livekit-client@2.5.7/dist/livekit-client.umd.js','src/pwa.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{
   /* Only take over from the old worker when every file of the app itself is saved; on a weak network a half-filled
