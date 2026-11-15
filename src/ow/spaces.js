@@ -76,12 +76,13 @@ async function blockUser(user,on){
   const ok=!on||await confirmBox('Block '+person(user)+'?','You will not hear or see them in Spaces, and they cannot join your spaces.','Block',true);
   if(!ok)return false;await rpc('user_block',{p_user:user.id,p_on:on});toast(on?'Blocked '+person(user):'Unblocked');return true;
 }
-function createSheet(onDone){
+function createSheet(onDone,preset){
   if(!Auth.user){authSheet('signup','Create an account to host a space');return;}
   sheet('Start a space',(b,close)=>{
     const title=h('input',{type:'text',maxlength:'80',placeholder:'What do you want to talk about?'});
     const desc=h('textarea',{rows:'3',maxlength:'400',placeholder:'Tell people what this space is about'});
     const cat=h('select',null,CATS.map(([k,l])=>h('option',{value:k},l)));
+    if(preset){cat.value=preset;if(preset==='sipandpaint'){title.placeholder='Name your painting session';title.value='';}}
     let vis='public',live=true,chat=true;
     const mk=(opts,get,set)=>{const w=h('div',{class:'sp-seg'});const paint=()=>w.replaceChildren(...opts.map(([k,l])=>h('button',{class:get()===k?'on':'',onclick:()=>{set(k);paint();}},l)));paint();return w;};
     const st=h('input',{type:'datetime-local'}),en=h('input',{type:'datetime-local'});
@@ -373,5 +374,16 @@ async function room(id){
   App.teardown=()=>{if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
 }
 
-return{discover,room,createSheet};
+/* Sip & Paint hub: live sessions + host your own */
+function paintHub(){
+  sheet('Sip & Paint',(body,close)=>{
+    body.append(h('p',{class:'f-hint',style:{margin:'0 0 10px'}},'Paint with friends. The host picks a picture, everyone paints their own canvas, and you share the results at the end.'));
+    const host=h('button',{class:'btn coral block',onclick:()=>{close();createSheet(()=>{},'sipandpaint');}},'Host a Sip & Paint');
+    const list=h('div',{class:'sp-list'},spinner());body.append(host,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Live now'),list);
+    rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows=>{
+      list.replaceChildren(...(rows.length?rows.map(r=>h('button',{class:'sp-invite',style:{width:'100%',textAlign:'left'},onclick:()=>{close();go('#/space/'+r.id);}},h('div',null,h('b',null,r.title),h('span',{style:{display:'block'}},'Hosted by '+(r.host||'a creator')))),h('span',null)):[h('p',{class:'f-hint'},'No sessions live right now. Host one and invite friends.')]));
+    }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
+  });
+}
+return{discover,room,createSheet,paintHub};
 })();
