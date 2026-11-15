@@ -30,7 +30,7 @@ function embedFor(u){
 const roomUrl=u=>CFG.site+'#/@'+u;
 const ytId=u=>{try{const x=new URL(u);if(/youtu\.be$/.test(x.hostname))return x.pathname.slice(1);if(/youtube\.com$/.test(x.hostname)){if(x.searchParams.get('v'))return x.searchParams.get('v');const m=x.pathname.match(/\/(embed|shorts)\/([\w-]+)/);if(m)return m[2];}}catch(e){}return null;};
 const go=hash=>{if(location.hash===hash)route();else location.hash=hash;};
-function setView(full){const v=$view();v.classList.toggle('full',!!full);v.classList.remove('sp-view');v.scrollTop=0;v.replaceChildren();$nav().classList.toggle('hide',!!full);return v;}
+function setView(full){const v=$view();v.classList.toggle('full',!!full);v.classList.remove('sp-view','intro-view');v.scrollTop=0;v.replaceChildren();$nav().classList.toggle('hide',!!full);return v;}
 function teardown(){if(App.teardown){try{App.teardown();}catch(e){}App.teardown=null;}}
 
 /* ---------- navigation ---------- */
