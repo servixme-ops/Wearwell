@@ -97,19 +97,20 @@ function roomPiece(r,i){
     r.visits?h('div',{class:'vis'},r.visits+(r.visits===1?' visit':' visits')):null);
 }
 const WALL_SEED=Math.random().toString(36).slice(2,8);
+async function adsView(){const v=setView(false);drawNav('me');App.teardown=()=>OWAds.stop();return OWAds.dashboard(v);}
 async function wallView(){
   const v=setView(false);drawNav('wall');
   const grid=h('div',{class:'ex-grid'}),more=h('div',{class:'ex-more'}),ex=h('div',{class:'exhibit'},h('div',{class:'pg-head'},h('div',{class:'brand'},logoEl(38),h('b',null,'OpenWalls')),h('p',{class:'tag'},'Discover what\u2019s on everyone\u2019s walls.')),h('div',{class:'ex-body'},grid,more));
-  v.append(ex);let offset=0,done=false,busy=false,count=0;const PAGE=16;
+  v.append(ex);let offset=0,done=false,busy=false,count=0;const PAGE=16,adIds=[];
   more.append(spinner());
   const load=async()=>{if(busy||done)return;busy=true;
-    try{const rows=await Store.feed(PAGE,offset,WALL_SEED);offset+=rows.length;if(rows.length<PAGE)done=true;rows.forEach(r=>{grid.append(roomPiece(r,count++));});
+    try{const rows=await Store.feed(PAGE,offset,WALL_SEED);offset+=rows.length;if(rows.length<PAGE)done=true;const cf=await OWAds.cfg(),EVERY=Math.max(4,+cf.wall_every||7),MAXAD=Math.max(0,+cf.wall_max||3);for(const r of rows){grid.append(roomPiece(r,count++));if(count%EVERY===0&&adIds.length<MAXAD){const ad=(await OWAds.serve('wall',null,1,adIds))[0];if(ad){adIds.push(ad.id);grid.append(OWAds.wallPiece(ad));}}}
       if(!count){more.replaceChildren(empty('The wall is empty','Hang a picture in your room and it shows up here.',h('button',{class:'btn coral',onclick:create},'Build my room')));return;}
       more.replaceChildren(done?h('div',{class:'ex-end'},'You have seen every room'):h('div',{class:'ex-sent'}));
     }catch(e){more.replaceChildren(empty('Could not load the wall',friendlyError(e),h('button',{class:'btn',onclick:()=>{busy=false;more.replaceChildren(spinner());load();}},'Try again')));busy=false;return;}
     busy=false;watch();};
   let io=null;const watch=()=>{const s=more.querySelector('.ex-sent');if(!s)return;if('IntersectionObserver' in window){io&&io.disconnect();io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))load();},{root:v,rootMargin:'600px'});io.observe(s);}else{const b=h('button',{class:'btn',onclick:load},'Load more');more.replaceChildren(b);}};
-  App.teardown=()=>{io&&io.disconnect();};
+  App.teardown=()=>{io&&io.disconnect();OWAds.stop();};
   load();
 }
 /* ---------- DISCOVER ---------- */
@@ -147,6 +148,7 @@ async function meView(){
       activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
+      h('button',{onclick:()=>go('#/ads')},icon('sliders'),h('span',{class:'grow'},'Advertise on OpenWalls')),
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
       h('button',{onclick:async()=>{await Auth.signOut();toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
 }
@@ -507,11 +509,12 @@ function route(){
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
-  switch(hs){case'spaces':return Spaces.discover();case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();default:return wallView();}
+  switch(hs){case'spaces':return Spaces.discover();case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();case'ads':return adsView();default:return wallView();}
 }
 window.addEventListener('hashchange',route);
 (function boot(){
   const ld=document.getElementById('ldlogo');if(ld)ld.append(logoEl(84));
+  {const sp=new URLSearchParams(location.search),rf=sp.get('reference')||sp.get('trxref');if(rf&&/^OWAD-/.test(rf))history.replaceState(null,'',location.pathname+location.search+'#/ads');}
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
   Auth.init().then(()=>{route();
