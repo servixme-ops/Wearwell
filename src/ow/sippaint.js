@@ -115,11 +115,22 @@ async function galleryView(spaceId,title,opts){
     grid.append(h('div',{class:'pt-gc'},h('img',{src:url,alt:'Painting by @'+r.username}),h('div',{class:'pt-gw'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,'@'+r.username),h('span',null,(r.done?'Completed':'In progress')+' · '+(title||'Sip & Paint')))),save));});
   return box;
 }
+function openArtwork(a){
+  const url=publicUrl('room-images',a.image_path);
+  sheet(a.space_title||'Artwork',(body,close)=>{
+    const img=h('img',{src:url,alt:a.title||'Artwork',style:{width:'100%',maxHeight:'62vh',objectFit:'contain',borderRadius:'10px',background:'#fffdf8',display:'block'}});
+    const wall=h('button',{class:'btn coral block'},'Add to my wall decorations');
+    wall.onclick=()=>{try{localStorage.setItem('ow_pending_deco',JSON.stringify({path:a.image_path,asp:CW/CH,at:Date.now()}));}catch(e){toast('Could not prepare that. Try again.','err');return;}close();toast('Opening your room…');setTimeout(()=>go('#/edit'),250);};
+    const save=h('button',{class:'btn block',style:{marginTop:'8px'}},'Save to my phone');
+    save.onclick=()=>guard(save,async()=>{const blob=await (await fetch(url)).blob();download(blob,'openwalls-artwork.jpg');});
+    body.append(img,h('p',{class:'f-hint',style:{margin:'8px 0'}},new Date(a.created_at).toLocaleDateString()+' \u00b7 It hangs on the wall you are facing and you can move or resize it.'),wall,save);
+  });
+}
 async function myArtworks(){
   sheet('My artworks',async(body)=>{body.append(spinner());
     const r=await sb.from('paint_artworks').select('id,image_path,title,space_title,created_at').eq('user_id',Auth.user.id).order('created_at',{ascending:false}).limit(60);
     if(r.error||!r.data.length){body.replaceChildren(empty('No artworks yet','Finish a painting in a Sip & Paint space and save it here.'));return;}
-    body.replaceChildren(h('div',{class:'pt-gg'},r.data.map(a=>h('div',{class:'pt-gc'},h('img',{src:publicUrl('room-images',a.image_path),alt:a.title||'Artwork',loading:'lazy'}),h('div',{class:'pt-gw'},h('div',null,h('b',null,a.space_title||'Sip & Paint'),h('span',null,new Date(a.created_at).toLocaleDateString())))))));
+    body.replaceChildren(h('div',{class:'pt-gg'},r.data.map(a=>h('div',{class:'pt-gc',role:'button',tabindex:'0','aria-label':'Open artwork',style:{cursor:'pointer'},onclick:()=>openArtwork(a)},h('img',{src:publicUrl('room-images',a.image_path),alt:a.title||'Artwork',loading:'lazy'}),h('div',{class:'pt-gw'},h('div',null,h('b',null,a.space_title||'Sip & Paint'),h('span',null,new Date(a.created_at).toLocaleDateString())))))));
   });
 }
 
