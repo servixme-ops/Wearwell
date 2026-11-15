@@ -3,7 +3,7 @@ const app=document.getElementById('app');
 const RC={calc(look,items){const w=look.wear_count||0;const rows=items.map(i=>({price:Number(i.price)||0}));return{total:rows.reduce((a,r)=>a+r.price,0)};},money:(n,cur)=>fmtMoney(Math.round((Number(n)||0)*100)/100,cur||'NGN')};
 const Ads={async verify(reference){const r=await sb.functions.invoke('paystack-verify',{body:{reference}});let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(_){}}if(!d)throw new Error('Could not verify payment.');if(d.error&&!d.paid)throw new Error(d.message||'Could not verify payment.');return d;}};
 function thumb(look,w,h_){const c=mk(w,h_),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h_);drawFigure(g,look,w/2,h_*.05,h_*.9);return c;}
-const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
+const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['owctl','Spaces & Sip & Paint'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
 let tab='overview',counts={};
 function loginView(msg){
   const em=h('input',{type:'email',placeholder:'Email',autocomplete:'email'}),pw=h('input',{type:'password',placeholder:'Password',autocomplete:'current-password'}),err=h('p',{class:'err-t'},msg||'');
@@ -26,7 +26,7 @@ function shell(){
   const nav=h('nav',null,h('h2',null,'LUKKS'),...ADM_TABS.map(t=>h('button',{'data-t':t[0],class:tab===t[0]?'on':'',onclick:()=>{tab=t[0];shell();}},t[1],counts[t[0]]?h('span',{class:'cnt'},counts[t[0]]):null)),h('span',{class:'sp'}),h('a',{class:'btn ghost',style:{color:'#f4ead9'},href:'./'},'Open Lukks'),h('button',{onclick:async()=>{await Auth.signOut();loginView();}},'Sign out'));
   const main=h('main');app.replaceChildren(h('div',{class:'adm'},nav,main));
   loadCounts().then(()=>{$$('nav button',nav).forEach(b=>{const t=b.dataset.t;let c=b.querySelector('.cnt');const n=({ads:counts.ads,subs:counts.subs,photos:counts.photos,testi:counts.testi,msgs:counts.msgs})[t];if(n){if(!c){c=h('span',{class:'cnt'});b.append(c);}c.textContent=n;}});});
-  ({overview,ads,owads,subs,feats,photos,testi,events,msgs})[tab](main);
+  ({overview,ads,owads,owctl,subs,feats,photos,testi,events,msgs})[tab](main);
 }
 const sect=(main,title)=>{main.replaceChildren(h('h1',null,title));const box=h('div',{class:'tbl'});main.append(box);return box;};
 const setStatus=async(table,id,status,note)=>{const r=await sb.rpc('admin_set_status',{p_table:table,p_id:id,p_status:status,p_note:note||null});if(r.error)throw r.error;};
@@ -40,6 +40,45 @@ async function overview(main){
 }
 /* ---- OpenWalls advertising ---- */
 function owads(main){return OWAds.adminPanel(main,dialog);}
+
+/* ---- OpenWalls control: feature switches, live spaces, reports, hosting bans, Sip & Paint artworks ---- */
+async function owctl(main){
+  const box=sect(main,'Spaces & Sip & Paint');box.append(spinner());
+  const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};
+  let fl=[],sp=[],rp=[],bans=[],art=[];
+  try{[fl,sp,rp,bans,art]=await Promise.all([rpc('admin_flags'),rpc('admin_spaces'),rpc('admin_space_reports'),rpc('admin_space_bans'),rpc('admin_paint_artworks')]);}
+  catch(e){box.replaceChildren(h('p',{class:'err-t'},errMsg(e)));return;}
+  const again=()=>owctl(main);
+  const sec=(t,sub)=>[h('h3',{style:{marginTop:'22px'}},t),sub?h('p',{class:'muted small-t',style:{margin:'0 0 8px'}},sub):null].filter(Boolean);
+  const out=[];
+  out.push(...sec('Feature switches','Turn a feature off for everyone. Existing spaces keep running; nobody can start a new one while it is off, and its buttons disappear from Discover.'));
+  fl.forEach(f=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('b',null,f.label),h('div',{class:'muted small-t'},f.enabled?'On':'Off — hidden from Discover, new spaces blocked')),
+    h('div',{class:'acts'},h('button',{class:'btn '+(f.enabled?'danger':'primary'),onclick:e=>guard(e.currentTarget,async()=>{if(f.enabled&&!await confirmBox('Turn off '+f.label+'?','Nobody will be able to start a new one until you turn it back on.','Turn off',true))return;await rpc('admin_flag_set',{p_key:f.key,p_enabled:!f.enabled});toast(f.label+(f.enabled?' is off':' is on'),'ok');again();})},f.enabled?'Turn off':'Turn on')))));
+  out.push(...sec('Spaces','Most recent 100. Live ones can be ended right now.'));
+  if(!sp.length)out.push(empty('No spaces yet'));
+  sp.forEach(s=>{const live=s.status==='live'||s.status==='scheduled';
+    out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,s.title),h('span',{class:'chipS s-'+(live?'approved':'rejected')},s.status),s.category==='sipandpaint'?h('span',{class:'chipS s-pending'},'Sip & Paint'):null,s.reports>0?h('span',{class:'chipS s-rejected'},s.reports+' report'+(s.reports>1?'s':'')):null),
+      h('div',{class:'muted small-t'},'@'+(s.host||'?')+' · '+s.visibility+' · '+(live?s.people+' in the room · ':'')+timeAgo(s.created_at)+' ago')),
+      h('div',{class:'acts'},live&&h('button',{class:'btn danger',onclick:e=>guard(e.currentTarget,async()=>{if(!await confirmBox('End “'+s.title+'” now?',null,'End space',true))return;await rpc('admin_space_end',{p_id:s.id});toast('Space ended','ok');again();})},'End now'),
+        h('button',{class:'btn',onclick:async e=>{const t=h('textarea',{placeholder:'Reason (optional)',maxlength:'200'});const v=await dialog({title:'Stop @'+s.host+' from hosting spaces?',body:t,actions:[{label:'Cancel',value:false},{label:'Stop hosting',value:true,danger:true}]});if(!v)return;await guard(e.currentTarget,async()=>{await rpc('admin_space_ban',{p_user:s.host_id,p_on:true,p_reason:t.value.trim()||null});toast('Hosting switched off for @'+s.host,'ok');again();});}},'Block host'))));});
+  out.push(...sec('Space reports'));
+  if(!rp.length)out.push(empty('No reports'));
+  rp.forEach(r=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,r.space||'Removed space'),h('span',{class:'chipS s-'+(r.status==='open'?'pending':'approved')},r.status)),
+    h('div',{class:'muted small-t'},(r.reason||'')+(r.details?' — '+r.details:'')+' · by @'+(r.reporter||'?')+(r.reported?' · about @'+r.reported:'')+' · '+timeAgo(r.created_at)+' ago')),
+    h('div',{class:'acts'},r.status==='open'&&h('button',{class:'btn primary',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_space_report_set',{p_id:r.id,p_status:'reviewed'});again();})},'Mark reviewed'),r.status==='open'&&h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_space_report_set',{p_id:r.id,p_status:'dismissed'});again();})},'Dismiss')))));
+  out.push(...sec('Blocked hosts'));
+  if(!bans.length)out.push(empty('Nobody is blocked'));
+  bans.forEach(b=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('b',null,'@'+(b.username||b.user_id.slice(0,8))),h('div',{class:'muted small-t'},(b.reason||'No reason given')+' · '+timeAgo(b.created_at)+' ago')),
+    h('div',{class:'acts'},h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_space_ban',{p_user:b.user_id,p_on:false});toast('Hosting allowed again','ok');again();})},'Allow again')))));
+  out.push(...sec('Sip & Paint artworks','Paintings people saved to “My artworks”. Delete anything inappropriate.'));
+  if(!art.length)out.push(empty('No artworks yet'));
+  const grid=h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:'12px'}});
+  art.forEach(a=>grid.append(h('div',{class:'card',style:{padding:'8px'}},h('img',{src:publicUrl('room-images',a.image_path),alt:'',style:{width:'100%',aspectRatio:'4/5',objectFit:'cover',borderRadius:'8px',background:'#fffdf8'}}),
+    h('div',{class:'small-t',style:{margin:'6px 0'}},h('b',null,a.space_title||'Artwork'),h('div',{class:'muted'},'@'+(a.username||'?')+' · '+timeAgo(a.created_at)+' ago')),
+    h('button',{class:'btn danger',style:{width:'100%'},onclick:e=>guard(e.currentTarget,async()=>{if(!await confirmBox('Delete this artwork?','It disappears from the owner’s My artworks.','Delete',true))return;await rpc('admin_paint_artwork_delete',{p_id:a.id});again();})},'Delete'))));
+  out.push(grid);
+  box.replaceChildren(...out);
+}
 /* ---- ads ---- */
 async function ads(main){
   const box=sect(main,'Ads & payments');box.append(spinner());
