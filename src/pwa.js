@@ -14,8 +14,9 @@ const PWA={
     let now=null,latest=null;
     try{now=((await caches.keys()).filter(k=>/^openwalls-v\d+/.test(k)).sort((a,b)=>parseInt(b.split('-v')[1])-parseInt(a.split('-v')[1]))[0])||null;}catch(e){}
     try{const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),8000);const r=await fetch('sw.js?chk='+Date.now(),{cache:'no-store',signal:ctl.signal});clearTimeout(t);const m=/VER\s*=\s*'(openwalls-v\d+)'/.exec(await r.text());latest=m&&m[1];}catch(e){}
-    if(!now||!latest)return{state:'unknown',now,latest};
-    return{state:parseInt(now.split('-v')[1])>=parseInt(latest.split('-v')[1])?'current':'old',now,latest};
+    let offline=false;try{offline=!!navigator.serviceWorker.controller&&!!(await caches.match('index.html'));}catch(e){}
+    if(!now||!latest)return{state:'unknown',now,latest,offline};
+    return{state:parseInt(now.split('-v')[1])>=parseInt(latest.split('-v')[1])?'current':'old',now,latest,offline};
   },
   /* escape hatch: forget every saved copy and the update worker, then load everything fresh from the internet */
   async refreshNow(){
