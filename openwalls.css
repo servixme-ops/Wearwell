@@ -506,3 +506,12 @@ button.fm-int{border:0}
 
 .list button.upd-ok{opacity:.75}.list button.upd-ok .f-hint{color:#1fa56a;font-weight:800}
 .fm-entry{background:linear-gradient(135deg,#1fa56a,#0e7c8a);margin-top:8px}.fm-entry b{font:800 15px var(--disp);color:#fff}.fm-entry span{color:rgba(255,255,255,.8)}
+
+.ent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.ent{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:12px 11px 13px;border-radius:20px;color:#fff;text-align:left;min-height:112px;overflow:hidden;box-shadow:0 8px 18px -10px rgba(29,26,43,.55)}
+.ent b{font:800 15px/1.15 var(--disp);margin-top:auto}.ent-sub{font:600 11.5px/1.25 var(--body);opacity:.85}
+.ent-ic{width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center}.ent-ic .ic svg{width:20px;height:20px}
+.ent.live{background:var(--ink)}.ent.paint{background:linear-gradient(145deg,#7b4dff,#ff5fb0)}.ent.forum{background:linear-gradient(145deg,#1fa56a,#0e7c8a)}
+.ent-dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:#ff4b4b;box-shadow:0 0 0 4px rgba(255,75,75,.3)}
+.ent:active{transform:scale(.97)}
+.fm-search{display:block;width:calc(100% - 36px);margin:0 18px 10px;padding:12px 16px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font:600 15px var(--body);color:var(--ink);outline:0}.fm-search:focus{border-color:var(--coral)}
