@@ -180,6 +180,7 @@ async function meView(){
       activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>interestSheet(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room interest'),h('b',{style:{color:'var(--coral)'}},((room.categories||[])[0])||'Pick one')):null,room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
+      h('button',{onclick:()=>PWA.refreshNow()},icon('refresh'),h('span',{class:'grow'},'Get the latest version'),h('span',{class:'f-hint'},'Reloads the app')),
       h('button',{onclick:()=>OWPaint.myArtworks()},icon('cam'),h('span',{class:'grow'},'My artworks')),
       h('button',{onclick:()=>go('#/ads')},icon('sliders'),h('span',{class:'grow'},'Advertise on OpenWalls')),
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
@@ -461,7 +462,7 @@ async function visitView(hs0){
 function socialBar(d,o){
   let soc={counts:{},mine:null,comments:0};const room=d.room;
   const total=()=>Object.values(soc.counts).reduce((a,b)=>a+(+b||0),0);
-  const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('chat'),h('span',null,'Message')),tp=h('button',{class:'dk wide','aria-label':'Topics'});let tpN=0;const paintTp=()=>tp.replaceChildren(icon('topics'),h('span',null,tpN?'Topics '+tpN:'Topics'));paintTp();
+  const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('send'),h('span',null,'Message')),tp=h('button',{class:'dk wide','aria-label':'Topics'});let tpN=0;const paintTp=()=>tp.replaceChildren(icon('topics'),h('span',null,tpN?'Topics '+tpN:'Topics'));paintTp();
   OWForum.userData(room.owner_id).then(x=>{tpN=x.count||0;paintTp();});
   const paint=()=>{rx.replaceChildren(h('span',{class:'em'},soc.mine?EMOJI[soc.mine]:'♡'),h('span',null,total()||'React'));rx.classList.toggle('on',!!soc.mine);cm.replaceChildren(icon('chat'),h('span',null,soc.comments?soc.comments+(soc.comments==1?' comment':' comments'):'Comment'));};
   paint();Store.social(room.id).then(x=>{soc=x;paint();}).catch(()=>{});
