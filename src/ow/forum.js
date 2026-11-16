@@ -101,5 +101,15 @@ const OWForum=(()=>{
     if(!rows.length)return null;
     return h('div',{class:'fm-block'},h('h2',{class:'sec'},'Topics'),h('div',{class:'fm-list'},rows.map(t=>row(t,true))));
   }
-  return{discoverBlock,boardView,topicView,newTopic,row,search};
+  /* a person's topics, for the Topics button inside their room */
+  async function userData(uid){try{return await rpc('forum_user_topics',{p_user:uid,p_limit:30});}catch(e){return{count:0,topics:[]};}}
+  function userSheet(uid,username,isMe,onCount){
+    sheet(isMe?'My topics':'Topics by @'+username,(b,close)=>{
+      const list=h('div',{class:'fm-list',style:{padding:'0'}},spinner());
+      const load=async()=>{const d=await userData(uid);onCount&&onCount(d.count||0);const rows=d.topics||[];
+        list.replaceChildren(...(rows.length?rows.map(t=>{const r=row(t,true);r.addEventListener('click',close);return r;}):[h('div',{class:'fm-none',style:{margin:'0'}},h('b',null,isMe?'You have not started a topic yet':'@'+username+' has not started a topic yet'),h('span',null,isMe?'Start a discussion about something you love.':'Check back soon.'))]));};
+      b.append(list,isMe?h('button',{class:'btn coral block',style:{marginTop:'12px'},onclick:()=>{close();newTopic(null);}},'Start a topic'):null);load();
+    });
+  }
+  return{discoverBlock,boardView,topicView,newTopic,row,search,userData,userSheet};
 })();
