@@ -238,7 +238,7 @@ async function room(id){
       const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
       const r=new OWRoom(box,{edit:false});r.load(d&&d.room?d.room:{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}},d&&d.room?d.items:[]);
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
-      r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');
+      r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');v.classList.toggle('sp-paintroom',!!paintMode());
       if(paintMode()&&typeof OWPaint!=='undefined'){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
       paintStage();R.stageSpeaking(speaking);
     }catch(e){console.error(e);R=null;}
