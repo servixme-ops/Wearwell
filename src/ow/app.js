@@ -94,7 +94,7 @@ function rxBtn(r){
 function roomPiece(r,i){
   const shot=OWPrev.node(r,'pshot',roomLabel(r)+' by @'+r.username);
   return h('div',{class:'piece'},r.featured?h('span',{class:'star'},'★ Featured'):null,h('button',{class:'pframe','aria-label':'Visit '+roomLabel(r)+' by @'+r.username,onclick:()=>go('#/@'+r.username)},shot),
-    h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,((r.categories||[])[0])||'Room'),h('span',{class:'s'},'@'+r.username)),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
+    h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,'@'+r.username)),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
     r.visits?h('div',{class:'vis'},r.visits+(r.visits===1?' visit':' visits')):null);
 }
 const WALL_SEED=Math.random().toString(36).slice(2,8);
