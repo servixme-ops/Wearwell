@@ -503,3 +503,5 @@ button.fm-int{border:0}
 .sheet-ov input[type=text],.sheet-ov textarea{width:100%;box-sizing:border-box;border-radius:12px;border:1.5px solid rgba(29,26,43,.14);padding:12px;font:inherit;background:#fff}
 .sheet-ov textarea{min-height:120px}
 .piece .plaque .visit{padding:6px 10px;flex:none}
+
+.list button.upd-ok{opacity:.75}.list button.upd-ok .f-hint{color:#1fa56a;font-weight:800}
