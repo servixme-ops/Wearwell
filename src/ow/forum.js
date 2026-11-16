@@ -21,10 +21,10 @@ const OWForum=(()=>{
   function discoverBlock(){
     const box=h('div',{class:'fm-block'});let cur=null,seq=0;
     async function load(cat){cur=cat||null;const my=++seq;
-      box.replaceChildren(h('h2',{class:'sec'},'Topics & discussions'),h('p',{class:'sec-sub'},cur?'Conversations in '+cur+'.':'Join the conversation with people who share your interests.'),h('div',{class:'fm-list'},spinner()));
+      box.replaceChildren(h('h2',{class:'sec'},'Forum'),h('p',{class:'sec-sub'},cur?'Conversations in '+cur+'.':'Join the conversation with people who share your interests.'),h('div',{class:'fm-list'},spinner()));
       let rows=[];try{rows=await rpc('forum_topics_list',{p_interest:cur,p_sort:'hot',p_limit:6,p_offset:0})||[];}catch(e){if(my!==seq)return;box.replaceChildren();return;}
       if(my!==seq)return;
-      box.replaceChildren(h('h2',{class:'sec'},'Topics & discussions'),h('p',{class:'sec-sub'},cur?'Conversations in '+cur+'.':'Join the conversation with people who share your interests.'),
+      box.replaceChildren(h('h2',{class:'sec'},'Forum'),h('p',{class:'sec-sub'},cur?'Conversations in '+cur+'.':'Join the conversation with people who share your interests.'),
         rows.length?h('div',{class:'fm-list'},rows.map(t=>row(t,!cur))):h('div',{class:'fm-none'},h('b',null,cur?'No '+cur+' topics yet':'No topics yet'),h('span',null,'Be the first to start a discussion.')),
         h('div',{class:'fm-acts'},h('button',{class:'btn coral',onclick:()=>newTopic(cur)},'Start a topic'),h('button',{class:'btn',onclick:()=>toBoard(cur)},cur?'All '+cur+' topics':'Browse all topics')));
     }
@@ -38,8 +38,15 @@ const OWForum=(()=>{
     const chips=h('div',{class:'scrollx',style:{padding:'0 18px 8px'}}),tabs=h('div',{class:'fm-tabs'});
     const drawChips=()=>chips.replaceChildren(...[null,...(boards.length?boards.map(b=>b.interest):CATS)].map(c=>{const b=boards.find(x=>x.interest===c);return h('button',{class:'chip'+((c||null)===(interest||null)?' on':''),onclick:()=>toBoard(c)},c||'All',b&&b.topics?h('small',{class:'fm-cnt'},String(b.topics)):null);}));
     const drawTabs=()=>tabs.replaceChildren(...[['hot','Hot'],['latest','Latest']].map(([k,l])=>h('button',{class:k===sort?'on':'',onclick:()=>{sort=k;offset=0;done=false;list.replaceChildren();drawTabs();load();}},l)));
-    v.append(h('div',{class:'pg-head fm-head'},h('div',{class:'row-flex'},back('#/discover'),h('div',{class:'brand'},h('b',null,interest?interest+' room':'Topics'))),h('p',{class:'tag'},interest?'Discussions about '+interest.toLowerCase()+'.':'Discussions across every interest.'),
-      h('button',{class:'btn coral block',style:{marginTop:'10px'},onclick:()=>newTopic(interest)},'Start a topic')),chips,tabs,list,more);
+    const sIn=h('input',{class:'fm-search',type:'search',placeholder:'Search topics',enterkeyhint:'search',autocomplete:'off'});let st=0,sq='';
+    sIn.addEventListener('input',()=>{clearTimeout(st);const q=sIn.value.trim();st=setTimeout(async()=>{if(q===sq)return;sq=q;
+      if(q.length<2){tabs.style.display='';offset=0;done=false;list.replaceChildren();load();return;}
+      tabs.style.display='none';more.replaceChildren();list.replaceChildren(spinner());
+      let rows=[];try{rows=await rpc('forum_search',{p_q:q,p_limit:30})||[];}catch(e){list.replaceChildren(empty('Search failed',friendlyError(e)));return;}
+      if(sq!==q)return;if(interest)rows=rows.filter(t=>t.interest===interest);
+      list.replaceChildren(...(rows.length?rows.map(t=>row(t,!interest)):[h('div',{class:'fm-none'},h('b',null,'No topics found'),h('span',null,'Try different words, or start this topic yourself.'))]));},350);});
+    v.append(h('div',{class:'pg-head fm-head'},h('div',{class:'row-flex'},back('#/discover'),h('div',{class:'brand'},h('b',null,interest?interest+' room':'Forum'))),h('p',{class:'tag'},interest?'Discussions about '+interest.toLowerCase()+'.':'Discussions across every interest.'),
+      h('button',{class:'btn coral block',style:{marginTop:'10px'},onclick:()=>newTopic(interest)},'Start a topic')),sIn,chips,tabs,list,more);
     drawChips();drawTabs();
     rpc('forum_boards').then(b=>{boards=b||[];drawChips();}).catch(()=>{});
     async function load(){if(busy||done)return;busy=true;more.replaceChildren(spinner());
