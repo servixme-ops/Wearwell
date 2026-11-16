@@ -16,6 +16,7 @@ Object.assign(IC,{
 });
 const $view=()=>document.getElementById('view'),$nav=()=>document.getElementById('nav');
 const App={teardown:null,route:'',visited:{}};
+const roomLabel=r=>{const c=((r&&r.categories)||[])[0];return c?c+' Room':'Open Room';};
 const CATS=['Music','Sports','Football','Basketball','Movies','Anime','Gaming','Fashion','Travel','Photography','Books','Technology','Lifestyle','Art','Food'];
 const EMOJI={love:'❤️',fire:'🔥',wow:'😮',clap:'👏'};
 const needAuth=why=>{if(Auth.user)return true;authSheet('signin',why||'Sign in to do that');return false;};
@@ -91,9 +92,9 @@ function rxBtn(r){
   b.onclick=()=>{if(!needAuth('Sign in to react to rooms'))return;const was=r.mine;guard(b,async()=>{await Store.react(r.id,was?null:'love');r.mine=was?null:'love';r.reactions=Math.max(0,(+r.reactions||0)+(was?-1:1));paint();});};
   return b;}
 function roomPiece(r,i){
-  const shot=OWPrev.node(r,'pshot',r.name+' by @'+r.username);
-  return h('div',{class:'piece'},r.featured?h('span',{class:'star'},'★ Featured'):null,h('button',{class:'pframe','aria-label':'Visit '+r.name,onclick:()=>go('#/@'+r.username)},shot),
-    h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,r.name),h('span',{class:'s'},'@'+r.username)),rxBtn(r),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
+  const shot=OWPrev.node(r,'pshot',roomLabel(r)+' by @'+r.username);
+  return h('div',{class:'piece'},r.featured?h('span',{class:'star'},'★ Featured'):null,h('button',{class:'pframe','aria-label':'Visit '+roomLabel(r)+' by @'+r.username,onclick:()=>go('#/@'+r.username)},shot),
+    h('div',{class:'plaque'},h('div',{class:'who'},h('b',null,'@'+r.username),h('span',{class:'s'},roomLabel(r))),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
     r.visits?h('div',{class:'vis'},r.visits+(r.visits===1?' visit':' visits')):null);
 }
 const WALL_SEED=Math.random().toString(36).slice(2,8);
@@ -133,20 +134,20 @@ async function discoverView(){
           h('span',{class:'ring'},avatarEl(u)),a?h('span',{class:'now '+a.kind},KIND[a.kind]):null,'@'+r.username);}))); };
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
-  const FL=await appFlags();
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),FL.live_spaces===false?null:h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now')),(FL.live_spaces===false||FL.sip_paint===false)?null:h('button',{class:'sp-entry pt-entry',onclick:()=>Spaces.paintHub()},h('b',null,'Sip & Paint'),h('span',null,'Paint with friends')),qi),crBox,chips,adHost,sr,sec);
+  const FL=await appFlags();const fb=OWForum.discoverBlock();
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),FL.live_spaces===false?null:h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now')),(FL.live_spaces===false||FL.sip_paint===false)?null:h('button',{class:'sp-entry pt-entry',onclick:()=>Spaces.paintHub()},h('b',null,'Sip & Paint'),h('span',null,'Paint with friends')),qi),crBox,chips,fb.el,adHost,sr,sec);
   App.teardown=()=>{OWAds.stop();clearInterval(actT);};
   const searchRun=async()=>{const q=qv.trim().toLowerCase(),my=++qn;
-    if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';return;}
-    sec.style.display='none';adHost.style.display='none';
+    if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';fb.el.style.display='';return;}
+    sec.style.display='none';adHost.style.display='none';fb.el.style.display='none';
     const pool=[...feat,...trend,...feed],seenR={},hit=pool.filter(r=>!seenR[r.id||r.username+r.name]&&(seenR[r.id||r.username+r.name]=1)&&([r.name,r.username,r.display_name,...(r.categories||[])].join(' ').toLowerCase().includes(q)));
     const sp=await OWAds.searchBlock(q);if(my!==qn)return;
     sr.replaceChildren(...[sp,h('h2',{class:'sec'},hit.length?'Results for \u201c'+qv.trim()+'\u201d':'No rooms match \u201c'+qv.trim()+'\u201d'),hit.length?h('div',{class:'ex-grid',style:{background:'none'}},hit.map(roomPiece)):h('p',{class:'f-hint',style:{padding:'0 18px'}},'Try another word, or pick an interest above.')].filter(Boolean));};
   qi.addEventListener('input',()=>{qv=qi.value;clearTimeout(qt);qt=setTimeout(searchRun,300);});
   const ok=r=>!cat||(r.categories||[]).includes(cat);
-  const tcard=r=>{return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},OWPrev.node(r,'pshot',''),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,r.name),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
+  const tcard=r=>{return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},OWPrev.node(r,'pshot',''),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,roomLabel(r)),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
   const paint=()=>{
-    chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();OWAds.stop();OWAds.banner(adHost,cat);}},c||'All')));
+    chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();fb.load(cat);OWAds.stop();OWAds.banner(adHost,cat);}},c||'All')));
     const f=feat.filter(ok),t=trend.filter(ok),rows=feed.filter(ok);
     if(!f.length&&!t.length&&!rows.length){sec.replaceChildren(empty(cat?'No '+cat+' rooms yet':'No rooms yet',cat?'Rooms can pick interests in Room settings.':'Check back soon.'));return;}
         const fresh=[...rows].sort((a,b)=>new Date(b.created_at||b.updated_at)-new Date(a.created_at||a.updated_at));
@@ -156,10 +157,17 @@ async function discoverView(){
       t.length?[h('h2',{class:'sec'},'Trending rooms'),h('div',{class:'trend'},t.map(tcard))]:null,
       rows.length?[h('h2',{class:'sec'},'New rooms'),h('div',{class:'ex-grid',style:{background:'none'}},fresh.map(roomPiece))]:null].flat().filter(Boolean));
   };
-  sec.replaceChildren(spinner());OWAds.banner(adHost,null);
+  sec.replaceChildren(spinner());OWAds.banner(adHost,null);fb.load(null);
   try{[feed,trend,feat]=await Promise.all([Store.feed(50,0,WALL_SEED),Store.trending(10).catch(()=>[]),Store.featured().catch(()=>[])]);paint();drawCreators();}catch(e){sec.replaceChildren(empty('Could not load rooms',friendlyError(e)));}
 }
 /* ---------- ME ---------- */
+function interestSheet(room,done){
+  sheet('Your room interest',(b,close)=>{
+    let pick=(room.categories||[])[0]||null;const w=h('div',{class:'chips'});const pc=()=>w.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(c===pick?' on':''),onclick:()=>{pick=c;pc();}},c+' Room')));pc();
+    const save=h('button',{class:'btn coral block',style:{marginTop:'14px'}},'Save');
+    save.onclick=()=>guard(save,async()=>{if(!pick){toast('Pick one interest','err');return;}const r=await sb.from('rooms').update({categories:[pick]}).eq('id',room.id);if(r.error)throw r.error;room.categories=[pick];toast('Your room is now a '+pick+' Room','ok');close();done&&done();});
+    b.append(h('p',{class:'f-hint',style:{margin:'0 0 10px'}},'Pick the one interest your room is about. It shows on your card on the Wall and in Discover, and you can change it any time.'),w,save);});
+}
 async function meView(){
   const v=setView(false);drawNav('me');
   if(!Auth.user){v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},logoEl(38),h('b',null,'OpenWalls'))),empty('Your room is waiting','Sign in to build your room and share it with everyone.',h('div',{style:{display:'flex',gap:'8px',justifyContent:'center'}},h('button',{class:'btn coral',onclick:()=>authSheet('signup')},'Create account'),h('button',{class:'btn',onclick:()=>authSheet('signin')},'Sign in'))));return;}
@@ -170,7 +178,7 @@ async function meView(){
     h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},room?OWPrev.node(Object.assign({},room,{id:room.id}),'pshot','Your room'):h('div',{class:'pshot ph'},'Your room is not built yet'),
       activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
-    h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
+    h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>interestSheet(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room interest'),h('b',{style:{color:'var(--coral)'}},((room.categories||[])[0])||'Pick one')):null,room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       h('button',{onclick:()=>OWPaint.myArtworks()},icon('cam'),h('span',{class:'grow'},'My artworks')),
       h('button',{onclick:()=>go('#/ads')},icon('sliders'),h('span',{class:'grow'},'Advertise on OpenWalls')),
@@ -219,13 +227,13 @@ async function shareRoom(username,name,vis){
 function roomSettings(room,done){
   sheet('Room settings',(body,close)=>{
     const nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
-    let cats=new Set(room.categories||[]);const cw=h('div',{class:'chips'});const pc=()=>cw.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(cats.has(c)?' on':''),onclick:()=>{cats.has(c)?cats.delete(c):cats.add(c);pc();}},c)));pc();
+    let cats=new Set(room.categories||[]);const cw=h('div',{class:'chips'});const pc=()=>cw.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(cats.has(c)?' on':''),onclick:()=>{const was=cats.has(c);cats.clear();if(!was)cats.add(c);pc();}},c)));pc();
     let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
     const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you and people with your invite link can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
     const hide=Object.assign({},room.theme&&room.theme.hide);const sw=h('div',{class:'list'});
     const ps=()=>sw.replaceChildren(...[['window','Window'],['door','Door'],['light','Ceiling light']].map(([k,l])=>h('button',{onclick:()=>{hide[k]?delete hide[k]:hide[k]=1;ps();}},h('span',{class:'grow'},l),h('b',null,hide[k]?'Removed':'Shown'))));ps();
     const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Interests (shown in Discover)'),cw),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Room interest (shown on the Wall and in Discover)'),cw),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
   });
 }
 
@@ -561,6 +569,9 @@ function route(){
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
+  if(hs==='forum')return OWForum.boardView(null);
+  if(hs.startsWith('forum/'))return OWForum.boardView(hs.slice(6));
+  if(hs.startsWith('topic/'))return OWForum.topicView(hs.slice(6));
   switch(hs){case'spaces':return Spaces.discover();case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();case'ads':return adsView();default:return wallView();}
 }
 window.addEventListener('hashchange',route);
