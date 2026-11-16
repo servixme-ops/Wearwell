@@ -392,7 +392,13 @@ async function paintPage(){
       h('button',{class:'btn block',onclick:()=>{if(!needAuth('Sign in to see your artworks'))return;OWPaint.myArtworks();}},'My artworks')),
     h('h2',{class:'sec',style:{marginTop:'16px'}},'Live now'),list);
   const load=()=>rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
-    list.replaceChildren(...(rows.length?rows.map(r=>h('button',{class:'sp-invite',style:{width:'100%',textAlign:'left'},onclick:()=>go('#/space/'+r.id)},h('div',null,h('b',null,r.title),h('span',{style:{display:'block'}},'Hosted by '+(r.host&&typeof r.host==='object'?person(r.host):(r.host||'a creator')))))):[h('p',{class:'f-hint'},'No sessions live right now. Host one and invite friends.')]));
+    const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
+      return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
+        h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+(n>1?' in the room':' in the room'))),
+        h('div',{class:'pn-body'},h('b',{class:'pn-t'},r.title),
+          h('div',{class:'pn-host'},hs?sp_av(hs,'xs'):null,h('span',null,'Hosted by ',h('b',null,hs?person(hs):(r.host||'a creator')))),
+          h('span',{class:'pn-join'},'Join and paint')));};
+    list.replaceChildren(...(rows.length?rows.map(pc):[h('div',{class:'pn-none'},h('span',{class:'pn-ic'},icon('palette')),h('b',null,'No sessions live right now'),h('span',null,'Host one and invite friends to paint with you.'))]));
   }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
   load();
 }
