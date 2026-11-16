@@ -192,7 +192,7 @@ async function meView(){
       h('button',{onclick:()=>OWPaint.myArtworks()},icon('cam'),h('span',{class:'grow'},'My artworks')),
       h('button',{onclick:()=>go('#/ads')},icon('sliders'),h('span',{class:'grow'},'Advertise on OpenWalls')),
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
-      h('button',{onclick:async()=>{await Auth.signOut();toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
+      h('button',{onclick:async()=>{await Auth.signOut();try{OWTv.stopMusic();}catch(e){}toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
 }
 function followSheet(uid,kind){
   sheet(kind==='followers'?'Followers':'Following',(body,close)=>{
@@ -344,13 +344,16 @@ async function editorView(){
   }
   function roomSheet(){
     sheet('Your room',(body,close)=>{
-      const sizes=h('div'),themes=h('div',{class:'themes'}),nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
+      const sizes=h('div'),themes=h('div',{class:'themes'}),floors=h('div',{class:'fl-row'}),nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
       const paint=()=>{
         sizes.replaceChildren(...Object.entries(OW.SIZES).map(([k,s])=>h('button',{class:'size-opt'+(R.room.size===k?' on':''),onclick:()=>{R.setSize(k);paint();}},h('i',{class:'box',style:{width:(26+s.w*3)+'px',height:(20+s.d*3)+'px'}}),h('div',null,h('b',null,s.label),h('span',null,s.w+' × '+s.d+' m, '+s.h+' m high')))));
         themes.replaceChildren(...Object.entries(OW.THEMES).map(([k,t])=>h('button',{class:'theme'+((R.room.theme&&R.room.theme.key||'lagos')===k?' on':''),onclick:()=>{R.setTheme(k);paint();}},h('i',{style:{background:t.wall,'--f':t.floor}}),t.name)));
+        const cur=(R.room.theme&&R.room.theme.floor)||'',FC=[['','Style default'],['#ffffff','White'],['#111111','Black'],['#8a8f98','Grey'],['#f1e6d0','Cream'],['#d8b98a','Light wood'],['#7a5230','Dark wood'],['#c9a26b','Sand'],['#3b5bdb','Blue'],['#2f9e6f','Green'],['#e8749a','Pink'],['#c0392b','Red'],['#7b4dff','Purple']];
+        floors.replaceChildren(...FC.map(([c,l])=>h('button',{class:'fl-sw'+(cur.toLowerCase()===c?' on':''),'aria-label':l,title:l,onclick:()=>{R.setFloor(c);paint();}},h('i',{style:{background:c||'repeating-linear-gradient(45deg,#e6dcc8,#e6dcc8 5px,#f6efe4 5px,#f6efe4 10px)'}}),h('span',null,l))),
+          h('label',{class:'fl-sw fl-own'+(cur&&!FC.some(x=>x[0]===cur.toLowerCase())?' on':'')},h('i',{style:{background:'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)'}}),h('span',null,'Your colour'),h('input',{type:'color',value:/^#[0-9a-f]{6}$/i.test(cur)?cur:'#ffffff',onchange:e=>{R.setFloor(e.target.value);paint();}})));
       };paint();
       nm.addEventListener('change',()=>{room.name=nm.value.trim()||'My room';R.room.name=room.name;titleEl.textContent=room.name;R.changed();});
-      body.append(field('Room name',nm),h('div',{class:'f-label',style:{margin:'4px 0 8px'}},'Room size'),sizes,h('div',{class:'f-label',style:{margin:'12px 0 8px'}},'Style'),themes,
+      body.append(field('Room name',nm),h('div',{class:'f-label',style:{margin:'4px 0 8px'}},'Room size'),sizes,h('div',{class:'f-label',style:{margin:'12px 0 8px'}},'Style'),themes,h('div',{class:'f-label',style:{margin:'14px 0 8px'}},'Floor colour'),floors,
         h('button',{class:'btn block',style:{marginTop:'14px'},onclick:()=>{close();roomSettings(Object.assign(room,{name:R.room.name||room.name,theme:R.room.theme}),()=>{R.room.categories=room.categories;R.room.theme=room.theme;R.buildShell();R.changed();});}},icon('sliders'),'Name & interests'));
     });
   }
@@ -423,7 +426,7 @@ async function visitView(hs0){
   host.replaceChildren();document.title=d.room.name+' · @'+o.username+' · OpenWalls';
   let R=null;
   let hud=null;
-  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+hs0;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{OWTv.close(d.room.id);hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
+  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+hs0;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{OWTv.close(d.room.id);OWTv.park();hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
     R.liveStart({roomId:d.room.id,uid:Auth.user&&Auth.user.id,ownerId:o.id,cb:{onTap:info=>info.owner?ownerSheet(o,cn):sheet(info.name,(b,close)=>{b.append(info.username?h('button',{class:'btn coral block',onclick:()=>{close();go('#/@'+info.username);}},'View profile'):h('p',{class:'tag'},'Visiting this room'));})}});}
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}

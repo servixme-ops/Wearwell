@@ -42,7 +42,7 @@ class OWRoom{
     rows.forEach((r,ri)=>{const tw=r.reduce((a,i)=>a+dim(i).w,0)+gap*(r.length-1);let x=-tw/2;y-=rh[ri]/2;r.forEach((i,k)=>{const d=dim(i);i.x=x+d.w/2;i.y=y;i.rot=0;x+=d.w+gap;this.clampD(i);this.place(i);});y-=rh[ri]/2+gap;});
     this.refreshHelper();this.changed();return list.length;}
   get W(){return this.room.width}get D(){return this.room.depth}get H(){return this.room.height}
-  get th(){return Object.assign({},OW.THEMES.lagos,OW.THEMES[this.room.theme&&this.room.theme.key]||{})}
+  get th(){const t=Object.assign({},OW.THEMES.lagos,OW.THEMES[this.room.theme&&this.room.theme.key]||{}),f=this.room.theme&&this.room.theme.floor;if(typeof f==='string'&&/^#[0-9a-f]{6}$/i.test(f))t.floor=f;return t}
   /* ----- lights ----- */
   lights(){
     this.hemi=new THREE.HemisphereLight(0xfff1de,0x7a5a46,.85);this.sun=new THREE.DirectionalLight(0xfff0d6,.75);
@@ -162,6 +162,7 @@ class OWRoom{
   refreshHelper(){const n=this.sel&&this.nodes.get(this.sel);if(n&&n.helper){n.helper.update();this.fitGlow(n);}}
   fitGlow(n){if(!n.glow)return;n.group.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(n.group),z=new THREE.Vector3();b.getSize(z);n.glow.scale.set(z.x+.05,z.y+.05,z.z+.05);b.getCenter(n.glow.position);}
   changed(){this.markDirty(true);this.cb.onChange&&this.cb.onChange();}
+  setFloor(c){this.pushHist();const t=Object.assign({},this.room.theme);if(c)t.floor=c;else delete t.floor;this.room.theme=t;this.buildShell();this.changed();}
   setTheme(key){this.pushHist();this.room.theme=Object.assign({},this.room.theme,{key});this.buildShell();this.items.forEach(i=>{if(i.kind==='furniture'&&(i.type==='rug'||i.type==='rug_round'))this.remount(i);});this.changed();}
   setSize(key,dims){this.pushHist();const s=dims||OW.SIZES[key];this.room.size=key;this.room.width=s.w;this.room.depth=s.d;this.room.height=s.h;this.buildShell();
     this.items.forEach(i=>{if(i.kind==='furniture')this.settle(i);else{this.clampD(i);this.place(i);}});this.refreshHelper();this.resetCamera();this.changed();}
