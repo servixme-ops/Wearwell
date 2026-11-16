@@ -461,7 +461,7 @@ async function visitView(hs0){
 function socialBar(d,o){
   let soc={counts:{},mine:null,comments:0};const room=d.room;
   const total=()=>Object.values(soc.counts).reduce((a,b)=>a+(+b||0),0);
-  const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('chat'),h('span',null,'Message')),tp=h('button',{class:'dk wide','aria-label':'Topics'});let tpN=0;const paintTp=()=>tp.replaceChildren(icon('chat'),h('span',null,tpN?'Topics '+tpN:'Topics'));paintTp();
+  const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('chat'),h('span',null,'Message')),tp=h('button',{class:'dk wide','aria-label':'Topics'});let tpN=0;const paintTp=()=>tp.replaceChildren(icon('topics'),h('span',null,tpN?'Topics '+tpN:'Topics'));paintTp();
   OWForum.userData(room.owner_id).then(x=>{tpN=x.count||0;paintTp();});
   const paint=()=>{rx.replaceChildren(h('span',{class:'em'},soc.mine?EMOJI[soc.mine]:'♡'),h('span',null,total()||'React'));rx.classList.toggle('on',!!soc.mine);cm.replaceChildren(icon('chat'),h('span',null,soc.comments?soc.comments+(soc.comments==1?' comment':' comments'):'Comment'));};
   paint();Store.social(room.id).then(x=>{soc=x;paint();}).catch(()=>{});
