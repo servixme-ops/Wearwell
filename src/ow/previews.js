@@ -15,7 +15,7 @@ const OWPrev=(()=>{
     const a=Array.isArray(r.data)?r.data:[];cache.set(id,a);return a;
   }
   function draw(cv,r,its){
-    const th=(OW.THEMES[r.theme&&r.theme.key]||OW.THEMES.lagos);
+    const th=Object.assign({},OW.THEMES[r.theme&&r.theme.key]||OW.THEMES.lagos);if(r.theme&&/^#[0-9a-f]{6}$/i.test(r.theme.floor||''))th.floor=r.theme.floor;
     const W=+r.width||OW.SIZES.medium.w,D=+r.depth||OW.SIZES.medium.d;
     const cw=cv.width,ch=cv.height,pad=14,wt=11;
     const s=Math.min((cw-pad*2-wt*2)/W,(ch-pad*2-wt*2)/D);

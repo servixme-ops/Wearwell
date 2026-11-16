@@ -119,7 +119,8 @@ const OWTv=(()=>{
   const ADAPTERS={yt:A_yt,ytl:(sl,ev)=>A_yt(sl,ev,true),vm:A_vm,fl:A_fl,em:A_em,sc:A_sc};
 
   function open(o){
-    const ck=(o.music?'m:':'')+o.roomId,old=cur[ck];if(old&&old.alive){old.addOrFocus(o.vid,o.title);return old;}
+    const ck=(o.music?'m:':'')+o.roomId,old=cur[ck];if(old&&old.alive){old.addOrFocus(o.vid,o.title);if(o.music&&old.unpark)old.unpark();return old;}
+    if(o.music){Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&k!==ck&&cur[k]&&cur[k].alive)cur[k].destroy();});o=Object.assign({},o,{host:musicHost()});}
     const me=o.uid||('g'+Math.random().toString(36).slice(2,8));
     let S={q:[],i:0,play:true,pos:0},ad=null,adP=null,applySeq=0,loadedId=null,busyUntil=0,lead=false,alive=true,got=false,ch=null,hb=0,tick=0,lastRx=0,seeking=false;
     const busy=(ms)=>{busyUntil=Date.now()+(ms||900);};
@@ -318,10 +319,15 @@ const OWTv=(()=>{
     render();
 
     const api={alive:true,
+      park(){if(!o.music||!alive)return;box.classList.add('parked');if(!box.classList.contains('mini'))mn.click();},
+      unpark(){box.classList.remove('parked');if(box.classList.contains('mini'))mn.click();},
       addOrFocus(src){if(!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
       destroy(){if(!alive)return;alive=false;if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
     cur[ck]=api;return api;
   }
-  return{open,parse,close:id=>{cur[id]&&cur[id].destroy();cur['m:'+id]&&cur['m:'+id].destroy();},_state:()=>cur};
+  /* music outlives the room page: it lives in its own holder on the page and is parked as a small bar until the person stops it */
+  function musicHost(){let m=document.getElementById('ow-music-host');if(!m){m=document.createElement('div');m.id='ow-music-host';document.body.appendChild(m);}return m;}
+  const park=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].park)cur[k].park();});};
+  return{open,parse,park,close:id=>{cur[id]&&cur[id].destroy();},stopMusic:()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k])cur[k].destroy();});},_state:()=>cur};
 })();
