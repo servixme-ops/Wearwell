@@ -1,11 +1,11 @@
 /* OpenWalls service worker: offline shell, never caches API or payment traffic. */
-const VER='openwalls-v79';
-const SHELL=['vendor/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','openwalls.css','manifest.webmanifest','src/config.js','src/logo.js','src/ui.js','src/util.js','src/api.js','src/ow/ads.js','src/ow/catalog.js','src/ow/avatar-data.js','src/ow/glb-lite.js','src/ow/avatar-wear.js','src/ow/avatar.js','assets/avatars/female.glb','assets/avatars/male.glb','src/ow/room.js','src/ow/walk.js','src/ow/store.js','src/ow/tv.js','src/ow/previews.js','src/ow/app.js','src/ow/avatar-ui.js','src/ow/presence.js','src/ow/podcast.js','src/ow/sippaint.js','src/ow/forum.js','src/ow/spaces.js','https://cdn.jsdelivr.net/npm/livekit-client@2.5.7/dist/livekit-client.umd.js','src/pwa.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'];
+const VER='openwalls-v80';
+const SHELL=['vendor/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','openwalls.css','manifest.webmanifest','src/config.js','src/logo.js','src/ui.js','src/util.js','src/api.js','src/ow/ads.js','src/ow/catalog.js','src/ow/avatar-data.js','src/ow/glb-lite.js','src/ow/avatar-wear.js','src/ow/avatar.js','src/ow/room.js','src/ow/walk.js','src/ow/store.js','src/ow/tv.js','src/ow/previews.js','src/ow/app.js','src/ow/avatar-ui.js','src/ow/presence.js','src/ow/podcast.js','src/ow/sippaint.js','src/ow/forum.js','src/ow/spaces.js','https://cdn.jsdelivr.net/npm/livekit-client@2.5.7/dist/livekit-client.umd.js','src/pwa.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{
   /* Only take over from the old worker when every file of the app itself is saved; on a weak network a half-filled
      cache would leave a blank page, so the install fails and the old worker and its cache keep working. */
   const c=await caches.open(VER),olds=(await caches.keys()).filter(k=>k!==VER&&k!=='ow-glb'),fails=[];
-  await Promise.all(SHELL.map(async u=>{try{await c.add(new Request(u,{cache:'reload'}));}catch(err){let m=null;for(const k of olds){m=await (await caches.open(k)).match(u);if(m)break;}
+  await Promise.all(SHELL.map(async u=>{try{let ok=false,last;for(let t=0;t<3&&!ok;t++){try{await c.add(new Request(u,{cache:'reload'}));ok=true;}catch(x){last=x;await new Promise(r=>setTimeout(r,600*(t+1)));}}if(!ok)throw last;}catch(err){let m=null;for(const k of olds){m=await (await caches.open(k)).match(u);if(m)break;}
     if(m)await c.put(u,m);else if(!/^https?:/.test(u)&&!/\.glb$/.test(u))fails.push(u);}}));
   if(fails.length)throw new Error('incomplete shell: '+fails.slice(0,3).join(','));
   self.__hadOld=olds.length>0;await self.skipWaiting();})());});
