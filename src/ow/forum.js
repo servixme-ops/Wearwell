@@ -95,5 +95,11 @@ const OWForum=(()=>{
       b.append(h('div',{class:'f-label'},'Interest room'),chipsEl,h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Title'),ti,h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Your post'),tx,go_,h('p',{class:'f-hint',style:{marginTop:'8px'}},'Be kind and keep it on topic. Posts can be reported and removed.'));
     });
   }
-  return{discoverBlock,boardView,topicView,newTopic,row};
+  /* Discover search: topics whose title or text match */
+  async function search(q){
+    let rows=[];try{rows=await rpc('forum_search',{p_q:q,p_limit:8})||[];}catch(e){return null;}
+    if(!rows.length)return null;
+    return h('div',{class:'fm-block'},h('h2',{class:'sec'},'Topics'),h('div',{class:'fm-list'},rows.map(t=>row(t,true))));
+  }
+  return{discoverBlock,boardView,topicView,newTopic,row,search};
 })();
