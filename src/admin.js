@@ -3,7 +3,7 @@ const app=document.getElementById('app');
 const RC={calc(look,items){const w=look.wear_count||0;const rows=items.map(i=>({price:Number(i.price)||0}));return{total:rows.reduce((a,r)=>a+r.price,0)};},money:(n,cur)=>fmtMoney(Math.round((Number(n)||0)*100)/100,cur||'NGN')};
 const Ads={async verify(reference){const r=await sb.functions.invoke('paystack-verify',{body:{reference}});let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(_){}}if(!d)throw new Error('Could not verify payment.');if(d.error&&!d.paid)throw new Error(d.message||'Could not verify payment.');return d;}};
 function thumb(look,w,h_){const c=mk(w,h_),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h_);drawFigure(g,look,w/2,h_*.05,h_*.9);return c;}
-const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['owctl','Spaces & Sip & Paint'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
+const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['owctl','Spaces, Paint & Topics'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
 let tab='overview',counts={};
 function loginView(msg){
   const em=h('input',{type:'email',placeholder:'Email',autocomplete:'email'}),pw=h('input',{type:'password',placeholder:'Password',autocomplete:'current-password'}),err=h('p',{class:'err-t'},msg||'');
@@ -70,6 +70,7 @@ async function owctl(main){
   if(!bans.length)out.push(empty('Nobody is blocked'));
   bans.forEach(b=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('b',null,'@'+(b.username||b.user_id.slice(0,8))),h('div',{class:'muted small-t'},(b.reason||'No reason given')+' · '+timeAgo(b.created_at)+' ago')),
     h('div',{class:'acts'},h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_space_ban',{p_user:b.user_id,p_on:false});toast('Hosting allowed again','ok');again();})},'Allow again')))));
+  const fbox=h('div');out.push(...sec('Topics & discussions','Pin, lock or hide topics. “Reported” shows topics or replies that people flagged.'),fbox);forumAdmin(fbox,rpc);
   out.push(...sec('Sip & Paint artworks','Paintings people saved to “My artworks”. Delete anything inappropriate.'));
   if(!art.length)out.push(empty('No artworks yet'));
   const grid=h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:'12px'}});
@@ -78,6 +79,24 @@ async function owctl(main){
     h('button',{class:'btn danger',style:{width:'100%'},onclick:e=>guard(e.currentTarget,async()=>{if(!await confirmBox('Delete this artwork?','It disappears from the owner’s My artworks.','Delete',true))return;await rpc('admin_paint_artwork_delete',{p_id:a.id});again();})},'Delete'))));
   out.push(grid);
   box.replaceChildren(...out);
+}
+
+async function forumAdmin(box,rpc){
+  let filter='reported';
+  const draw=async()=>{
+    box.replaceChildren(h('div',{class:'row-flex',style:{gap:'6px',margin:'0 0 8px'}},...[['reported','Reported'],['all','Latest'],['hidden','Hidden']].map(([k,l])=>h('button',{class:'btn'+(k===filter?' primary':''),onclick:()=>{filter=k;draw();}},l))),spinner());
+    let rows=[];try{rows=await rpc('admin_forum',{p_filter:filter})||[];}catch(e){box.append(h('p',{class:'err-t'},errMsg(e)));return;}
+    box.lastChild.remove();
+    if(!rows.length){box.append(empty(filter==='reported'?'Nothing reported':'No topics'));return;}
+    rows.forEach(t=>box.append(h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,t.title),h('span',{class:'chipS s-pending'},t.interest),t.pinned?h('span',{class:'chipS s-approved'},'pinned'):null,t.locked?h('span',{class:'chipS s-rejected'},'locked'):null,t.hidden?h('span',{class:'chipS s-rejected'},'hidden'):null,t.reports>0?h('span',{class:'chipS s-rejected'},t.reports+' report'+(t.reports>1?'s':'')):null),
+      h('div',{class:'muted small-t'},t.body),h('div',{class:'muted small-t'},'@'+(t.author||'?')+' · '+t.replies+' replies · '+t.views+' views · '+timeAgo(t.created_at)+' ago')),
+      h('div',{class:'acts'},
+        h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_forum_set',{p_id:t.id,p_pinned:!t.pinned});draw();})},t.pinned?'Unpin':'Pin'),
+        h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_forum_set',{p_id:t.id,p_locked:!t.locked});draw();})},t.locked?'Unlock':'Lock'),
+        t.reports>0?h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_forum_clear_reports',{p_id:t.id});draw();})},'Dismiss reports'):null,
+        h('button',{class:'btn '+(t.hidden?'primary':'danger'),onclick:e=>guard(e.currentTarget,async()=>{if(!t.hidden&&!await confirmBox('Hide this topic?','It disappears for everyone.','Hide',true))return;await rpc('admin_forum_set',{p_id:t.id,p_hidden:!t.hidden});draw();})},t.hidden?'Restore':'Hide')))));
+  };
+  draw();
 }
 /* ---- ads ---- */
 async function ads(main){
