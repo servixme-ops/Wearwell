@@ -389,8 +389,7 @@ async function paintPage(){
   v.append(h('div',{class:'pg-head fm-head'},h('div',{class:'row-flex'},back,h('div',{class:'brand'},h('b',null,'Sip & Paint'))),
       h('p',{class:'tag'},'Paint with friends. The host picks a picture, everyone paints their own canvas, and you share the results at the end.')),
     h('div',{style:{padding:'0 18px 6px',display:'grid',gap:'8px'}},
-      h('button',{class:'btn coral block',onclick:()=>createSheet(()=>{},'sipandpaint')},'Host a Sip & Paint'),
-      h('button',{class:'btn block',onclick:()=>{if(!needAuth('Sign in to see your artworks'))return;OWPaint.myArtworks();}},'My artworks')),
+      h('button',{class:'btn coral block',onclick:()=>createSheet(()=>{},'sipandpaint')},'Host a Sip & Paint')),
     h('h2',{class:'sec',style:{marginTop:'16px'}},'Live now'),list);
   const load=()=>rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
     const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
