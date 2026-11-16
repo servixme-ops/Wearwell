@@ -505,3 +505,4 @@ button.fm-int{border:0}
 .piece .plaque .visit{padding:6px 10px;flex:none}
 
 .list button.upd-ok{opacity:.75}.list button.upd-ok .f-hint{color:#1fa56a;font-weight:800}
+.fm-entry{background:linear-gradient(135deg,#1fa56a,#0e7c8a);margin-top:8px}.fm-entry b{font:800 15px var(--disp);color:#fff}.fm-entry span{color:rgba(255,255,255,.8)}

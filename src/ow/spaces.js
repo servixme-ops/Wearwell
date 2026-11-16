@@ -376,15 +376,22 @@ async function room(id){
 }
 
 /* Sip & Paint hub: live sessions + host your own */
-function paintHub(){
-  sheet('Sip & Paint',(body,close)=>{
-    body.append(h('p',{class:'f-hint',style:{margin:'0 0 10px'}},'Paint with friends. The host picks a picture, everyone paints their own canvas, and you share the results at the end.'));
-    const host=h('button',{class:'btn coral block',onclick:()=>{close();createSheet(()=>{},'sipandpaint');}},'Host a Sip & Paint');
-    const list=h('div',{class:'sp-list'},spinner());body.append(host,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Live now'),list);
-    rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
-      list.replaceChildren(...(rows.length?rows.map(r=>h('button',{class:'sp-invite',style:{width:'100%',textAlign:'left'},onclick:()=>{close();go('#/space/'+r.id);}},h('div',null,h('b',null,r.title),h('span',{style:{display:'block'}},'Hosted by '+(r.host&&typeof r.host==='object'?person(r.host):(r.host||'a creator'))))),h('span',null)):[h('p',{class:'f-hint'},'No sessions live right now. Host one and invite friends.')]));
-    }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
-  });
+function paintHub(){go('#/paint');}
+/* Sip & Paint has its own page */
+async function paintPage(){
+  const v=setView(false);drawNav('discover');document.title='OpenWalls \u00b7 Sip & Paint';
+  const list=h('div',{class:'sp-list',style:{padding:'0 18px'}},spinner());
+  const back=h('button',{class:'fm-back','aria-label':'Back',onclick:()=>{if(history.length>1)history.back();else go('#/discover');}},'\u2039');
+  v.append(h('div',{class:'pg-head fm-head'},h('div',{class:'row-flex'},back,h('div',{class:'brand'},h('b',null,'Sip & Paint'))),
+      h('p',{class:'tag'},'Paint with friends. The host picks a picture, everyone paints their own canvas, and you share the results at the end.')),
+    h('div',{style:{padding:'0 18px 6px',display:'grid',gap:'8px'}},
+      h('button',{class:'btn coral block',onclick:()=>createSheet(()=>{},'sipandpaint')},'Host a Sip & Paint'),
+      h('button',{class:'btn block',onclick:()=>{if(!needAuth('Sign in to see your artworks'))return;OWPaint.myArtworks();}},'My artworks')),
+    h('h2',{class:'sec',style:{marginTop:'16px'}},'Live now'),list);
+  const load=()=>rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
+    list.replaceChildren(...(rows.length?rows.map(r=>h('button',{class:'sp-invite',style:{width:'100%',textAlign:'left'},onclick:()=>go('#/space/'+r.id)},h('div',null,h('b',null,r.title),h('span',{style:{display:'block'}},'Hosted by '+(r.host&&typeof r.host==='object'?person(r.host):(r.host||'a creator')))))):[h('p',{class:'f-hint'},'No sessions live right now. Host one and invite friends.')]));
+  }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
+  load();
 }
-return{discover,room,createSheet,paintHub};
+return{discover,room,createSheet,paintHub,paintPage};
 })();

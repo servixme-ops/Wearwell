@@ -134,12 +134,12 @@ async function discoverView(){
           h('span',{class:'ring'},avatarEl(u)),a?h('span',{class:'now '+a.kind},KIND[a.kind]):null,'@'+r.username);}))); };
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
-  const FL=await appFlags();const fb=OWForum.discoverBlock();
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),FL.live_spaces===false?null:h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now')),(FL.live_spaces===false||FL.sip_paint===false)?null:h('button',{class:'sp-entry pt-entry',onclick:()=>Spaces.paintHub()},h('b',null,'Sip & Paint'),h('span',null,'Paint with friends')),qi),crBox,chips,fb.el,adHost,sr,sec);
+  const FL=await appFlags();
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),FL.live_spaces===false?null:h('button',{class:'sp-entry',onclick:()=>go('#/spaces')},h('i'),'Live Spaces',h('span',null,'Listen in now')),(FL.live_spaces===false||FL.sip_paint===false)?null:h('button',{class:'sp-entry pt-entry',onclick:()=>go('#/paint')},h('b',null,'Sip & Paint'),h('span',null,'Paint with friends')),h('button',{class:'sp-entry fm-entry',onclick:()=>go('#/forum')},h('b',null,'Topics & discussions'),h('span',null,'Talk with people')),qi),crBox,chips,adHost,sr,sec);
   App.teardown=()=>{OWAds.stop();clearInterval(actT);};
   const searchRun=async()=>{const q=qv.trim().toLowerCase(),my=++qn;
-    if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';fb.el.style.display='';return;}
-    sec.style.display='none';adHost.style.display='none';fb.el.style.display='none';
+    if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';return;}
+    sec.style.display='none';adHost.style.display='none';
     const pool=[...feat,...trend,...feed],seenR={},hit=pool.filter(r=>!seenR[r.id||r.username+r.name]&&(seenR[r.id||r.username+r.name]=1)&&([r.name,r.username,r.display_name,...(r.categories||[])].join(' ').toLowerCase().includes(q)));
     const [sp,tp]=await Promise.all([OWAds.searchBlock(q),OWForum.search(q)]);if(my!==qn)return;
     sr.replaceChildren(...[sp,tp,h('h2',{class:'sec'},hit.length?'Results for \u201c'+qv.trim()+'\u201d':(tp?'No rooms match \u201c':'No rooms match \u201c')+qv.trim()+'\u201d'),hit.length?h('div',{class:'ex-grid',style:{background:'none'}},hit.map(roomPiece)):h('p',{class:'f-hint',style:{padding:'0 18px'}},'Try another word, or pick an interest above.')].filter(Boolean));};
@@ -147,7 +147,7 @@ async function discoverView(){
   const ok=r=>!cat||(r.categories||[]).includes(cat);
   const tcard=r=>{return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},OWPrev.node(r,'pshot',''),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,roomLabel(r)),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
   const paint=()=>{
-    chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();fb.load(cat);OWAds.stop();OWAds.banner(adHost,cat);}},c||'All')));
+    chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();OWAds.stop();OWAds.banner(adHost,cat);}},c||'All')));
     const f=feat.filter(ok),t=trend.filter(ok),rows=feed.filter(ok);
     if(!f.length&&!t.length&&!rows.length){sec.replaceChildren(empty(cat?'No '+cat+' rooms yet':'No rooms yet',cat?'Rooms can pick interests in Room settings.':'Check back soon.'));return;}
         const fresh=[...rows].sort((a,b)=>new Date(b.created_at||b.updated_at)-new Date(a.created_at||a.updated_at));
@@ -157,7 +157,7 @@ async function discoverView(){
       t.length?[h('h2',{class:'sec'},'Trending rooms'),h('div',{class:'trend'},t.map(tcard))]:null,
       rows.length?[h('h2',{class:'sec'},'New rooms'),h('div',{class:'ex-grid',style:{background:'none'}},fresh.map(roomPiece))]:null].flat().filter(Boolean));
   };
-  sec.replaceChildren(spinner());OWAds.banner(adHost,null);fb.load(null);
+  sec.replaceChildren(spinner());OWAds.banner(adHost,null);
   try{[feed,trend,feat]=await Promise.all([Store.feed(50,0,WALL_SEED),Store.trending(10).catch(()=>[]),Store.featured().catch(()=>[])]);paint();drawCreators();}catch(e){sec.replaceChildren(empty('Could not load rooms',friendlyError(e)));}
 }
 /* ---------- ME ---------- */
@@ -579,6 +579,7 @@ function route(){
   if(hs==='welcome'){history.replaceState(null,'','#/wall');App.route='wall';return wallView?wallView():discoverView();}
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
+  if(hs==='paint')return Spaces.paintPage();
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
   if(hs==='forum')return OWForum.boardView(null);
   if(hs.startsWith('forum/'))return OWForum.boardView(hs.slice(6));
