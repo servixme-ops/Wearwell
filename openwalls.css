@@ -546,3 +546,4 @@ button.fm-int{border:0}
 
 
 .sp-has3d:not(.sp-paintroom) .sp-scroll{padding-top:64px}
+.ds-search{width:calc(100% - 36px);margin:4px 18px 6px}
