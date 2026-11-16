@@ -168,6 +168,14 @@ function interestSheet(room,done){
     save.onclick=()=>guard(save,async()=>{if(!pick){toast('Pick one interest','err');return;}const r=await sb.from('rooms').update({categories:[pick]}).eq('id',room.id);if(r.error)throw r.error;room.categories=[pick];toast('Your room is now a '+pick+' Room','ok');close();done&&done();});
     b.append(h('p',{class:'f-hint',style:{margin:'0 0 10px'}},'Pick the one interest your room is about. It shows on your card on the Wall and in Discover, and you can change it any time.'),w,save);});
 }
+function updRow(){
+  const hint=h('span',{class:'f-hint'},'Checking\u2026'),lab=h('span',{class:'grow'},'App version');let st='unknown';
+  const b=h('button',{onclick:()=>{if(st==='current'){toast('You already have the latest version','ok');return;}PWA.refreshNow();}},icon('refresh'),lab,hint);
+  PWA.versionInfo().then(i=>{st=i.state;
+    if(st==='current'){lab.textContent='You have the latest version';hint.textContent='\u2713 Up to date';b.classList.add('upd-ok');}
+    else if(st==='old'){lab.textContent='A new version is available';hint.textContent='Tap to update';}
+    else{lab.textContent='Get the latest version';hint.textContent='Reloads the app';}});
+  return b;}
 async function meView(){
   const v=setView(false);drawNav('me');
   if(!Auth.user){v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},logoEl(38),h('b',null,'OpenWalls'))),empty('Your room is waiting','Sign in to build your room and share it with everyone.',h('div',{style:{display:'flex',gap:'8px',justifyContent:'center'}},h('button',{class:'btn coral',onclick:()=>authSheet('signup')},'Create account'),h('button',{class:'btn',onclick:()=>authSheet('signin')},'Sign in'))));return;}
@@ -180,7 +188,7 @@ async function meView(){
       activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>interestSheet(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room interest'),h('b',{style:{color:'var(--coral)'}},((room.categories||[])[0])||'Pick one')):null,room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
-      h('button',{onclick:()=>PWA.refreshNow()},icon('refresh'),h('span',{class:'grow'},'Get the latest version'),h('span',{class:'f-hint'},'Reloads the app')),
+      updRow(),
       h('button',{onclick:()=>OWPaint.myArtworks()},icon('cam'),h('span',{class:'grow'},'My artworks')),
       h('button',{onclick:()=>go('#/ads')},icon('sliders'),h('span',{class:'grow'},'Advertise on OpenWalls')),
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
