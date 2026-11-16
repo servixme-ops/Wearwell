@@ -219,6 +219,7 @@ async function room(id){
     if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));on=all.slice(0,4);ls=all.slice(4);}
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},'No listeners yet. Share the link to invite people.')]));
+    const sc=crowd.parentNode;if(sc&&sc.classList)sc.classList.toggle('nol',!ls.length);
     metaEl.replaceChildren(...[h('span',{class:'sp-live'},h('i'),'LIVE'),h('span',{class:'sp-cat'},catLabel(D.space.category)),D.space.visibility==='private'&&h('span',{class:'sp-lock'},icon('lock')),h('span',{class:'sp-count'},icon('mic'),String(on.length),' · ',icon('people'),String(ls.length))].filter(Boolean));
   }
   const avCfg=p=>{try{if(p.avatar)return OWA.migrate(p.avatar);}catch(e){}let n=0;for(const c of p.id)n=(n*31+c.charCodeAt(0))|0;return OWA.def(n&1?'m':'f');};
