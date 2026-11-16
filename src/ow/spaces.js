@@ -117,7 +117,8 @@ async function discover(){
   const v=setView(false);drawNav('discover');let tab='live',cat='';
   const tabs=h('div',{class:'sp-tabs'}),chips=h('div',{class:'scrollx'}),list=h('div',{class:'sp-cards'}),inv=h('div');
   const startBtn=h('button',{class:'btn coral small',onclick:()=>createSheet(t=>{tab=t;load();})},icon('plus'),' Start');
-  v.append(h('div',{class:'pg-head sp-head'},h('div',null,h('div',{class:'brand'},h('b',null,'Live Spaces')),h('p',{class:'tag'},'Drop in on conversations happening now.')),startBtn),inv,tabs,chips,list);
+  const bk=h('button',{class:'fm-back','aria-label':'Back',onclick:()=>{if(history.length>1&&App.hadRoute)history.back();else go('#/discover');}},'\u2039');
+  v.append(h('div',{class:'pg-head sp-head'},h('div',{class:'row-flex'},bk,h('div',null,h('div',{class:'brand'},h('b',null,'Live Spaces')),h('p',{class:'tag'},'Drop in on conversations happening now.'))),startBtn),inv,tabs,chips,list);
   const T=[['live','Live now'],['popular','Popular'],['following','Following'],['upcoming','Upcoming']];
   const card=s=>{
     const live=s.status==='live',mine=Auth.user&&s.host.id===Auth.user.id;
