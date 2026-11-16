@@ -530,3 +530,5 @@ button.fm-int{border:0}
 .sp-view .sp-msg{color:#fff}.sp-view .sp-msg b{color:var(--sun)}.sp-view .sp-msg.me b{color:var(--mint)}
 .sp-view .sp-chat .cin input{background:#fff!important;color:#1d1a2b!important;border:0!important}.sp-view .sp-chat .cin input::placeholder{color:rgba(29,26,43,.5)}
 .sp-has3d .sp-scroll{bottom:152px}
+
+.sp-has3d .sp-chat{bottom:166px}.sp-has3d .sp-scroll{bottom:170px}
