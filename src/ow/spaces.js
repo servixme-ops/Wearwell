@@ -264,7 +264,7 @@ async function room(id){
     bar.replaceChildren(...btns);
   }
   function paintTop(){
-    top.replaceChildren(h('button',{class:'rbtn','aria-label':'Minimise',onclick:leave},icon('chevD')),
+    top.replaceChildren(h('button',{class:'rbtn','aria-label':'Back',onclick:leave},icon('back')),
       h('button',{class:'sp-hostline',onclick:()=>go('#/@'+D.host.username)},sp_av(D.host,'xs'),h('span',null,'Hosted by ',h('b',null,person(D.host)))),
       h('button',{class:'rbtn','aria-label':'More',onclick:menu},icon('more')));
     titleEl.textContent=D.space.title;
@@ -309,7 +309,8 @@ async function room(id){
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);
     if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
     try{await rpc('space_leave',{p_space:id});}catch(e){}
-    go('#/spaces');
+    /* replace the room's history entry so Back from the list never drops you into the session again */
+    location.replace(paintMode()?'#/paint':'#/spaces');
   }
   async function finish(msg){
     const wasPaint=paintMode(),title=D&&D.space&&D.space.title;
