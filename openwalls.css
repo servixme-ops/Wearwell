@@ -423,7 +423,7 @@ body.tv-rotated .dock,body.tv-rotated .rtop{visibility:hidden}
 .pt-hud>*{pointer-events:auto}
 .pt-hb{padding:10px 16px;border-radius:99px;border:0;background:rgba(255,255,255,.92);color:#1d1a2b;font:800 14px var(--disp);box-shadow:0 6px 16px -6px rgba(0,0,0,.5)}.pt-hb.coral{background:var(--coral);color:#fff}
 .pt-hs{flex-basis:100%;text-align:center;color:#fff;font:700 12.5px var(--disp);text-shadow:0 1px 6px rgba(0,0,0,.7)}
-.sp-has3d .sp-scroll{bottom:130px;max-height:22%;padding:10px 14px 6px;background:rgba(15,10,30,.55);border-radius:16px 16px 0 0}.sp-has3d .sp-scroll.nol{display:none}.sp-has3d .sp-chat{bottom:130px}.sp-has3d .sp-chat.open{border-radius:16px 16px 0 0}
+.sp-has3d .sp-scroll{bottom:130px;max-height:22%;padding:10px 14px 6px;background:rgba(15,10,30,.55);border-radius:16px 16px 0 0}.sp-has3d .sp-scroll.nol{display:flex;align-items:center;gap:10px;max-height:none;padding:7px 14px;background:rgba(15,10,30,.45)}.sp-has3d .sp-scroll.nol .sp-h{margin:0}.sp-has3d .sp-scroll.nol .sp-crowd{display:block}.sp-has3d .sp-scroll.nol .tag{margin:0;font-size:12.5px;color:#fff}.sp-has3d .sp-chat{bottom:130px}.sp-has3d .sp-chat.open{border-radius:16px 16px 0 0}
 .pt-badge{position:absolute;left:0;top:0;padding:2px 9px;border-radius:99px;background:rgba(15,10,30,.7);color:#fff;font:800 11px var(--disp);white-space:nowrap;pointer-events:none}
 .pt-badge.s1{background:#c98a00}.pt-badge.s2{background:#13a05c}
 .pt-ov{position:fixed;inset:0;z-index:300;background:#1c1630;display:flex;flex-direction:column;color:#fff;overscroll-behavior:contain;touch-action:none}
@@ -524,3 +524,7 @@ button.fm-int{border:0}
 .fl-sw{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 2px;border-radius:14px;background:#fff;border:2px solid transparent;font:700 11px/1.15 var(--body);text-align:center;cursor:pointer}
 .fl-sw i{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(29,26,43,.18)}.fl-sw.on{border-color:var(--coral)}
 .fl-own input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+
+.sp-view .sp-chat{background:#f6efe4;color:#1d1a2b}.sp-view .sp-chat.open{border-top:0}
+.sp-view .sp-msg{color:#1d1a2b}.sp-view .sp-msg b{color:#c2410c}.sp-view .sp-msg.me b{color:#0f7a54}
+.sp-view .sp-chat .cin input{background:#fff!important;color:#1d1a2b!important;border:1.5px solid rgba(29,26,43,.15)!important}.sp-view .sp-chat .cin input::placeholder{color:rgba(29,26,43,.5)}
