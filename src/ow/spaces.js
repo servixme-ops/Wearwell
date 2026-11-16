@@ -1,6 +1,7 @@
 /* ---------- Live Spaces: audio rooms on LiveKit. Rules live in Supabase (RPCs + RLS); audio via livekit-client ---------- */
 const Spaces=(()=>{
 const CATS=[['talk','Talk'],['music','Music'],['sports','Sports'],['football','Football'],['basketball','Basketball'],['movies','Movies & TV'],['anime','Anime'],['gaming','Gaming'],['fashion','Fashion'],['art','Art & Design'],['sipandpaint','Sip & Paint'],['travel','Travel'],['photography','Photography'],['books','Books'],['tech','Tech'],['food','Food'],['lifestyle','Lifestyle'],['wellness','Wellness'],['business','Business'],['learning','Learning'],['chill','Just chatting']];
+const LCATS=CATS.filter(c=>c[0]!=='sipandpaint'); /* Sip & Paint is its own thing, not a Live Spaces category */
 const catLabel=id=>(CATS.find(c=>c[0]===id)||[0,'Talk'])[1];
 const REACTS=['👏','❤️','🔥','😂','😮','🎉'];
 const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};
@@ -81,7 +82,7 @@ function createSheet(onDone,preset){
   sheet('Start a space',(b,close)=>{
     const title=h('input',{type:'text',maxlength:'80',placeholder:'What do you want to talk about?'});
     const desc=h('textarea',{rows:'3',maxlength:'400',placeholder:'Tell people what this space is about'});
-    const cat=h('select',null,CATS.map(([k,l])=>h('option',{value:k},l)));
+    const cat=h('select',null,(preset==='sipandpaint'?CATS:LCATS).map(([k,l])=>h('option',{value:k},l)));
     if(preset){cat.value=preset;if(preset==='sipandpaint'){title.placeholder='Name your painting session';title.value='';}}
     let vis='public',live=true,chat=true;
     const mk=(opts,get,set)=>{const w=h('div',{class:'sp-seg'});const paint=()=>w.replaceChildren(...opts.map(([k,l])=>h('button',{class:get()===k?'on':'',onclick:()=>{set(k);paint();}},l)));paint();return w;};
@@ -96,7 +97,7 @@ function createSheet(onDone,preset){
       const id=await rpc('space_create',{p_title:title.value,p_desc:desc.value,p_category:cat.value,p_visibility:vis,p_start:live?null:new Date(st.value).toISOString(),p_end:!live&&en.value?new Date(en.value).toISOString():null,p_go_live:live,p_chat:chat});
       close();if(live)go('#/space/'+id);else{toast('Space scheduled');onDone&&onDone('upcoming');}
     });
-    b.append(field('Title',title),field('Description',desc),field('Category',cat),
+    b.append(field('Title',title),field('Description',desc),preset==='sipandpaint'?null:field('Category',cat),
       field('Who can join',visw,'Private spaces are only visible to people you invite.'),
       field('When',timing),sched,
       h('div',{class:'sp-row'},h('span',null,'Allow text chat'),toggleEl(true,v=>chat=v,'Allow text chat')),h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Every space lasts 30 minutes from the moment it goes live. You can start another one afterwards.'),goB);
@@ -132,12 +133,12 @@ async function discover(){
   };
   const load=async()=>{
     tabs.replaceChildren(...T.map(([k,l])=>h('button',{class:tab===k?'on':'',onclick:()=>{tab=k;load();}},l)));
-    chips.replaceChildren(...[['','All'],...CATS].map(([k,l])=>h('button',{class:'chip'+(k===cat?' on':''),onclick:()=>{cat=k;load();}},l)));
+    chips.replaceChildren(...[['','All'],...LCATS].map(([k,l])=>h('button',{class:'chip'+(k===cat?' on':''),onclick:()=>{cat=k;load();}},l)));
     if(!Auth.user){list.replaceChildren(empty('Sign in to join Live Spaces','Listen in, raise your hand, or host your own.',h('button',{class:'btn coral',onclick:()=>authSheet('signin','Sign in to join Live Spaces')},'Sign in')));return;}
     list.replaceChildren(spinner());
     try{
       const [rows0,invs0]=await Promise.all([rpc('space_discover',{p_filter:tab,p_category:cat||null}),tab==='live'?rpc('space_my_invites'):Promise.resolve([])]);
-      const rows=rows0||[],invs=invs0||[];
+      const rows=(rows0||[]).filter(r=>r.category!=='sipandpaint'),invs=invs0||[];
       inv.replaceChildren(...invs.map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,(i.host||('@'+(i.host_username||'someone')))+' invited you '),h('span',null,(i.role==='speaker'?'to speak in ':'to join ')+i.title)),
         h('div',{class:'sp-iacts'},h('button',{class:'btn small',onclick:async()=>{await rpc('space_respond_invite',{p_invite:i.id,p_accept:false});load();}},'Decline'),h('button',{class:'btn small coral',onclick:()=>guard(null,async()=>{const sid=await rpc('space_respond_invite',{p_invite:i.id,p_accept:true});go('#/space/'+sid);})},'Join')))));
       list.replaceChildren(...(rows.length?rows.map(card):[empty(tab==='upcoming'?'Nothing scheduled':tab==='following'?'No one you follow is live':'No live spaces yet',tab==='following'?'Follow people to see their spaces here.':'Be the first. Start a space and invite people in.',h('button',{class:'btn coral',onclick:()=>createSheet(t=>{tab=t;load();})},'Start a space'))]));
