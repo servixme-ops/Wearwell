@@ -543,3 +543,5 @@ button.fm-int{border:0}
 .pn-host{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:13.5px}.pn-host b{color:var(--ink)}
 .pn-join{justify-self:start;padding:10px 18px;border-radius:99px;background:var(--coral);color:#fff;font:800 14px var(--disp)}
 .pn-none{display:grid;justify-items:center;gap:6px;text-align:center;padding:26px 18px;border-radius:22px;background:#fff;color:var(--ink2)}.pn-none b{color:var(--ink);font:800 16px var(--disp)}.pn-none .pn-ic{position:static;background:linear-gradient(135deg,#7b4dff,#ff5fb0)}
+
+.sp-has3d:not(.sp-paintroom) .sp-scroll{padding-top:16px;background:linear-gradient(transparent,rgba(15,10,30,.92) 14px)}.sp-has3d:not(.sp-paintroom) .sp-scroll .sp-h{margin-top:4px}.sp-has3d .sp-crowd>.tag{grid-column:1/-1;margin:0}
