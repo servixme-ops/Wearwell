@@ -141,8 +141,8 @@ async function discoverView(){
     if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';fb.el.style.display='';return;}
     sec.style.display='none';adHost.style.display='none';fb.el.style.display='none';
     const pool=[...feat,...trend,...feed],seenR={},hit=pool.filter(r=>!seenR[r.id||r.username+r.name]&&(seenR[r.id||r.username+r.name]=1)&&([r.name,r.username,r.display_name,...(r.categories||[])].join(' ').toLowerCase().includes(q)));
-    const sp=await OWAds.searchBlock(q);if(my!==qn)return;
-    sr.replaceChildren(...[sp,h('h2',{class:'sec'},hit.length?'Results for \u201c'+qv.trim()+'\u201d':'No rooms match \u201c'+qv.trim()+'\u201d'),hit.length?h('div',{class:'ex-grid',style:{background:'none'}},hit.map(roomPiece)):h('p',{class:'f-hint',style:{padding:'0 18px'}},'Try another word, or pick an interest above.')].filter(Boolean));};
+    const [sp,tp]=await Promise.all([OWAds.searchBlock(q),OWForum.search(q)]);if(my!==qn)return;
+    sr.replaceChildren(...[sp,tp,h('h2',{class:'sec'},hit.length?'Results for \u201c'+qv.trim()+'\u201d':(tp?'No rooms match \u201c':'No rooms match \u201c')+qv.trim()+'\u201d'),hit.length?h('div',{class:'ex-grid',style:{background:'none'}},hit.map(roomPiece)):h('p',{class:'f-hint',style:{padding:'0 18px'}},'Try another word, or pick an interest above.')].filter(Boolean));};
   qi.addEventListener('input',()=>{qv=qi.value;clearTimeout(qt);qt=setTimeout(searchRun,300);});
   const ok=r=>!cat||(r.categories||[]).includes(cat);
   const tcard=r=>{return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},OWPrev.node(r,'pshot',''),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,roomLabel(r)),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
