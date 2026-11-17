@@ -64,7 +64,7 @@ const OWPrev=(()=>{
   async function paint(box,r){
     try{
       const its=await items(r.id);
-      const it=its.find(x=>x&&x.image_path);
+      const it=its.find(x=>x&&x.image_path&&x.props&&x.props.art);
       if(!it){box.classList.add('ready');return;}
       const url=(typeof publicUrl==='function')?publicUrl('room-images',it.image_path):'';
       if(!url){box.classList.add('ready');return;}
@@ -88,7 +88,7 @@ const OWPrev=(()=>{
     const url=Store.previewUrl(r.theme,r.updated_at);
     if(url)return h('img',{class:cls,src:url,alt:alt||r.name||'',width:'480',height:'360',loading:'lazy',decoding:'async'});
     const th=OW.THEMES[r.theme&&r.theme.key]||OW.THEMES.lagos,wc=/^#[0-9a-f]{6}$/i.test(th.wall||'')?th.wall:'#8b7bd8',n=parseInt(wc.slice(1),16),lum=(0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;
-    const box=h('div',{class:cls+' ph',style:{background:'linear-gradient(160deg,'+wc+','+shade(wc,.78)+')',color:lum>.62?'#1d1a2b':'#fff'}},h('span',{class:'ph-tag'},(typeof roomLabel==='function'?roomLabel(r):(r.name||'Room'))));
+    const box=h('div',{class:cls+' ph',style:{background:'linear-gradient(160deg,'+wc+','+shade(wc,.78)+')',color:lum>.62?'#1d1a2b':'#fff'}});
     if(r.id)watch(box,r);return box;
   }
   /* own room: make the 3D snapshot once, quietly, when it is missing */

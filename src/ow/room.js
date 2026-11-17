@@ -105,10 +105,12 @@ class OWRoom{
     const def=OW.def(it.type);if(!def){return;}let node;
     if(it.kind==='furniture'){const g=OW.buildFurn(def,it.color,this.th);g.userData.itemId=it.id;node={group:g,def,top:def.h*(it.scale||1)};g.scale.setScalar(it.scale||1);}
     else{
-      if(!this.edit&&def.img&&!it.image_path)return;
+      const art=!!(it.props&&it.props.art);/* only painted artwork is shown on walls */
+      if(!this.edit&&def.img&&!(it.image_path&&art))return;
+      if(!this.edit&&it.type==='collage')return;
       const b=OW.buildDecor(it,def,this.th);const outer=new THREE.Group(),spin=new THREE.Group();spin.add(b.group);outer.add(spin);outer.userData.itemId=it.id;node={group:outer,spin,def,w:b.w,h:b.h,pic:b.pic};
-      if(b.tiles)b.tiles.forEach(m=>this.setPic({pic:m},publicUrl('room-images',m.userData.path)));
-      if(b.pic){const url=it.image_path?publicUrl('room-images',it.image_path):null;if(url)this.setPic(node,url,it.props&&it.props.adj);else if(this.edit){b.pic.material.map=this.ph||(this.ph=OW.placeholder());b.pic.material.needsUpdate=true;}}
+      if(b.tiles&&this.edit)b.tiles.forEach(m=>this.setPic({pic:m},publicUrl('room-images',m.userData.path)));
+      if(b.pic){const url=(it.image_path&&art)?publicUrl('room-images',it.image_path):null;if(url)this.setPic(node,url,it.props&&it.props.adj);else if(this.edit){b.pic.material.map=this.ph||(this.ph=OW.placeholder());b.pic.material.needsUpdate=true;}}
     }
     if(!this.edit&&(it.link||it.title||it.description||def.hint&&it.kind==='furniture'&&def.link))this.hotspot(node,it);
     this.root.add(node.group);this.nodes.set(it.id,node);this.place(it);this.markDirty(true);return node;

@@ -563,3 +563,5 @@ button.fm-int{border:0}
 .ph-frame{display:grid;place-items:center;width:62%;height:70%;margin-top:-8px;padding:5px;background:#fffdf8;border-radius:3px;box-shadow:0 8px 18px rgba(0,0,0,.35),0 0 0 3px rgba(80,60,40,.55);opacity:0;transition:opacity .35s}
 .pshot.ph.has-art .ph-frame{opacity:1}
 .ph-art{width:100%;height:100%;object-fit:contain;display:block}
+
+.gp-sec{margin-top:14px;display:grid;gap:10px}.gp-banner{cursor:default}.gp-h{margin:6px 0 0;font:800 17px var(--disp)}

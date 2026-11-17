@@ -310,7 +310,7 @@ async function room(id){
     if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
     try{await rpc('space_leave',{p_space:id});}catch(e){}
     /* replace the room's history entry so Back from the list never drops you into the session again */
-    location.replace(paintMode()?'#/paint':'#/spaces');
+    location.replace(paintMode()?'#/discover':'#/spaces');
   }
   async function finish(msg){
     const wasPaint=paintMode(),title=D&&D.space&&D.space.title;
@@ -379,28 +379,30 @@ async function room(id){
   App.teardown=()=>{if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
 }
 
-/* Gist & Paint hub: live sessions + host your own */
-function paintHub(){go('#/paint');}
-/* Gist & Paint has its own page */
-async function paintPage(){
-  const v=setView(false);drawNav('discover');document.title='OpenWalls \u00b7 Gist & Paint';
-  const list=h('div',{class:'sp-list',style:{padding:'0 18px'}},spinner());
-  const back=h('button',{class:'fm-back','aria-label':'Back',onclick:()=>{if(history.length>1)history.back();else go('#/discover');}},'\u2039');
-  v.append(h('div',{class:'pg-head fm-head'},h('div',{class:'row-flex'},back,h('div',{class:'brand'},h('b',null,'Gist & Paint'))),
-      h('p',{class:'tag'},'Paint with friends. The host picks a picture, everyone paints their own canvas, and you share the results at the end.')),
-    h('div',{style:{padding:'0 18px 6px',display:'grid',gap:'8px'}},
-      h('button',{class:'btn coral block',onclick:()=>createSheet(()=>{},'sipandpaint')},'Host a Gist & Paint')),
-    h('h2',{class:'sec',style:{marginTop:'16px'}},'Live now'),list);
-  const load=()=>rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
-    const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
-      return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
-        h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+(n>1?' in the room':' in the room'))),
-        h('div',{class:'pn-body'},h('b',{class:'pn-t'},r.title),
-          h('div',{class:'pn-host'},hs?sp_av(hs,'xs'):null,h('span',null,'Hosted by ',h('b',null,hs?person(hs):(r.host||'a creator')))),
-          h('span',{class:'pn-join'},'Join and paint')));};
-    list.replaceChildren(...(rows.length?rows.map(pc):[h('div',{class:'pn-none'},h('span',{class:'pn-ic'},icon('palette')),h('b',null,'No sessions live right now'),h('span',null,'Host one and invite friends to paint with you.'))]));
-  }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
+/* Gist & Paint lives inside Discover: a banner to host, and the sessions that are live now */
+function paintSection(){
+  const list=h('div',{class:'sp-list'},spinner());
+  const el=h('div',{class:'gp-sec'},
+    h('div',{class:'ent2 paint gp-banner'},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Gist & Paint'),h('span',null,'Paint the same picture with friends, then hang it on your wall')),
+      h('button',{class:'ent2-go',onclick:()=>{if(!needAuth('Sign in to host a Gist & Paint'))return;createSheet(()=>load(),'sipandpaint');}},'Host')),
+    h('h3',{class:'gp-h'},'Live now'),list);
+  const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
+    return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
+      h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room')),
+      h('div',{class:'pn-body'},h('b',{class:'pn-t'},r.title),
+        h('div',{class:'pn-host'},hs?sp_av(hs,'xs'):null,h('span',null,'Hosted by ',h('b',null,hs?person(hs):(r.host||'a creator')))),
+        h('span',{class:'pn-join'},'Join and paint')));};
+  function load(){
+    return rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
+      list.replaceChildren(...(rows.length?rows.map(pc):[h('div',{class:'pn-none'},h('span',{class:'pn-ic'},icon('palette')),h('b',null,'No sessions live right now'),h('span',null,'Tap Host and invite friends to paint with you.'))]));
+    }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
+  }
   load();
+  const iv=setInterval(()=>{if(!document.body.contains(el)){clearInterval(iv);return;}load();},20000);
+  return el;
 }
-return{discover,room,createSheet,paintHub,paintPage};
+/* the old Gist & Paint page is gone: send people to Discover */
+function paintPage(){history.replaceState(null,'','#/discover');return null;}
+function paintHub(){go('#/discover');}
+return{discover,room,createSheet,paintHub,paintPage,paintSection};
 })();
