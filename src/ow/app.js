@@ -16,7 +16,7 @@ Object.assign(IC,{
 });
 const $view=()=>document.getElementById('view'),$nav=()=>document.getElementById('nav');
 const App={teardown:null,route:'',visited:{}};
-const roomLabel=r=>{const c=((r&&r.categories)||[])[0];return c?c+' Room':'Open Room';};
+const roomLabel=r=>((r&&r.name)||'').trim()||'Room';
 const CATS=['Music','Sports','Football','Basketball','Movies','Anime','Gaming','Fashion','Travel','Photography','Books','Technology','Lifestyle','Art','Food'];
 const EMOJI={love:'❤️',fire:'🔥',wow:'😮',clap:'👏'};
 const needAuth=why=>{if(Auth.user)return true;authSheet('signin',why||'Sign in to do that');return false;};
@@ -120,7 +120,7 @@ async function appFlags(){if(FLAGS&&Date.now()-FLAGS_AT<60000)return FLAGS;try{c
 async function discoverView(){
   const v=setView(false);drawNav('discover');let feed=[],trend=[],feat=[],cat=null;
   const chips=h('div',{class:'scrollx'}),sec=h('div');
-  const adHost=h('div',{class:'ad-host'}),sr=h('div'),qi=h('input',{type:'search',class:'ds-search',placeholder:'Search rooms, creators, interests','aria-label':'Search',maxlength:'60'});let qv='',qt=null,qn=0;
+  const adHost=h('div',{class:'ad-host'}),sr=h('div'),qi=h('input',{type:'search',class:'ds-search',placeholder:'Search rooms and creators','aria-label':'Search',maxlength:'60'});let qv='',qt=null,qn=0;
   let act=[];const crBox=h('div',{class:'cr-box'});
   const KIND={space:'LIVE',movie:'WATCHING',music:'LISTENING'};
   const drawCreators=()=>{
@@ -135,19 +135,18 @@ async function discoverView(){
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
   const FL=await appFlags();
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Walls, paintings and creators.'),h('div',{class:'ent-list'},FL.sip_paint===false?null:h('button',{class:'ent2 paint',onclick:()=>go('#/paint')},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Gist & Paint'),h('span',null,'Paint the same picture with friends, then hang it on your wall')),h('span',{class:'ent2-go'},'Paint')),FL.live_spaces===false?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),FL.forum===false?null:h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,qi,chips,adHost,sr,sec);
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Walls, paintings and creators.'),FL.sip_paint===false?null:Spaces.paintSection(),h('div',{class:'ent-list'},FL.live_spaces===false?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),FL.forum===false?null:h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,qi,adHost,sr,sec);
   App.teardown=()=>{OWAds.stop();clearInterval(actT);};
   const searchRun=async()=>{const q=qv.trim().toLowerCase(),my=++qn;
     if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';return;}
     sec.style.display='none';adHost.style.display='none';
-    const pool=[...feat,...trend,...feed],seenR={},hit=pool.filter(r=>!seenR[r.id||r.username+r.name]&&(seenR[r.id||r.username+r.name]=1)&&([r.name,r.username,r.display_name,...(r.categories||[])].join(' ').toLowerCase().includes(q)));
+    const pool=[...feat,...trend,...feed],seenR={},hit=pool.filter(r=>!seenR[r.id||r.username+r.name]&&(seenR[r.id||r.username+r.name]=1)&&([r.name,r.username,r.display_name].join(' ').toLowerCase().includes(q)));
     const [sp,tp]=await Promise.all([OWAds.searchBlock(q),FL.forum===false?null:OWForum.search(q)]);if(my!==qn)return;
     sr.replaceChildren(...[sp,tp,h('h2',{class:'sec'},hit.length?'Results for \u201c'+qv.trim()+'\u201d':(tp?'No rooms match \u201c':'No rooms match \u201c')+qv.trim()+'\u201d'),hit.length?h('div',{class:'ex-grid',style:{background:'none'}},hit.map(roomPiece)):h('p',{class:'f-hint',style:{padding:'0 18px'}},'Try another word, or pick an interest above.')].filter(Boolean));};
   qi.addEventListener('input',()=>{qv=qi.value;clearTimeout(qt);qt=setTimeout(searchRun,300);});
   const ok=r=>!cat||(r.categories||[]).includes(cat);
   const tcard=r=>{return h('button',{class:'tcard',onclick:()=>go('#/@'+r.username)},OWPrev.node(r,'pshot',''),h('div',{class:'tb'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,roomLabel(r)),h('span',{class:'s'},'@'+r.username+' \u00b7 '+r.visits+' visits'))));};
   const paint=()=>{
-    chips.replaceChildren(...[null,...CATS].map(c=>h('button',{class:'chip'+(c===cat?' on':''),onclick:()=>{cat=c;paint();OWAds.stop();OWAds.banner(adHost,cat);}},c||'All')));
     const f=feat.filter(ok),t=trend.filter(ok),rows=feed.filter(ok);
     if(!f.length&&!t.length&&!rows.length){sec.replaceChildren(empty(cat?'No '+cat+' rooms yet':'No rooms yet',cat?'Rooms can pick interests in Room settings.':'Check back soon.'));return;}
         const fresh=[...rows].sort((a,b)=>new Date(b.created_at||b.updated_at)-new Date(a.created_at||a.updated_at));
@@ -236,13 +235,12 @@ async function shareRoom(username,name,vis){
 function roomSettings(room,done){
   sheet('Room settings',(body,close)=>{
     const nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
-    let cats=new Set(room.categories||[]);const cw=h('div',{class:'chips'});const pc=()=>cw.replaceChildren(...CATS.map(c=>h('button',{class:'chip'+(cats.has(c)?' on':''),onclick:()=>{const was=cats.has(c);cats.clear();if(!was)cats.add(c);pc();}},c)));pc();
     let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
     const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you and people with your invite link can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
     const hide=Object.assign({},room.theme&&room.theme.hide);const sw=h('div',{class:'list'});
     const ps=()=>sw.replaceChildren(...[['window','Window'],['door','Door'],['light','Ceiling light']].map(([k,l])=>h('button',{onclick:()=>{hide[k]?delete hide[k]:hide[k]=1;ps();}},h('span',{class:'grow'},l),h('b',null,hide[k]?'Removed':'Shown'))));ps();
-    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});room.categories=[...cats];await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Room interest (shown on the Wall and in Discover)'),cw),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
+    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
   });
 }
 
@@ -275,7 +273,7 @@ async function editorView(){
   R.load(room,data.items);
   try{const raw=localStorage.getItem('ow_pending_deco');if(raw){localStorage.removeItem('ow_pending_deco');const pd=JSON.parse(raw);
     if(pd&&pd.path&&Date.now()-pd.at<10*60*1000){const asp=pd.asp||.8,hh=+Math.sqrt(.63/asp).toFixed(3),w=+(hh*asp).toFixed(3);
-      setTimeout(()=>{try{R.addDecor('artwork',{image_path:pd.path,width:w,height:hh});toast('Artwork added to your wall');}catch(e){toast('Could not add the artwork','err');}},700);}}}catch(e){}
+      setTimeout(()=>{try{R.addDecor('artwork',{image_path:pd.path,width:w,height:hh,props:{art:true}});toast('Artwork added to your wall');}catch(e){toast('Could not add the artwork','err');}},700);}}}catch(e){}
   let previewTimer=0,stale=!room.theme||!room.theme.preview;
   async function persist(rm,items,withPreview,ui){
     const say=t=>{if(ui)statusEl.textContent=t;};
@@ -313,18 +311,31 @@ async function editorView(){
   function addDeco(def,extra){return R.addDecor(def.id,extra);}
   async function addFromCatalogue(def,close){
     if(!def.deco){close();R.addFurniture(def.id);return;}
-    if(def.img){const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;
+    if(def.img){close();paintingPicker();return;}
+    if(false){const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;
       await guard(null,async()=>{toast('Uploading…');const up=await Store.uploadPicture(f);const asp=up.width/up.height;let w=def.w,hh=def.h;if(def.id!=='album'){const area=def.w*def.h;hh=Math.sqrt(area/asp);w=hh*asp;}else{hh=w=def.w;}
         close();R.addDecor(def.id,{image_path:up.path,width:+w.toFixed(3),height:+hh.toFixed(3)});});return;}
     close();R.addDecor(def.id);
+  }
+  /* only paintings made in Gist & Paint can hang on a wall */
+  function paintingPicker(swapId){
+    sheet(swapId?'Choose another painting':'Hang a painting',async(body,close)=>{
+      body.append(spinner());
+      let r;try{r=await sb.from('paint_artworks').select('id,image_path,title,space_title,created_at').eq('user_id',Auth.user.id).order('created_at',{ascending:false}).limit(60);}catch(e){r={error:e};}
+      if(r.error||!(r.data||[]).length){body.replaceChildren(empty('No paintings yet','Join a Gist & Paint session, finish a painting and save it. Then you can hang it here.'),h('button',{class:'btn coral block',style:{marginTop:'12px'},onclick:()=>{close();go('#/discover');}},'Go to Gist & Paint'));return;}
+      const hang=a=>{const im=new Image();im.onload=()=>{const asp=(im.naturalWidth||4)/(im.naturalHeight||5),hh=+Math.sqrt(.63/asp).toFixed(3),w=+(hh*asp).toFixed(3);close();
+          if(swapId)R.update(swapId,{image_path:a.image_path,width:w,height:hh,props:Object.assign({},(R.get(swapId)||{}).props,{art:true,adj:undefined})});else R.addDecor('artwork',{image_path:a.image_path,width:w,height:hh,props:{art:true}});};
+        im.onerror=()=>toast('Could not load that painting','err');im.src=publicUrl('room-images',a.image_path);};
+      body.replaceChildren(h('p',{class:'f-hint',style:{margin:'0 0 8px'}},'Tap a painting to hang it on the wall you are facing.'),h('div',{class:'pt-gg'},r.data.map(a=>h('button',{class:'pt-gc',style:{padding:0},'aria-label':a.title||'Painting',onclick:()=>hang(a)},h('img',{src:publicUrl('room-images',a.image_path),alt:a.title||'Painting',loading:'lazy'})))));
+    });
   }
   function catalogue(start,only){
     sheet(only?'Wall decorations':'Add to your room',(body,close)=>{
       let cat=start;const tabsEl=h('div',{class:'scrollx',style:{padding:'0 0 10px'}}),grid=h('div',{class:'cat-grid'});
       const paint=()=>{
         if(!only)tabsEl.replaceChildren(...OW.CATS.map(([k,l])=>h('button',{class:'chip'+(k===cat?' on':''),onclick:()=>{cat=k;paint();}},l)));
-        const list=[...OW.FURN,...OW.DECOR].filter(d=>only?d.deco&&d.cat==='wall'||d.cat==='decor'&&d.deco:d.cat===cat||(d.deco&&d.cat===cat));
-        const lst=only?list:[...OW.FURN,...OW.DECOR].filter(d=>d.cat===cat);
+        const noPic=d=>!(d.img||d.id==='collage'||d.id==='noticeboard');const list=[...OW.FURN,...OW.DECOR].filter(noPic).filter(d=>only?d.deco&&d.cat==='wall'||d.cat==='decor'&&d.deco:d.cat===cat||(d.deco&&d.cat===cat));
+        const lst=only?list:[...OW.FURN,...OW.DECOR].filter(noPic).filter(d=>d.cat===cat);
         grid.replaceChildren(...lst.map(d=>{const im=h('img',{alt:'',width:112,height:112});const b=h('button',{class:'cat',onclick:()=>addFromCatalogue(d,close)},im,d.name);
           setTimeout(()=>{try{im.src=OWRoom.thumb(d.id);}catch(e){}},20);return b;}));
       };
@@ -333,9 +344,10 @@ async function editorView(){
   }
   function wallSheet(){
     sheet('Decorate a wall',(body,close)=>{
-      body.append(h('p',{class:'tag',style:{margin:'0 0 8px'}},'Choose a wall to look at, then add pictures. Drag them around the wall.'),
+      body.append(h('p',{class:'tag',style:{margin:'0 0 8px'}},'Choose a wall to look at, then hang your paintings. Drag them around the wall.'),
         h('div',{class:'chips',style:{marginBottom:'14px'}},...[['back','Back wall'],['left','Left wall'],['right','Right wall'],['front','Front wall']].map(([k,l])=>h('button',{class:'chip',onclick:()=>{R.focusWall(k);}},l))),
-        h('button',{class:'btn coral block',onclick:()=>{close();catalogue('wall',true);}},icon('frame'),'Add a picture, poster or decoration'),
+        h('button',{class:'btn coral block',onclick:()=>{close();paintingPicker();}},icon('frame'),'Hang one of my paintings'),
+        h('button',{class:'btn block',style:{marginTop:'8px'},onclick:()=>{close();catalogue('wall',true);}},'Add a decoration (clock, lights, curtains…)'),
         h('div',{class:'f-label',style:{margin:'18px 0 8px'}},'Tidy the wall you are facing'),
         (()=>{const gap=h('input',{type:'range',min:'3',max:'40',value:'12',style:{width:'100%',accentColor:'var(--violet)'}});const lab=h('span',{class:'f-hint'},'Spacing: 12 cm');gap.oninput=()=>{lab.textContent='Spacing: '+gap.value+' cm';};
           const run=mode=>{const w=R.facing(),n=R.arrangeWall(w,mode,gap.value/100);toast(n?'Arranged '+n+' on the '+w+' wall':'No pictures on the '+w+' wall to arrange',n?'ok':'err');};
@@ -365,7 +377,7 @@ async function editorView(){
     const sc=h('input',{type:'range',min:'40',max:'220',step:'1',value:String(Math.round((it.scale||1)*100))});sc.addEventListener('input',()=>R.update(it.id,{scale:sc.value/100}));
     const rows=h('div',{class:'rows'},h('label',null,'Rotate'),rs,h('label',null,'Size'),sc);
     const acts=h('div',{class:'acts'});
-    if(it.kind==='decor'&&def.img){acts.append(h('button',{class:'btn',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;await guard(null,async()=>{toast('Uploading…');const up=await Store.uploadPicture(f);const asp=up.width/up.height,area=(it.width||def.w)*(it.height||def.h),hh=def.id==='album'?it.height:Math.sqrt(area/asp);R.update(it.id,{image_path:up.path,height:+hh.toFixed(3),width:+(def.id==='album'?it.width:hh*asp).toFixed(3)});});}},icon('image'),it.image_path?'Change picture':'Add picture'));
+    if(it.kind==='decor'&&def.img){acts.append(h('button',{class:'btn',onclick:()=>paintingPicker(it.id)},icon('image'),'Choose another painting'));
       if(it.image_path){const ad=Object.assign({z:1,x:0,y:0},it.props&&it.props.adj);let raf=0;const ap=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>R.update(it.id,{props:Object.assign({},it.props,{adj:Object.assign({},ad)})}));};
         const sl=(l,k,mn,mx,st)=>{const i=h('input',{type:'range',min:mn,max:mx,step:st,value:String(ad[k])});i.addEventListener('input',()=>{ad[k]=+i.value;ap();});return[h('label',null,l),i];};
         const box=h('div',{class:'rows',style:{display:'none'}},...sl('Zoom','z','1','3','.05'),...sl('Left / right','x','-1','1','.05'),...sl('Up / down','y','-1','1','.05'),h('button',{class:'btn',onclick:()=>{ad.z=1;ad.x=0;ad.y=0;ap();box.querySelectorAll('input').forEach((i,n)=>i.value=[1,0,0][n]);}},'Reset'));
@@ -375,7 +387,7 @@ async function editorView(){
     if(it.type==='collage'){acts.append(h('button',{class:'btn',onclick:async()=>{const have=((it.props&&it.props.images)||[]).length;if(have>=6){toast('The board holds 6 photos');return;}const fs=await pickFiles('image/jpeg,image/png,image/webp',6-have);if(!fs||!fs.length)return;await guard(null,async()=>{toast('Uploading…');const out=[...((it.props&&it.props.images)||[])];for(const f of fs.slice(0,6-have)){const up=await Store.uploadPicture(f);out.push(up.path);}R.update(it.id,{props:Object.assign({},it.props,{images:out})});});}},icon('image'),'Add photos'),((it.props&&it.props.images)||[]).length?h('button',{class:'btn',onclick:()=>R.update(it.id,{props:Object.assign({},it.props,{images:[]})})},'Clear photos'):null);}
     const ib=(ic,label,fn,cls)=>h('button',{class:'icon-btn'+(cls?' '+cls:''),'aria-label':label,title:label,onclick:fn},icon(ic));
     const hdr=h('div',{class:'ph'},h('b',null,def.name),
-      ib('move','Move with arrows',()=>moveMode(it,def)),ib('copy','Duplicate',()=>R.duplicate(it.id)),ib('link',it.kind==='decor'&&!def.img?'Text and link':'Details and link',()=>detailsSheet(it,def)),
+      ib('move','Move with arrows',()=>moveMode(it,def)),ib('copy','Duplicate',()=>R.duplicate(it.id)),(it.kind==='decor'&&def.img)?null:ib('link',it.kind==='decor'?'Text and link':'Details and link',()=>detailsSheet(it,def)),
       ib('trash','Remove',async()=>{if(await confirmBox('Remove this?','It will be taken out of your room.','Remove',true)){R.remove(it.id);}},'danger'),
       ib('close','Close',()=>R.select(null)));
     panel=h('div',{class:'panel compact'},hdr,rows,acts.children.length?acts:null);
@@ -583,7 +595,7 @@ function route(){
   if(hs==='welcome'){history.replaceState(null,'','#/wall');App.route='wall';return wallView?wallView():discoverView();}
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
-  if(hs==='paint')return Spaces.paintPage();
+  if(hs==='paint'){history.replaceState(null,'','#/discover');return discoverView();}
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
   if(hs==='forum'||hs.startsWith('forum/')||hs.startsWith('topic/')){appFlags().then(F=>{if(F.forum===false){history.replaceState(null,'','#/discover');return discoverView();}return hs==='forum'?OWForum.boardView(null):hs.startsWith('forum/')?OWForum.boardView(hs.slice(6)):OWForum.topicView(hs.slice(6));});return;}
   if(hs==='forum')return OWForum.boardView(null);
