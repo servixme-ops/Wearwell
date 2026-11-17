@@ -583,3 +583,9 @@ button.fm-int{border:0}
 .gp-sec .sp-list>.pn-card{flex:0 0 78%;max-width:320px;margin:0;scroll-snap-align:start}
 .gp-sec .sp-list>.pn-none{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box}
 .gp-sec .sp-list>.pn-card:last-child{margin-right:18px}
+
+/* room card: two paintings at their true shape, no stretching */
+.pshot.ph.feat,.pshot.ph.feat.n1,.pshot.ph.feat.n2{display:flex;align-items:center;justify-content:center;gap:4%;padding:0;grid-template-columns:none;grid-template-rows:none}
+.pshot.ph.feat .ft{position:relative;flex:none;width:41%;height:auto;aspect-ratio:512/640;padding:0}
+.pshot.ph.feat.n1 .ft{width:44%}
+.pshot.ph.feat .ft img{position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);object-fit:cover}
