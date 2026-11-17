@@ -85,11 +85,12 @@ const OWPrev=(()=>{
   }
   /* the picture for a room card: saved image if there is one, else a lazily drawn plan of the real room */
   function node(r,cls,alt){
+    /* up to 4 paintings the owner picked for the card; otherwise the saved room picture; otherwise the plain card with the room name */
+    const feat=((r.theme&&Array.isArray(r.theme.featured))?r.theme.featured:[]).filter(x=>typeof x==='string'&&x).slice(0,4);
+    if(feat.length&&typeof publicUrl==='function')return h('div',{class:cls+' ph feat n'+feat.length,role:'img','aria-label':alt||r.name||''},feat.map(x=>h('span',{class:'ft'},h('img',{src:publicUrl('room-images',x),alt:'',loading:'lazy',decoding:'async'}))));
     const url=Store.previewUrl(r.theme,r.updated_at);
     if(url)return h('img',{class:cls,src:url,alt:alt||r.name||'',width:'480',height:'360',loading:'lazy',decoding:'async'});
-    const th=OW.THEMES[r.theme&&r.theme.key]||OW.THEMES.lagos,wc=/^#[0-9a-f]{6}$/i.test(th.wall||'')?th.wall:'#8b7bd8',n=parseInt(wc.slice(1),16),lum=(0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;
-    const box=h('div',{class:cls+' ph',style:{background:'linear-gradient(160deg,'+wc+','+shade(wc,.78)+')',color:lum>.62?'#1d1a2b':'#fff'}});
-    if(r.id)watch(box,r);return box;
+    return h('div',{class:cls+' ph'},(typeof roomLabel==='function'?roomLabel(r):(r.name||'Room')));
   }
   /* own room: make the 3D snapshot once, quietly, when it is missing */
   let ownDone=false;
