@@ -578,3 +578,8 @@ button.fm-int{border:0}
 .ft-slot i{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(15,10,30,.65);color:#fff;font:700 14px/20px var(--body);font-style:normal;text-align:center}
 .ft-pick{position:relative}.ft-pick.on{outline:3px solid var(--coral);outline-offset:-3px}
 .ft-n{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:var(--coral);color:#fff;font:800 12px/22px var(--disp);font-style:normal;text-align:center}
+
+.gp-sec .sp-list{display:flex;flex-direction:row;align-items:flex-start;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 18px;margin:0 -18px;padding:2px 18px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:none}.gp-sec .sp-list::-webkit-scrollbar{display:none}
+.gp-sec .sp-list>.pn-card{flex:0 0 78%;max-width:320px;margin:0;scroll-snap-align:start}
+.gp-sec .sp-list>.pn-none{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box}
+.gp-sec .sp-list>.pn-card:last-child{margin-right:18px}
