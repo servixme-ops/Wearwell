@@ -1,7 +1,7 @@
 /* ---------- Live Spaces: audio rooms on LiveKit. Rules live in Supabase (RPCs + RLS); audio via livekit-client ---------- */
 const Spaces=(()=>{
-const CATS=[['talk','Talk'],['music','Music'],['sports','Sports'],['football','Football'],['basketball','Basketball'],['movies','Movies & TV'],['anime','Anime'],['gaming','Gaming'],['fashion','Fashion'],['art','Art & Design'],['sipandpaint','Sip & Paint'],['travel','Travel'],['photography','Photography'],['books','Books'],['tech','Tech'],['food','Food'],['lifestyle','Lifestyle'],['wellness','Wellness'],['business','Business'],['learning','Learning'],['chill','Just chatting']];
-const LCATS=CATS.filter(c=>c[0]!=='sipandpaint'); /* Sip & Paint is its own thing, not a Live Spaces category */
+const CATS=[['talk','Talk'],['music','Music'],['sports','Sports'],['football','Football'],['basketball','Basketball'],['movies','Movies & TV'],['anime','Anime'],['gaming','Gaming'],['fashion','Fashion'],['art','Art & Design'],['sipandpaint','Gist & Paint'],['travel','Travel'],['photography','Photography'],['books','Books'],['tech','Tech'],['food','Food'],['lifestyle','Lifestyle'],['wellness','Wellness'],['business','Business'],['learning','Learning'],['chill','Just chatting']];
+const LCATS=CATS.filter(c=>c[0]!=='sipandpaint'); /* Gist & Paint is its own thing, not a Live Spaces category */
 const catLabel=id=>(CATS.find(c=>c[0]===id)||[0,'Talk'])[1];
 const REACTS=['👏','❤️','🔥','😂','😮','🎉'];
 const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};
@@ -379,17 +379,17 @@ async function room(id){
   App.teardown=()=>{if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
 }
 
-/* Sip & Paint hub: live sessions + host your own */
+/* Gist & Paint hub: live sessions + host your own */
 function paintHub(){go('#/paint');}
-/* Sip & Paint has its own page */
+/* Gist & Paint has its own page */
 async function paintPage(){
-  const v=setView(false);drawNav('discover');document.title='OpenWalls \u00b7 Sip & Paint';
+  const v=setView(false);drawNav('discover');document.title='OpenWalls \u00b7 Gist & Paint';
   const list=h('div',{class:'sp-list',style:{padding:'0 18px'}},spinner());
   const back=h('button',{class:'fm-back','aria-label':'Back',onclick:()=>{if(history.length>1)history.back();else go('#/discover');}},'\u2039');
-  v.append(h('div',{class:'pg-head fm-head'},h('div',{class:'row-flex'},back,h('div',{class:'brand'},h('b',null,'Sip & Paint'))),
+  v.append(h('div',{class:'pg-head fm-head'},h('div',{class:'row-flex'},back,h('div',{class:'brand'},h('b',null,'Gist & Paint'))),
       h('p',{class:'tag'},'Paint with friends. The host picks a picture, everyone paints their own canvas, and you share the results at the end.')),
     h('div',{style:{padding:'0 18px 6px',display:'grid',gap:'8px'}},
-      h('button',{class:'btn coral block',onclick:()=>createSheet(()=>{},'sipandpaint')},'Host a Sip & Paint')),
+      h('button',{class:'btn coral block',onclick:()=>createSheet(()=>{},'sipandpaint')},'Host a Gist & Paint')),
     h('h2',{class:'sec',style:{marginTop:'16px'}},'Live now'),list);
   const load=()=>rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
     const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);

@@ -135,13 +135,13 @@ async function discoverView(){
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
   const FL=await appFlags();
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Rooms, creators and interests.'),h('div',{class:'ent-list'},FL.live_spaces===false?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),(FL.live_spaces===false||FL.sip_paint===false)?null:h('button',{class:'ent2 paint',onclick:()=>go('#/paint')},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Sip & Paint'),h('span',null,'Paint the same picture with friends and share it')),h('span',{class:'ent2-go'},'Paint')),h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,qi,chips,adHost,sr,sec);
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Walls, paintings and creators.'),h('div',{class:'ent-list'},FL.sip_paint===false?null:h('button',{class:'ent2 paint',onclick:()=>go('#/paint')},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Gist & Paint'),h('span',null,'Paint the same picture with friends, then hang it on your wall')),h('span',{class:'ent2-go'},'Paint')),FL.live_spaces===false?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),FL.forum===false?null:h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,qi,chips,adHost,sr,sec);
   App.teardown=()=>{OWAds.stop();clearInterval(actT);};
   const searchRun=async()=>{const q=qv.trim().toLowerCase(),my=++qn;
     if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';return;}
     sec.style.display='none';adHost.style.display='none';
     const pool=[...feat,...trend,...feed],seenR={},hit=pool.filter(r=>!seenR[r.id||r.username+r.name]&&(seenR[r.id||r.username+r.name]=1)&&([r.name,r.username,r.display_name,...(r.categories||[])].join(' ').toLowerCase().includes(q)));
-    const [sp,tp]=await Promise.all([OWAds.searchBlock(q),OWForum.search(q)]);if(my!==qn)return;
+    const [sp,tp]=await Promise.all([OWAds.searchBlock(q),FL.forum===false?null:OWForum.search(q)]);if(my!==qn)return;
     sr.replaceChildren(...[sp,tp,h('h2',{class:'sec'},hit.length?'Results for \u201c'+qv.trim()+'\u201d':(tp?'No rooms match \u201c':'No rooms match \u201c')+qv.trim()+'\u201d'),hit.length?h('div',{class:'ex-grid',style:{background:'none'}},hit.map(roomPiece)):h('p',{class:'f-hint',style:{padding:'0 18px'}},'Try another word, or pick an interest above.')].filter(Boolean));};
   qi.addEventListener('input',()=>{qv=qi.value;clearTimeout(qt);qt=setTimeout(searchRun,300);});
   const ok=r=>!cat||(r.categories||[]).includes(cat);
@@ -474,7 +474,7 @@ function socialBar(d,o){
   let soc={counts:{},mine:null,comments:0};const room=d.room;
   const total=()=>Object.values(soc.counts).reduce((a,b)=>a+(+b||0),0);
   const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('send'),h('span',null,'Message')),tp=h('button',{class:'dk wide','aria-label':'Topics'});let tpN=0;const paintTp=()=>tp.replaceChildren(icon('topics'),h('span',null,tpN?'Topics '+tpN:'Topics'));paintTp();
-  OWForum.userData(room.owner_id).then(x=>{tpN=x.count||0;paintTp();});
+  tp.style.display='none';appFlags().then(F=>{if(F.forum===false)return;tp.style.display='';OWForum.userData(room.owner_id).then(x=>{tpN=x.count||0;paintTp();});});
   const paint=()=>{rx.replaceChildren(h('span',{class:'em'},soc.mine?EMOJI[soc.mine]:'♡'),h('span',null,total()||'React'));rx.classList.toggle('on',!!soc.mine);cm.replaceChildren(icon('chat'),h('span',null,soc.comments?soc.comments+(soc.comments==1?' comment':' comments'):'Comment'));};
   paint();Store.social(room.id).then(x=>{soc=x;paint();}).catch(()=>{});
   const pick=async kind=>{if(!needAuth('Sign in to react'))return;const was=soc.mine;const next=was===kind?null:kind;await guard(rx,async()=>{await Store.react(room.id,next);if(was)soc.counts[was]=Math.max(0,(soc.counts[was]||0)-1);if(next)soc.counts[next]=(soc.counts[next]||0)+1;soc.mine=next;paint();});};
@@ -538,7 +538,7 @@ const introDone=()=>{try{localStorage.setItem('ow_intro','1');}catch(e){}};
 function introView(){
   try{return introBuild();}catch(e){console.error(e);
     const v=setView(true);v.classList.add('intro-view');
-    v.append(h('div',{class:'in-wrap'},h('div',{class:'in-hero',style:{marginTop:'20vh'}},logoEl(64),h('h1',null,'Your room. Your wall. Your people.')),h('div',{class:'in-cta',style:{marginTop:'auto'}},h('button',{class:'btn coral block',onclick:()=>{introDone();authSheet('signup','Create an account to build your room');}},'Create account'),h('button',{class:'btn block',onclick:()=>{introDone();authSheet('signin');}},'Sign in'))));}
+    v.append(h('div',{class:'in-wrap'},h('div',{class:'in-hero',style:{marginTop:'20vh'}},logoEl(64),h('h1',null,'Paint it. Hang it. Visit friends’ walls.')),h('div',{class:'in-cta',style:{marginTop:'auto'}},h('button',{class:'btn coral block',onclick:()=>{introDone();authSheet('signup','Create an account to build your room');}},'Create account'),h('button',{class:'btn block',onclick:()=>{introDone();authSheet('signin');}},'Sign in'))));}
 }
 function introBuild(){
   document.title='Welcome to OpenWalls';
@@ -546,14 +546,15 @@ function introBuild(){
   const C={v:'#6c4bff',c:'#ff5a3c',s:'#ffd23f',m:'#3ddc97',i:'#1d1a2b',p:'#f6efe4',b:'#3b82f6',k:'#ff7ab8'};
   const av=(x,y,col,r)=>`<circle cx="${x}" cy="${y-r*1.5}" r="${r*.62}" fill="#f2c9a0"/><path d="M${x-r} ${y+r*1.1}q0-${r*1.5} ${r}-${r*1.5}t${r} ${r*1.5}z" fill="${col}"/>`;
   const S=[
-    {t:'Build your room',d:'Pick walls and floors, add furniture, hang posters and photos. Make it feel like you.',
+    {t:'Paint together',d:'Join a Gist & Paint, follow the picture on your own canvas, sign it, then hang it on your wall.',
+     art:`<rect x="14" y="16" width="172" height="118" rx="10" fill="${C.i}"/><g>${[0,1,2,3].map(n=>`<rect x="${26+n*40}" y="40" width="32" height="42" rx="3" fill="#fffdf8"/>`).join('')}</g><circle cx="42" cy="58" r="9" fill="${C.k}"/><circle cx="82" cy="62" r="10" fill="${C.b}"/><circle cx="122" cy="56" r="8" fill="${C.s}"/><circle cx="162" cy="62" r="10" fill="${C.m}"/><g>${[0,1,2,3].map(n=>av(42+n*40,122,[C.c,C.v,C.s,C.m][n],9)).join('')}</g><rect x="84" y="20" width="32" height="10" rx="5" fill="${C.c}"/>`},
+    {t:'Hang your art',d:'Pick walls and floors, add furniture, and hang your paintings and photos. Make it feel like you.',
      art:`<rect x="20" y="14" width="160" height="92" rx="6" fill="#efe4d2"/><path d="M20 106h160l14 34H6z" fill="#d9a066"/><rect x="38" y="28" width="38" height="30" rx="3" fill="${C.v}"/><circle cx="50" cy="40" r="6" fill="${C.s}"/><path d="M40 56l12-10 10 8 10-8" stroke="#fff" stroke-width="3" fill="none"/><rect x="92" y="26" width="26" height="36" rx="3" fill="${C.c}"/><rect x="128" y="32" width="34" height="24" rx="3" fill="${C.m}"/><rect x="52" y="84" width="96" height="28" rx="12" fill="${C.i}"/><rect x="44" y="92" width="16" height="24" rx="7" fill="${C.i}"/><rect x="140" y="92" width="16" height="24" rx="7" fill="${C.i}"/><rect x="150" y="62" width="4" height="48" fill="#8a6b4a"/><path d="M142 62h20l-4-14h-12z" fill="${C.s}"/>`},
     {t:'Walk in as your avatar',d:'Create your look, explore your room, sit on the sofa and visit other people’s rooms.',
      art:`<rect x="30" y="20" width="140" height="118" rx="10" fill="${C.v}" opacity=".18"/><rect x="118" y="40" width="40" height="86" rx="4" fill="#8a6b4a"/><circle cx="150" cy="86" r="3" fill="${C.s}"/>${av(78,112,C.c,22)}<circle cx="46" cy="40" r="8" fill="${C.s}"/><path d="M40 118h56" stroke="#00000022" stroke-width="6" stroke-linecap="round"/>`},
     {t:'Discover the Wall',d:'Browse rooms from creators everywhere. React, comment and message the ones you love. Rings show who is active right now.',
      art:`<g transform="rotate(-4 50 80)"><rect x="18" y="66" width="56" height="68" rx="6" fill="#fff"/><rect x="24" y="72" width="44" height="42" rx="3" fill="${C.k}"/></g><g transform="rotate(3 100 80)"><rect x="72" y="60" width="56" height="68" rx="6" fill="#fff"/><rect x="78" y="66" width="44" height="42" rx="3" fill="${C.m}"/></g><g transform="rotate(-2 150 80)"><rect x="126" y="70" width="56" height="68" rx="6" fill="#fff"/><rect x="132" y="76" width="44" height="42" rx="3" fill="${C.s}"/></g><g fill="none" stroke-width="4"><circle cx="46" cy="30" r="16" stroke="${C.c}"/><circle cx="100" cy="30" r="16" stroke="${C.v}"/><circle cx="154" cy="30" r="16" stroke="${C.m}"/></g><circle cx="46" cy="30" r="11" fill="#f2c9a0"/><circle cx="100" cy="30" r="11" fill="#e0a77a"/><circle cx="154" cy="30" r="11" fill="#c98b60"/>`},
-    {t:'Live Spaces and Sip & Paint',d:'Host audio talks for up to 30 minutes, or paint together on easels while a host shares a picture to follow.',
-     art:`<rect x="14" y="16" width="172" height="118" rx="10" fill="${C.i}"/><g>${[0,1,2,3].map(n=>`<rect x="${26+n*40}" y="40" width="32" height="42" rx="3" fill="#fffdf8"/>`).join('')}</g><circle cx="42" cy="58" r="9" fill="${C.k}"/><circle cx="82" cy="62" r="10" fill="${C.b}"/><circle cx="122" cy="56" r="8" fill="${C.s}"/><circle cx="162" cy="62" r="10" fill="${C.m}"/><g>${[0,1,2,3].map(n=>av(42+n*40,122,[C.c,C.v,C.s,C.m][n],9)).join('')}</g><rect x="84" y="20" width="32" height="10" rx="5" fill="${C.c}"/>`},
+
     {t:'Watch and listen together',d:'Play a video or music on your room’s TV in sync, so everyone inside sees and hears the same thing.',
      art:`<rect x="32" y="22" width="136" height="82" rx="8" fill="${C.i}"/><rect x="40" y="30" width="120" height="66" rx="4" fill="${C.v}"/><path d="M92 48l30 15-30 15z" fill="#fff"/><rect x="88" y="104" width="24" height="8" fill="${C.i}"/><rect x="60" y="112" width="80" height="6" rx="3" fill="${C.i}"/><path d="M22 52v-14l14-3v14" stroke="${C.c}" stroke-width="4" fill="none"/><circle cx="22" cy="54" r="5" fill="${C.c}"/><circle cx="36" cy="49" r="5" fill="${C.c}"/>${av(60,138,C.c,10)}${av(100,138,C.m,10)}${av(140,138,C.s,10)}`}
   ];
@@ -568,7 +569,7 @@ function introBuild(){
   const end=()=>{if(sx==null)return;const d=dx;sx=null;if(d<-45)show(cur+1,true);else if(d>45)show(cur-1,true);else show(cur,true);};
   view.addEventListener('pointerup',end);view.addEventListener('pointercancel',end);
   v.append(h('div',{class:'in-wrap'},
-    h('div',{class:'in-hero'},logoEl(52),h('h1',null,'Your room. Your wall. Your people.')),
+    h('div',{class:'in-hero'},logoEl(52),h('h1',null,'Paint it. Hang it. Visit friends’ walls.')),
     view,dots,
     h('div',{class:'in-cta'},
       h('button',{class:'btn coral block',onclick:()=>{introDone();authSheet('signup','Create an account to build your room');}},'Create account'),
@@ -584,10 +585,11 @@ function route(){
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
   if(hs==='paint')return Spaces.paintPage();
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
+  if(hs==='forum'||hs.startsWith('forum/')||hs.startsWith('topic/')){appFlags().then(F=>{if(F.forum===false){history.replaceState(null,'','#/discover');return discoverView();}return hs==='forum'?OWForum.boardView(null):hs.startsWith('forum/')?OWForum.boardView(hs.slice(6)):OWForum.topicView(hs.slice(6));});return;}
   if(hs==='forum')return OWForum.boardView(null);
   if(hs.startsWith('forum/'))return OWForum.boardView(hs.slice(6));
   if(hs.startsWith('topic/'))return OWForum.topicView(hs.slice(6));
-  switch(hs){case'spaces':return Spaces.discover();case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();case'ads':return adsView();default:return wallView();}
+  switch(hs){case'spaces':appFlags().then(F=>{if(F.live_spaces===false){history.replaceState(null,'','#/discover');return discoverView();}return Spaces.discover();});return;case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();case'ads':return adsView();default:return wallView();}
 }
 window.addEventListener('hashchange',route);
 (function boot(){
