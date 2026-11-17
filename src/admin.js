@@ -41,9 +41,9 @@ async function overview(main){
 /* ---- OpenWalls advertising ---- */
 function owads(main){return OWAds.adminPanel(main,dialog);}
 
-/* ---- OpenWalls control: feature switches, live spaces, reports, hosting bans, Sip & Paint artworks ---- */
+/* ---- OpenWalls control: feature switches, live spaces, reports, hosting bans, Gist & Paint artworks ---- */
 async function owctl(main){
-  const box=sect(main,'Spaces & Sip & Paint');box.append(spinner());
+  const box=sect(main,'Spaces & Gist & Paint');box.append(spinner());
   const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};
   let fl=[],sp=[],rp=[],bans=[],art=[];
   try{[fl,sp,rp,bans,art]=await Promise.all([rpc('admin_flags'),rpc('admin_spaces'),rpc('admin_space_reports'),rpc('admin_space_bans'),rpc('admin_paint_artworks')]);}
@@ -57,7 +57,7 @@ async function owctl(main){
   out.push(...sec('Spaces','Most recent 100. Live ones can be ended right now.'));
   if(!sp.length)out.push(empty('No spaces yet'));
   sp.forEach(s=>{const live=s.status==='live'||s.status==='scheduled';
-    out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,s.title),h('span',{class:'chipS s-'+(live?'approved':'rejected')},s.status),s.category==='sipandpaint'?h('span',{class:'chipS s-pending'},'Sip & Paint'):null,s.reports>0?h('span',{class:'chipS s-rejected'},s.reports+' report'+(s.reports>1?'s':'')):null),
+    out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,s.title),h('span',{class:'chipS s-'+(live?'approved':'rejected')},s.status),s.category==='sipandpaint'?h('span',{class:'chipS s-pending'},'Gist & Paint'):null,s.reports>0?h('span',{class:'chipS s-rejected'},s.reports+' report'+(s.reports>1?'s':'')):null),
       h('div',{class:'muted small-t'},'@'+(s.host||'?')+' · '+s.visibility+' · '+(live?s.people+' in the room · ':'')+timeAgo(s.created_at)+' ago')),
       h('div',{class:'acts'},live&&h('button',{class:'btn danger',onclick:e=>guard(e.currentTarget,async()=>{if(!await confirmBox('End “'+s.title+'” now?',null,'End space',true))return;await rpc('admin_space_end',{p_id:s.id});toast('Space ended','ok');again();})},'End now'),
         h('button',{class:'btn',onclick:async e=>{const t=h('textarea',{placeholder:'Reason (optional)',maxlength:'200'});const v=await dialog({title:'Stop @'+s.host+' from hosting spaces?',body:t,actions:[{label:'Cancel',value:false},{label:'Stop hosting',value:true,danger:true}]});if(!v)return;await guard(e.currentTarget,async()=>{await rpc('admin_space_ban',{p_user:s.host_id,p_on:true,p_reason:t.value.trim()||null});toast('Hosting switched off for @'+s.host,'ok');again();});}},'Block host'))));});
@@ -71,7 +71,7 @@ async function owctl(main){
   bans.forEach(b=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('b',null,'@'+(b.username||b.user_id.slice(0,8))),h('div',{class:'muted small-t'},(b.reason||'No reason given')+' · '+timeAgo(b.created_at)+' ago')),
     h('div',{class:'acts'},h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_space_ban',{p_user:b.user_id,p_on:false});toast('Hosting allowed again','ok');again();})},'Allow again')))));
   const fbox=h('div');out.push(...sec('Topics & discussions','Pin, lock or hide topics. “Reported” shows topics or replies that people flagged.'),fbox);forumAdmin(fbox,rpc);
-  out.push(...sec('Sip & Paint artworks','Paintings people saved to “My artworks”. Delete anything inappropriate.'));
+  out.push(...sec('Gist & Paint artworks','Paintings people saved to “My artworks”. Delete anything inappropriate.'));
   if(!art.length)out.push(empty('No artworks yet'));
   const grid=h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:'12px'}});
   art.forEach(a=>grid.append(h('div',{class:'card',style:{padding:'8px'}},h('img',{src:publicUrl('room-images',a.image_path),alt:'',style:{width:'100%',aspectRatio:'4/5',objectFit:'cover',borderRadius:'8px',background:'#fffdf8'}}),

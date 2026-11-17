@@ -1,4 +1,4 @@
-/* ---------- Sip & Paint: a painting studio inside a Space ----------
+/* ---------- Gist & Paint: a painting studio inside a Space ----------
    - every seated person has their own canvas (a 2D canvas used as the live texture of the 3D canvas)
    - strokes are batched over a realtime broadcast channel (pt:<space>) and saved to the database (paint_canvases)
    - the host chooses the reference picture, starts / pauses the session; everyone paints their own version */
@@ -147,7 +147,7 @@ async function galleryView(spaceId,title,opts){
   rows.forEach(r=>{const pc=new PC();pc.load(r.ops);const url=pc.cv.toDataURL('image/jpeg',.88),mine=Auth.user&&r.user_id===Auth.user.id;
     const save=mine?h('button',{class:'btn small coral'},'Save to my gallery'):null;
     if(save)save.onclick=()=>guard(save,async()=>{const blob=await (await fetch(url)).blob();const path=await uploadFile('room-images',blob,'jpg','image/jpeg');const x=await sb.rpc('paint_artwork_save',{p_path:path,p_title:'Painting by @'+r.username,p_space_title:title||''});if(x.error)throw x.error;save.textContent='Saved';save.disabled=true;toast('Saved to your gallery');});
-    grid.append(h('div',{class:'pt-gc'},h('img',{src:url,alt:'Painting by @'+r.username}),h('div',{class:'pt-gw'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,'@'+r.username),h('span',null,(r.done?'Completed':'In progress')+' · '+(title||'Sip & Paint')))),save));});
+    grid.append(h('div',{class:'pt-gc'},h('img',{src:url,alt:'Painting by @'+r.username}),h('div',{class:'pt-gw'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,'@'+r.username),h('span',null,(r.done?'Completed':'In progress')+' · '+(title||'Gist & Paint')))),save));});
   return box;
 }
 function openArtwork(a){
@@ -164,8 +164,8 @@ function openArtwork(a){
 async function myArtworks(){
   sheet('My artworks',async(body)=>{body.append(spinner());
     const r=await sb.from('paint_artworks').select('id,image_path,title,space_title,created_at').eq('user_id',Auth.user.id).order('created_at',{ascending:false}).limit(60);
-    if(r.error||!(r.data||[]).length){body.replaceChildren(empty('No artworks yet','Finish a painting in a Sip & Paint space and save it here.'));return;}
-    body.replaceChildren(h('div',{class:'pt-gg'},r.data.map(a=>h('div',{class:'pt-gc',role:'button',tabindex:'0','aria-label':'Open artwork',style:{cursor:'pointer'},onclick:()=>openArtwork(a)},h('img',{src:publicUrl('room-images',a.image_path),alt:a.title||'Artwork',loading:'lazy'}),h('div',{class:'pt-gw'},h('div',null,h('b',null,a.space_title||'Sip & Paint'),h('span',null,new Date(a.created_at).toLocaleDateString())))))));
+    if(r.error||!(r.data||[]).length){body.replaceChildren(empty('No artworks yet','Finish a painting in a Gist & Paint space and save it here.'));return;}
+    body.replaceChildren(h('div',{class:'pt-gg'},r.data.map(a=>h('div',{class:'pt-gc',role:'button',tabindex:'0','aria-label':'Open artwork',style:{cursor:'pointer'},onclick:()=>openArtwork(a)},h('img',{src:publicUrl('room-images',a.image_path),alt:a.title||'Artwork',loading:'lazy'}),h('div',{class:'pt-gw'},h('div',null,h('b',null,a.space_title||'Gist & Paint'),h('span',null,new Date(a.created_at).toLocaleDateString())))))));
   });
 }
 
@@ -190,7 +190,7 @@ function attach(R,ctx){
   /* plants */
   [-1.75,1.75].forEach(x=>{bx(.34,.34,.34,mat(0xf1eef9,.5),x,.17,SZ-1.1);const b=mat(0x2f9e5b,.8);for(let i=0;i<7;i++){const s=new T.Mesh(new T.SphereGeometry(.17+.05*(i%3),10,8),b);s.scale.set(.8,1.3,.8);s.position.set(x+Math.sin(i*1.7)*.2,.62+i*.05,SZ-1.1+Math.cos(i*1.7)*.15);G.add(s);}});
   /* neon sign */
-  const sign=document.createElement('canvas');sign.width=768;sign.height=300;{const g=sign.getContext('2d');g.textAlign='center';g.font='italic 800 118px Georgia,serif';g.shadowColor='#ff3fd0';g.shadowBlur=28;g.fillStyle='#fff';g.fillText('Sip & Paint',384,125);g.shadowBlur=22;g.fillStyle='#ff6fe0';g.fillText('Sip & Paint',384,125);g.shadowBlur=0;g.fillStyle='#fff';g.fillText('Sip & Paint',384,125);g.font='italic 600 40px Georgia,serif';g.shadowColor='#ffd23f';g.shadowBlur=12;g.fillText('Create · Sip · Connect',384,200);g.shadowBlur=0;g.strokeStyle='#ffd23f';g.lineWidth=8;g.lineCap='round';g.beginPath();g.moveTo(190,230);g.lineTo(580,222);g.stroke();}
+  const sign=document.createElement('canvas');sign.width=768;sign.height=300;{const g=sign.getContext('2d');g.textAlign='center';g.font='italic 800 118px Georgia,serif';g.shadowColor='#ff3fd0';g.shadowBlur=28;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.shadowBlur=22;g.fillStyle='#ff6fe0';g.fillText('Gist & Paint',384,125);g.shadowBlur=0;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.font='italic 600 40px Georgia,serif';g.shadowColor='#ffd23f';g.shadowBlur=12;g.fillText('Create · Gist · Connect',384,200);g.shadowBlur=0;g.strokeStyle='#ffd23f';g.lineWidth=8;g.lineCap='round';g.beginPath();g.moveTo(190,230);g.lineTo(580,222);g.stroke();}
   const signT=new T.CanvasTexture(sign);signT.encoding=T.sRGBEncoding;const sm=new T.Mesh(new T.PlaneGeometry(1.7,.665),new T.MeshBasicMaterial({map:signT,transparent:true}));sm.position.set(0,2.62,SZ-1.31);G.add(sm);
   /* reference screen */
   const wall=document.createElement('canvas');wall.width=1024;wall.height=576;const wg=wall.getContext('2d');const wallT=new T.CanvasTexture(wall);wallT.encoding=T.sRGBEncoding;wallT.anisotropy=4;
