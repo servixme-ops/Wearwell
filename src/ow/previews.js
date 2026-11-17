@@ -60,12 +60,18 @@ const OWPrev=(()=>{
       g.fillStyle=col;g.fillRect(x,y,bw,bh);g.strokeStyle=i.image_path?'#5a4a7a':'rgba(0,0,0,.35)';g.lineWidth=1;g.strokeRect(x+.5,y+.5,bw-1,bh-1);
     });
   }
+  /* a card with no 3D snapshot: the owner's own wall colour, with one of their hung pictures framed on it */
   async function paint(box,r){
     try{
       const its=await items(r.id);
-      const cv=document.createElement('canvas');cv.width=320;cv.height=240;cv.className='plan-cv';
-      cv.setAttribute('role','img');cv.setAttribute('aria-label',(r.name||'Room')+' floor plan');
-      draw(cv,r,its);box.replaceChildren(cv);box.classList.add('ready');
+      const it=its.find(x=>x&&x.image_path);
+      if(!it){box.classList.add('ready');return;}
+      const url=(typeof publicUrl==='function')?publicUrl('room-images',it.image_path):'';
+      if(!url){box.classList.add('ready');return;}
+      const img=h('img',{class:'ph-art',src:url,alt:'Picture on the wall',loading:'lazy',decoding:'async'});
+      img.onload=()=>{box.classList.add('has-art');};
+      img.onerror=()=>img.remove();
+      box.append(h('span',{class:'ph-frame'},img));box.classList.add('ready');
     }catch(e){box.classList.add('fail');}
   }
   function pump(){
@@ -81,8 +87,8 @@ const OWPrev=(()=>{
   function node(r,cls,alt){
     const url=Store.previewUrl(r.theme,r.updated_at);
     if(url)return h('img',{class:cls,src:url,alt:alt||r.name||'',width:'480',height:'360',loading:'lazy',decoding:'async'});
-    return h('div',{class:cls+' ph'},(typeof roomLabel==='function'?roomLabel(r):(r.name||'Room')));
-    const box=h('div',{class:cls+' plan','aria-label':alt||r.name||'Room'},h('span',{class:'plan-n'},r.name||'Room'));
+    const th=OW.THEMES[r.theme&&r.theme.key]||OW.THEMES.lagos,wc=/^#[0-9a-f]{6}$/i.test(th.wall||'')?th.wall:'#8b7bd8',n=parseInt(wc.slice(1),16),lum=(0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;
+    const box=h('div',{class:cls+' ph',style:{background:'linear-gradient(160deg,'+wc+','+shade(wc,.78)+')',color:lum>.62?'#1d1a2b':'#fff'}},h('span',{class:'ph-tag'},(typeof roomLabel==='function'?roomLabel(r):(r.name||'Room'))));
     if(r.id)watch(box,r);return box;
   }
   /* own room: make the 3D snapshot once, quietly, when it is missing */
