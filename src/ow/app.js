@@ -232,14 +232,14 @@ async function shareRoom(username,name,vis){
   if(navigator.share){try{await navigator.share({title:name||'My room on OpenWalls',text:'Come and see my room on OpenWalls',url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
   if(await copyText(url))toast('Room link copied','ok');else dialog({title:'Your room link',body:url});
 }
-/* choose paintings (from My artworks) to feature on the room card; at most 4 */
+/* choose paintings (from My artworks) to feature on the room card; at most 2 */
 function featPicker(current,done){
   sheet('Choose paintings',async(body,close)=>{
     body.append(spinner());
     let r;try{r=await sb.from('paint_artworks').select('id,image_path,title').eq('user_id',Auth.user.id).order('created_at',{ascending:false}).limit(60);}catch(e){r={error:e};}
     if(r.error||!(r.data||[]).length){body.replaceChildren(empty('No paintings yet','Finish a Gist & Paint painting and save it, then choose it here.'));return;}
     const sel=[...current];const g=h('div',{class:'pt-gg'}),cnt=h('p',{class:'f-hint',style:{margin:'0 0 8px'}});
-    const paint=()=>{cnt.textContent=sel.length+' of 4 chosen';g.replaceChildren(...r.data.map(a=>{const on=sel.indexOf(a.image_path)>=0;return h('button',{class:'pt-gc ft-pick'+(on?' on':''),style:{padding:0},'aria-label':a.title||'Painting',onclick:()=>{const k=sel.indexOf(a.image_path);if(k>=0)sel.splice(k,1);else if(sel.length>=4){toast('You can pick up to 4','err');return;}else sel.push(a.image_path);paint();}},h('img',{src:publicUrl('room-images',a.image_path),alt:'',loading:'lazy'}),on?h('i',{class:'ft-n'},String(sel.indexOf(a.image_path)+1)):null);}));};paint();
+    const paint=()=>{cnt.textContent=sel.length+' of 2 chosen';g.replaceChildren(...r.data.map(a=>{const on=sel.indexOf(a.image_path)>=0;return h('button',{class:'pt-gc ft-pick'+(on?' on':''),style:{padding:0},'aria-label':a.title||'Painting',onclick:()=>{const k=sel.indexOf(a.image_path);if(k>=0)sel.splice(k,1);else if(sel.length>=2){toast('You can pick up to 2','err');return;}else sel.push(a.image_path);paint();}},h('img',{src:publicUrl('room-images',a.image_path),alt:'',loading:'lazy'}),on?h('i',{class:'ft-n'},String(sel.indexOf(a.image_path)+1)):null);}));};paint();
     body.replaceChildren(cnt,g,h('button',{class:'btn primary block',style:{marginTop:'12px'},onclick:()=>{close();done(sel);}},'Done'));
   });
 }
@@ -247,14 +247,13 @@ function roomSettings(room,done){
   sheet('Room settings',(body,close)=>{
     const nm=h('input',{type:'text',maxlength:'60',value:room.name||''});
     /* up to 4 paintings shown on the room card */
-    let feat=((room.theme&&room.theme.featured)||[]).filter(x=>typeof x==='string').slice(0,4);const fw=h('div',{class:'ft-slots'});
-    const pf=()=>{fw.replaceChildren(...[0,1,2,3].map(n=>feat[n]?h('button',{class:'ft-slot on','aria-label':'Remove painting '+(n+1),onclick:()=>{feat.splice(n,1);pf();}},h('img',{src:publicUrl('room-images',feat[n]),alt:''}),h('i',null,'\u00d7')):h('button',{class:'ft-slot','aria-label':'Add a painting',onclick:()=>featPicker(feat,x=>{feat=x;pf();})},'+')));};pf();
+    let feat=((room.theme&&room.theme.featured)||[]).filter(x=>typeof x==='string').slice(0,2);const fw=h('div',{class:'ft-slots'});
+    const pf=()=>{fw.replaceChildren(...[0,1].map(n=>feat[n]?h('button',{class:'ft-slot on','aria-label':'Remove painting '+(n+1),onclick:()=>{feat.splice(n,1);pf();}},h('img',{src:publicUrl('room-images',feat[n]),alt:''}),h('i',null,'\u00d7')):h('button',{class:'ft-slot','aria-label':'Add a painting',onclick:()=>featPicker(feat,x=>{feat=x;pf();})},'+')));};pf();
     let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
     const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you and people with your invite link can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
-    const hide=Object.assign({},room.theme&&room.theme.hide);const sw=h('div',{class:'list'});
-    const ps=()=>sw.replaceChildren(...[['window','Window'],['door','Door'],['light','Ceiling light']].map(([k,l])=>h('button',{onclick:()=>{hide[k]?delete hide[k]:hide[k]=1;ps();}},h('span',{class:'grow'},l),h('b',null,hide[k]?'Removed':'Shown'))));ps();
+    const hide=Object.assign({},room.theme&&room.theme.hide);
     const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});if(feat.length)room.theme.featured=feat;else delete room.theme.featured;await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Paintings on your room card (up to 4)'),fw,h('p',{class:'f-hint',style:{margin:'6px 0 0'}},'These show on your card in Discover and on the Wall. Tap a painting to remove it.')),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,h('div',{class:'field'},h('span',{class:'f-label'},'Room features (tap to remove or bring back)'),sw),save);
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Paintings on your room card (up to 2)'),fw,h('p',{class:'f-hint',style:{margin:'6px 0 0'}},'These show on your card in Discover and on the Wall. Tap a painting to remove it.')),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,save);
   });
 }
 
