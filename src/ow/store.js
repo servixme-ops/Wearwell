@@ -8,6 +8,14 @@ const Store={
       if(off){hide.light=1;hide.until=Date.now()+35*60000;}else{delete hide.light;delete hide.until;}
       th.hide=hide;await sb.from('rooms').update({theme:th}).eq('id',r.data.id);}catch(e){}
   },
+  /* the owner's speaker queue is remembered, so the same songs are ready next time and play in their Gist & Paint sessions */
+  savePlaylist(q){
+    clearTimeout(this._plT);this._plT=setTimeout(async()=>{
+      try{if(!Auth.user)return;const r=await sb.from('rooms').select('id,theme').eq('owner_id',Auth.user.id).maybeSingle();if(r.error||!r.data)return;
+        const list=(q||[]).slice(0,50).map(x=>({k:x.k,id:x.id,u:x.u,t:String(x.t||'').slice(0,120)}));
+        const th=Object.assign({},r.data.theme,{playlist:list});await sb.from('rooms').update({theme:th}).eq('id',r.data.id);}catch(e){}
+    },1500);
+  },
   async hostNeon(c){
     try{if(!Auth.user||!/^#[0-9a-f]{6}$/i.test(c))return;const r=await sb.from('rooms').select('id,theme').eq('owner_id',Auth.user.id).maybeSingle();if(r.error||!r.data)return;
       const th=Object.assign({},r.data.theme,{neon:c});await sb.from('rooms').update({theme:th}).eq('id',r.data.id);}catch(e){}

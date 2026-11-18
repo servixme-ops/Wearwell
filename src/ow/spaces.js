@@ -153,7 +153,7 @@ async function discover(){
 async function room(id){
   if(!Auth.user){authSheet('signin','Sign in to join Live Spaces');go('#/spaces');return;}
   const v=setView(true);v.classList.add('sp-view');
-  let D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
+  let musicOn=false,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
   const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl);let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
@@ -239,6 +239,7 @@ async function room(id){
       let d=null;try{d=await Store.byUsername(D.host.username);}catch(e){}
       const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
       const r=new OWRoom(box,{edit:false});const rm=d&&d.room?Object.assign({},d.room):{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}};if(paintMode()){const th=Object.assign({},rm.theme),hd=Object.assign({},th.hide);hd.light=1;delete hd.until;th.hide=hd;rm.theme=th;}r.load(rm,d&&d.room?d.items:[]);
+      if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vid:null,autoplay:true,seed:isHost()?(rm.theme&&rm.theme.playlist):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
       r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');v.classList.toggle('sp-paintroom',!!paintMode());
       if(paintMode()&&typeof OWPaint!=='undefined'){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
@@ -310,6 +311,7 @@ async function room(id){
   async function leave(){
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);
     if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
+    try{OWTv.stopMusic();}catch(e){}
     try{await rpc('space_leave',{p_space:id});}catch(e){}
     if(paintMode()&&isHost())Store.hostLight(false);
     /* replace the room's history entry so Back from the list never drops you into the session again */
@@ -318,6 +320,7 @@ async function room(id){
   async function finish(msg){
     const wasPaint=paintMode(),title=D&&D.space&&D.space.title;
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
+    try{OWTv.stopMusic();}catch(e){}
     if(wasPaint&&isHost())Store.hostLight(false);
     const end=h('div',{class:'sp-ended'},h('h2',null,'This space has ended'),h('p',{class:'tag'},msg||'Thanks for listening.'),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces'));
     v.replaceChildren(end);
@@ -380,7 +383,7 @@ async function room(id){
     v.replaceChildren(h('div',{class:'sp-ended'},h('h2',null,/not configured/i.test(m)?'Live audio is not set up yet':'Could not join'),h('p',{class:'tag'},m),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces')));
     return;
   }
-  App.teardown=()=>{if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
+  App.teardown=()=>{try{OWTv.stopMusic();}catch(e){}if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
 }
 
 /* Gist & Paint lives inside Discover: a banner to host, and the sessions that are live now */
