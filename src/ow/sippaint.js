@@ -248,11 +248,13 @@ function attach(R,ctx){
   function send(ev,payload){if(ch&&chOk)try{ch.send({type:'broadcast',event:ev,payload});}catch(e){}}
   function connect(){
     try{ch=sb.channel('pt:'+spaceId,{config:{broadcast:{self:false}}});
-      ch.on('broadcast',{event:'seg'},({payload:p})=>onSeg(p)).on('broadcast',{event:'sync'},({payload:p})=>{if(p&&p.u&&p.u!==me&&Array.isArray(p.ops)){get(p.u).load(p.ops);}})
+      ch.on('broadcast',{event:'seg'},({payload:p})=>onSeg(p)).on('broadcast',{event:'sync'},({payload:p})=>{if(!p||!p.u||p.u===me||!Array.isArray(p.ops))return;if(!p.total||p.total<2){get(p.u).load(p.ops);return;}const b=syncIn[p.u]&&syncIn[p.u].sid===p.sid?syncIn[p.u]:(syncIn[p.u]={sid:p.sid,parts:{},n:0});if(!b.parts[p.part]){b.parts[p.part]=p.ops;b.n++;}if(b.n>=p.total){let all=[];for(let i=0;i<p.total;i++)all=all.concat(b.parts[i]||[]);delete syncIn[p.u];get(p.u).load(all);}})
         .on('broadcast',{event:'hello'},({payload:p})=>{if(p&&p.u!==me&&!mine.empty())setTimeout(()=>sendSync(),200+Math.random()*600);})
         .subscribe(s=>{if(s==='SUBSCRIBED'){chOk=true;send('hello',{u:me});}else if(s==='CLOSED'||s==='CHANNEL_ERROR')chOk=false;});}catch(e){}
   }
-  function sendSync(){const ops=mine.ops;if(JSON.stringify(ops).length>180000)return;send('sync',{u:me,ops});}
+  const syncIn={};
+  /* the whole painting is sent in pieces so a big painting still reaches viewers live (each realtime message stays small) */
+  function sendSync(){const ops=mine.ops,parts=[];let cur=[],sz=0;for(const o of ops){const l=o.p?o.p.length*5+60:60;if(sz+l>90000&&cur.length){parts.push(cur);cur=[];sz=0;}cur.push(o);sz+=l;}parts.push(cur);const sid=Math.random().toString(36).slice(2,8);parts.forEach((pp,i)=>setTimeout(()=>send('sync',{u:me,ops:pp,part:i,total:parts.length,sid}),i*120));}
   const remoteOps=new Map();
   function onSeg(p){if(!p||!p.u||p.u===me||!Array.isArray(p.p))return;const pc=get(p.u);let op=remoteOps.get(p.u+':'+p.id);
     if(p.t){if(!op){op=pc.start(p.t,p.c,+p.z||8,p.p[0],p.p[1],p.id);if(!op)return;remoteOps.set(p.u+':'+p.id,op);for(let i=2;i<p.p.length;i+=2)pc.extend(op,p.p[i],p.p[i+1]);}}
