@@ -601,3 +601,5 @@ button.fm-int{border:0}
 .tvplayer.tv-space{left:12px;top:calc(172px + var(--sat))}
 .tv-vol{width:74px;accent-color:#fff;align-self:center;margin:0 4px}
 .tvplayer.mini .tv-bar>.tv-vol{display:block!important}
+.tvplayer.tv-ro .tv-mp,.tvplayer.tv-ro .tv-seek,.tvplayer.tv-ro .tv-ctr,.tvplayer.tv-ro .tv-add-row,.tvplayer.tv-ro .tv-x,.tvplayer.tv-ro .tv-bar .tv-b:not(.tv-mn){display:none!important}
+.tvplayer.tv-ro .tv-pl .tv-none{font-size:0}.tvplayer.tv-ro .tv-pl .tv-none:after{content:"The host is choosing the music.";font-size:13px}
