@@ -83,6 +83,11 @@ const Auth={
     if(!r.error&&r.data&&r.data.session)await this._adopt(r.data.session.user);
     return{error:r.error};
   },
+  async signInGoogle(){
+    if(!sb)return{error:{message:'The server is not reachable right now.'}};
+    const r=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:CFG.site}});
+    return{error:r.error};
+  },
   async signOut(){if(sb)await sb.auth.signOut();this.user=null;this.profile=null;this.settings=null;this.isAdmin=false;this.emit('signout');},
   async resetPassword(email){if(!sb)return{error:{message:'The server is not reachable right now.'}};const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:CFG.site});return{error:r.error};},
   async refresh(){if(this.user)await this._load(this.user);this.emit('refresh');},

@@ -593,3 +593,6 @@ button.fm-int{border:0}
 .sp-chat .sp-msgs{padding-right:44px}
 .sp-round .sp-dot{min-width:18px;height:18px;border-radius:9px;padding:0 4px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:800;color:#fff;background:#ff5a3c;top:-3px;right:-3px;width:auto}
 .sp-round .sp-dot.calm{background:rgba(255,255,255,.28)}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1d1a2b;border:1.5px solid rgba(29,26,43,.18);font-weight:700}
+.gbtn .gmark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;background:conic-gradient(from -45deg,#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0)}
+.or-line{display:flex;align-items:center;gap:10px;margin:14px 0 10px;color:rgba(29,26,43,.5);font-size:12px}.or-line:before,.or-line:after{content:"";flex:1;height:1px;background:rgba(29,26,43,.14)}
