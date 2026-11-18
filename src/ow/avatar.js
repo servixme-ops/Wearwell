@@ -139,7 +139,7 @@ function build(cfg){
     }catch(e){console.warn('emblem patch',e);}
     embGeo.set(key,out);return out;}
   function emblem(){
-    const id=av.cfg&&av.cfg.emb;
+    const id=null;/* chest emblems removed from the editor */
     if(av._emb){av._emb.mesh.parent&&av._emb.mesh.parent.remove(av._emb.mesh);av._emb.tex.dispose();av._emb.mat.dispose();av._emb=null;}
     if(!id||id==='none'||!A||!(OWA.EMB.some(e=>e[0]===id)||OWA.parseBadge(id)))return;const tg=emblemTarget();if(!tg||!tg.geometry||!tg.skeleton)return;
     const ng=patchOf(tg);if(!ng)return;

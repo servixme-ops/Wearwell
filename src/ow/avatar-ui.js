@@ -157,13 +157,7 @@ async function avatarView(){
       out.push(h('div',{class:'av-lab'},'Bottom'),chips([['','Original']].concat(OWA.WEAR.bottom),X.bottom||'',k=>setX('bottom',k)),swatches(OWA.COLORS,cfg.botc,c=>apply({botc:c})));
       out.push(h('div',{class:'av-lab'},'Hat'),chips([['','None']].concat(OWA.WEAR.hat),X.hat||'',k=>setX('hat',k)));if(X.hat)out.push(swatches(OWA.COLORS,cfg.hatc,c=>apply({hatc:c})));
       out.push(swatches(OWA.COLORS,cfg.shoec,c=>apply({shoec:c}),'Shoes'));
-      out.push(h('div',{class:'av-lab'},'Club colours'),chips(Object.entries(OWA.CLUBS).map(([k,c])=>[k,c.n]),'',k=>{const c=OWA.CLUBS[k];apply({topc:c.b,botc:c.sh,shoec:c.k});}));
-      out.push(h('div',{class:'av-lab'},'Chest badge'),h('div',{class:'av-emb'},
-        h('button',{class:'emb'+(!cfg.emb||cfg.emb==='none'?' on':''),onclick:()=>{showChest();apply({emb:'none'});},'aria-label':'No badge'},'None'),
-        ...OWA.EMB.map(([id,nm])=>h('button',{class:'emb'+(cfg.emb===id?' on':''),'aria-label':nm,title:nm,onclick:()=>{showChest();apply({emb:id});}},embCv(id,40))),
-        h('button',{class:'emb mk'+(OWA.parseBadge(cfg.emb)?' on':''),onclick:badgeMaker},OWA.parseBadge(cfg.emb)?embCv(cfg.emb,40):'+ Make')));
-      out.push(note('Pick a ready-made badge or make your own. It shows on the left of your chest, on your current top. These are original designs, not club or brand logos.'));
-      out.push(note('Extra garments are simple stylised pieces fitted to your avatar. Club colours only tint colours; no badges or sponsors.'));}
+      out.push(note('Extra garments are simple stylised pieces fitted to your avatar. '));}
     content.replaceChildren(...out);content.scrollTop=keep;undoBtn.disabled=!hist.length;
   }
   paint();OWA.loadCatalog&&OWA.loadCatalog().then(()=>{if(tab==='hair')paint();});

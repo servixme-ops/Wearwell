@@ -320,7 +320,7 @@ const OWTv=(()=>{
 
     const api={alive:true,
       park(){if(!o.music||!alive)return;box.classList.add('parked');if(!box.classList.contains('mini'))mn.click();},
-      unpark(){box.classList.remove('parked');if(box.classList.contains('mini'))mn.click();},
+      unpark(){if(!box.classList.contains('parked'))return;box.classList.remove('parked');box.style.left='';box.style.top='';if(box.classList.contains('mini'))mn.click();},
       addOrFocus(src){if(!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
       destroy(){if(!alive)return;alive=false;if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
@@ -329,5 +329,6 @@ const OWTv=(()=>{
   /* music outlives the room page: it lives in its own holder on the page and is parked as a small bar until the person stops it */
   function musicHost(){let m=document.getElementById('ow-music-host');if(!m){m=document.createElement('div');m.id='ow-music-host';document.body.appendChild(m);}return m;}
   const park=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].park)cur[k].park();});};
-  return{open,parse,park,close:id=>{cur[id]&&cur[id].destroy();},stopMusic:()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k])cur[k].destroy();});},_state:()=>cur};
+  const unpark=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].unpark)cur[k].unpark();});};
+  return{open,parse,park,unpark,close:id=>{cur[id]&&cur[id].destroy();},stopMusic:()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k])cur[k].destroy();});},_state:()=>cur};
 })();
