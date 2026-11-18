@@ -135,13 +135,13 @@ async function discoverView(){
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
   const FL=await appFlags();
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Walls, paintings and creators.'),FL.sip_paint===false?null:Spaces.paintSection(),h('div',{class:'ent-list'},FL.live_spaces===false?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),FL.forum===false?null:h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,qi,adHost,sr,sec);
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Walls, paintings and creators.'),FL.sip_paint===false?null:Spaces.paintSection(),h('div',{class:'ent-list'},FL.live_spaces!==true?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),FL.forum!==true?null:h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,qi,adHost,sr,sec);
   App.teardown=()=>{OWAds.stop();clearInterval(actT);};
   const searchRun=async()=>{const q=qv.trim().toLowerCase(),my=++qn;
     if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';return;}
     sec.style.display='none';adHost.style.display='none';
     const pool=[...feat,...trend,...feed],seenR={},hit=pool.filter(r=>!seenR[r.id||r.username+r.name]&&(seenR[r.id||r.username+r.name]=1)&&([r.name,r.username,r.display_name].join(' ').toLowerCase().includes(q)));
-    const [sp,tp]=await Promise.all([OWAds.searchBlock(q),FL.forum===false?null:OWForum.search(q)]);if(my!==qn)return;
+    const [sp,tp]=await Promise.all([OWAds.searchBlock(q),FL.forum!==true?null:OWForum.search(q)]);if(my!==qn)return;
     sr.replaceChildren(...[sp,tp,h('h2',{class:'sec'},hit.length?'Results for \u201c'+qv.trim()+'\u201d':(tp?'No rooms match \u201c':'No rooms match \u201c')+qv.trim()+'\u201d'),hit.length?h('div',{class:'ex-grid',style:{background:'none'}},hit.map(roomPiece)):h('p',{class:'f-hint',style:{padding:'0 18px'}},'Try another word, or pick an interest above.')].filter(Boolean));};
   qi.addEventListener('input',()=>{qv=qi.value;clearTimeout(qt);qt=setTimeout(searchRun,300);});
   const ok=r=>!cat||(r.categories||[]).includes(cat);
@@ -499,7 +499,7 @@ function socialBar(d,o){
   let soc={counts:{},mine:null,comments:0};const room=d.room;
   const total=()=>Object.values(soc.counts).reduce((a,b)=>a+(+b||0),0);
   const rx=h('button',{class:'dk wide','aria-label':'React'}),cm=h('button',{class:'dk wide','aria-label':'Comments'}),ms=h('button',{class:'dk wide','aria-label':'Message'},icon('send'),h('span',null,'Message')),tp=h('button',{class:'dk wide','aria-label':'Topics'});let tpN=0;const paintTp=()=>tp.replaceChildren(icon('topics'),h('span',null,tpN?'Topics '+tpN:'Topics'));paintTp();
-  tp.style.display='none';appFlags().then(F=>{if(F.forum===false)return;tp.style.display='';OWForum.userData(room.owner_id).then(x=>{tpN=x.count||0;paintTp();});});
+  tp.style.display='none';appFlags().then(F=>{if(F.forum!==true)return;tp.style.display='';OWForum.userData(room.owner_id).then(x=>{tpN=x.count||0;paintTp();});});
   const paint=()=>{rx.replaceChildren(h('span',{class:'em'},soc.mine?EMOJI[soc.mine]:'♡'),h('span',null,total()||'React'));rx.classList.toggle('on',!!soc.mine);cm.replaceChildren(icon('chat'),h('span',null,soc.comments?soc.comments+(soc.comments==1?' comment':' comments'):'Comment'));};
   paint();Store.social(room.id).then(x=>{soc=x;paint();}).catch(()=>{});
   const pick=async kind=>{if(!needAuth('Sign in to react'))return;const was=soc.mine;const next=was===kind?null:kind;await guard(rx,async()=>{await Store.react(room.id,next);if(was)soc.counts[was]=Math.max(0,(soc.counts[was]||0)-1);if(next)soc.counts[next]=(soc.counts[next]||0)+1;soc.mine=next;paint();});};
@@ -610,11 +610,11 @@ function route(){
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
   if(hs==='paint'){history.replaceState(null,'','#/discover');return discoverView();}
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
-  if(hs==='forum'||hs.startsWith('forum/')||hs.startsWith('topic/')){appFlags().then(F=>{if(F.forum===false){history.replaceState(null,'','#/discover');return discoverView();}return hs==='forum'?OWForum.boardView(null):hs.startsWith('forum/')?OWForum.boardView(hs.slice(6)):OWForum.topicView(hs.slice(6));});return;}
+  if(hs==='forum'||hs.startsWith('forum/')||hs.startsWith('topic/')){appFlags().then(F=>{if(F.forum!==true){history.replaceState(null,'','#/discover');return discoverView();}return hs==='forum'?OWForum.boardView(null):hs.startsWith('forum/')?OWForum.boardView(hs.slice(6)):OWForum.topicView(hs.slice(6));});return;}
   if(hs==='forum')return OWForum.boardView(null);
   if(hs.startsWith('forum/'))return OWForum.boardView(hs.slice(6));
   if(hs.startsWith('topic/'))return OWForum.topicView(hs.slice(6));
-  switch(hs){case'spaces':appFlags().then(F=>{if(F.live_spaces===false){history.replaceState(null,'','#/discover');return discoverView();}return Spaces.discover();});return;case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();case'ads':return adsView();default:return wallView();}
+  switch(hs){case'spaces':appFlags().then(F=>{if(F.live_spaces!==true){history.replaceState(null,'','#/discover');return discoverView();}return Spaces.discover();});return;case'discover':return discoverView();case'inbox':return inboxView();case'me':return meView();case'edit':return editorView();case'avatar':return avatarView();case'ads':return adsView();default:return wallView();}
 }
 window.addEventListener('hashchange',route);
 (function boot(){
