@@ -18,7 +18,7 @@ const Store={
   async byUsername(u,code){const r=await sb.rpc('ow_room_by_username',{p_username:u,p_code:code||null});if(r.error)throw r.error;return r.data;},
   async feed(limit,offset,seed){const r=await sb.rpc('ow_wall_feed',{p_limit:limit||24,p_offset:offset||0,p_seed:seed||''});if(r.error)throw r.error;return r.data||[];},
   async createRoom(room,items){
-    const row={owner_id:Auth.user.id,name:room.name||'My room',size:room.size,width:room.width,depth:room.depth,height:room.height,theme:room.theme||{},categories:room.categories||[],visibility:room.visibility||'public'};
+    const row={owner_id:Auth.user.id,name:room.name||'Open room',size:room.size,width:room.width,depth:room.depth,height:room.height,theme:room.theme||{},categories:room.categories||[],visibility:room.visibility||'public'};
     const r=await sb.from('rooms').insert(row).select().single();if(r.error)throw r.error;
     const out=Object.assign({},r.data);await this.saveItems(out.id,items,[]);return out;
   },
