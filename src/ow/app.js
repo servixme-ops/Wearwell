@@ -106,7 +106,7 @@ async function wallView(){
   more.append(spinner());
   const load=async()=>{if(busy||done)return;busy=true;
     try{const rows=await Store.feed(PAGE,offset,WALL_SEED);offset+=rows.length;if(rows.length<PAGE)done=true;const cf=await OWAds.cfg(),EVERY=Math.max(4,+cf.wall_every||7),MAXAD=Math.max(0,+cf.wall_max||3);for(const r of rows){grid.append(roomPiece(r,count++));if(count%EVERY===0&&adIds.length<MAXAD){const ad=(await OWAds.serve('wall',null,1,adIds))[0];if(ad){adIds.push(ad.id);grid.append(OWAds.wallPiece(ad));}}}
-      if(!count){more.replaceChildren(empty('The wall is empty','Hang a picture in your room and it shows up here.',h('button',{class:'btn coral',onclick:create},'Build my room')));return;}
+      if(!count){more.replaceChildren(empty('The wall is empty','Hang a picture in your room and it shows up here.',h('button',{class:'btn coral',onclick:create},'Build my open room')));return;}
       more.replaceChildren(done?h('div',{class:'ex-end'},'You have seen every room'):h('div',{class:'ex-sent'}));
     }catch(e){more.replaceChildren(empty('Could not load the wall',friendlyError(e),h('button',{class:'btn',onclick:()=>{busy=false;more.replaceChildren(spinner());load();}},'Try again')));busy=false;return;}
     busy=false;watch();};
@@ -184,7 +184,7 @@ async function meView(){
   v.replaceChildren(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Me'))),
     h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},room?OWPrev.node(Object.assign({},room,{id:room.id}),'pshot','Your room'):h('div',{class:'pshot ph'},'Your room is not built yet'),
-      activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
+      activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my open room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       updRow(),
@@ -229,7 +229,7 @@ function ownerSheet(o,cn){
 async function shareRoom(username,name,vis){
   let url=roomUrl(username);
   if(vis==='private'){try{url+='/'+await Store.inviteCode();}catch(e){toast('Could not make the invite link','err');return;}}
-  if(navigator.share){try{await navigator.share({title:name||'My room on OpenWalls',text:'Come and see my room on OpenWalls',url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  if(navigator.share){try{await navigator.share({title:name||'My open room on OpenWalls',text:'Come and see my open room on OpenWalls',url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
   if(await copyText(url))toast('Room link copied','ok');else dialog({title:'Your room link',body:url});
 }
 /* choose paintings (from My artworks) to feature on the room card; at most 2 */
@@ -252,7 +252,7 @@ function roomSettings(room,done){
     let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
     const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you and people with your invite link can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
     const hide=Object.assign({},room.theme&&room.theme.hide);
-    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'My room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});if(feat.length)room.theme.featured=feat;else delete room.theme.featured;await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
+    const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'Open room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});if(feat.length)room.theme.featured=feat;else delete room.theme.featured;await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
     body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Paintings on your room card (up to 2)'),fw,h('p',{class:'f-hint',style:{margin:'6px 0 0'}},'These show on your card in Discover and on the Wall. Tap a painting to remove it.')),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,save);
   });
 }
@@ -260,7 +260,7 @@ function roomSettings(room,done){
 /* ---------- starter room: an improved Lagos living room ---------- */
 function starterRoom(){
   const S=OW.SIZES.large,kx=S.w/6,kz=S.d/5.4;
-  const room={name:'My room',size:'large',width:S.w,depth:S.d,height:S.h,theme:{key:'lagos'},categories:[],visibility:'public'};
+  const room={name:'Open room',size:'large',width:S.w,depth:S.d,height:S.h,theme:{key:'lagos'},categories:[],visibility:'public'};
   const f=(type,x,z,rot,extra)=>Object.assign({id:uuid(),kind:'furniture',type,x:x*kx,y:0,z:z*kz,rot:rot||0,scale:1,color:null,z_index:0,props:{}},extra||{});
   const d=(type,wall,x,y,extra)=>{const dd=OW.decor(type);return Object.assign({id:uuid(),kind:'decor',type,wall,x:x*(wall==='left'||wall==='right'?kz:kx),y,z:0,rot:0,scale:1,width:dd.w,height:dd.h,frame:dd.frame||null,color:null,z_index:0,props:{}},extra||{});};
   const items=[f('rug',0,-.5),f('sofa',0,-2.15),f('coffee_table',0,-.6),f('bookshelf',-2.8,-1.2,Math.PI/2),f('plant',2.5,-2.2),f('floor_lamp',-2.5,-2.3),f('tv_stand',2.75,-.4,-Math.PI/2),f('tv',2.75,-.4,-Math.PI/2),
@@ -280,7 +280,7 @@ async function editorView(){
   let data;try{data=await Store.mine();}catch(e){host.replaceChildren(empty('Could not open your room',friendlyError(e),h('button',{class:'btn',onclick:()=>go('#/me')},'Back')));return;}
   let fresh=false;if(!data){const st=starterRoom();data={room:st.room,items:st.items};fresh=true;}
   host.replaceChildren();
-  let room=data.room,dirty=fresh,saving=false,savedIds=new Set(fresh?[]:data.items.map(i=>i.id)),timer=0,panel=null,statusEl=h('span',{class:'save'},fresh?'Not saved yet':'Saved'),titleEl=h('b',null,room.name||'My room');
+  let room=data.room,dirty=fresh,saving=false,savedIds=new Set(fresh?[]:data.items.map(i=>i.id)),timer=0,panel=null,statusEl=h('span',{class:'save'},fresh?'Not saved yet':'Saved'),titleEl=h('b',null,room.name||'Open room');
   const R=new OWRoom(host,{edit:true,onHistory:()=>{try{hist();}catch(e){}},onSelect:it=>showPanel(it),onChange:()=>{dirty=true;statusEl.textContent='Unsaved changes';clearTimeout(timer);timer=setTimeout(()=>save(),2200);}});
   window.__room=R;
   R.load(room,data.items);
@@ -377,7 +377,7 @@ async function editorView(){
         floors.replaceChildren(...FC.map(([c,l])=>h('button',{class:'fl-sw'+(cur.toLowerCase()===c?' on':''),'aria-label':l,title:l,onclick:()=>{R.setFloor(c);paint();}},h('i',{style:{background:c||'repeating-linear-gradient(45deg,#e6dcc8,#e6dcc8 5px,#f6efe4 5px,#f6efe4 10px)'}}),h('span',null,l))),
           h('label',{class:'fl-sw fl-own'+(cur&&!FC.some(x=>x[0]===cur.toLowerCase())?' on':'')},h('i',{style:{background:'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)'}}),h('span',null,'Your colour'),h('input',{type:'color',value:/^#[0-9a-f]{6}$/i.test(cur)?cur:'#ffffff',onchange:e=>{R.setFloor(e.target.value);paint();}})));
       };paint();
-      nm.addEventListener('change',()=>{room.name=nm.value.trim()||'My room';R.room.name=room.name;titleEl.textContent=room.name;R.changed();});
+      nm.addEventListener('change',()=>{room.name=nm.value.trim()||'Open room';R.room.name=room.name;titleEl.textContent=room.name;R.changed();});
       body.append(field('Room name',nm),h('div',{class:'f-label',style:{margin:'4px 0 8px'}},'Room size'),sizes,h('div',{class:'f-label',style:{margin:'12px 0 8px'}},'Style'),themes,h('div',{class:'f-label',style:{margin:'14px 0 8px'}},'Floor colour'),floors,
         h('button',{class:'btn block',style:{marginTop:'14px'},onclick:()=>{close();roomSettings(Object.assign(room,{name:R.room.name||room.name,theme:R.room.theme}),()=>{R.room.categories=room.categories;R.room.theme=room.theme;R.buildShell();R.changed();});}},icon('sliders'),'Room name & card'));
     });
@@ -447,7 +447,7 @@ async function visitView(hs0){
   let d,ci;try{d=await Store.byUsername(username,code);}catch(e){host.replaceChildren(empty('Could not open this room',friendlyError(e),h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
   if(!d){host.replaceChildren(empty('Room not found','This room is private or does not exist. If you were given an invite code, enter it here.',h('div',{class:'row',style:{gap:'8px',justifyContent:'center',flexWrap:'wrap'}},ci=h('input',{type:'text',maxlength:'20',placeholder:'Invite code',autocapitalize:'none',style:{maxWidth:'180px'}}),h('button',{class:'btn coral',onclick:()=>{const c=ci.value.trim().toLowerCase();if(c)go('#/@'+username+'/'+encodeURIComponent(c));}},'Enter'),h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall'))));return;}
   const o=d.owner;
-  if(!d.room){host.replaceChildren(empty('@'+o.username+' has not built a room yet',d.is_me?'Build yours now.':'Check back soon.',d.is_me?h('button',{class:'btn coral',onclick:()=>go('#/edit')},'Build my room'):h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
+  if(!d.room){host.replaceChildren(empty('@'+o.username+' has not built a room yet',d.is_me?'Build yours now.':'Check back soon.',d.is_me?h('button',{class:'btn coral',onclick:()=>go('#/edit')},'Build my open room'):h('button',{class:'btn',onclick:()=>go('#/wall')},'Back to the Wall')));return;}
   host.replaceChildren();document.title=d.room.name+' · @'+o.username+' · OpenWalls';
   let R=null;
   let hud=null;
