@@ -1,0 +1,10 @@
+wrangler.jsonc
+.assetsignore
+netlify.toml
+vercel.json
+README.md
+docs
+tools
+.git
+.github
+node_modules
