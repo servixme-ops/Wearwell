@@ -157,7 +157,8 @@ async function room(id){
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
   const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl);let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
-  const chatBox=h('div',{class:'sp-chat'},msgs,h('div',{class:'cin'},inp,sendB));
+  const chatX=h('button',{class:'sp-chat-x','aria-label':'Close comments',onclick:()=>{chatOpen=false;chatBox.classList.remove('open');paintBar();}},icon('close'));
+  const chatBox=h('div',{class:'sp-chat'},chatX,msgs,h('div',{class:'cin'},inp,sendB));
   const top=h('div',{class:'sp-topbar'});
   v.append(top,banner,tbox,h('div',{class:'sp-scroll'},reqBox,h('h4',{class:'sp-h sp-hstage'},'On stage'),stage,h('h4',{class:'sp-h',id:'sp-lh'},'Listening'),crowd),floats,chatBox,bar);
   const me=()=>D&&D.me;const role=()=>(me()&&me().role)||'listener';const isHost=()=>role()==='host';const onStage=()=>role()==='host'||role()==='speaker';
@@ -260,7 +261,7 @@ async function room(id){
     if(onStage())btns.push(h('button',{class:'sp-mic-btn'+(audio.micOn?' live':''),disabled:!!muted||connState!=='connected','aria-label':audio.micOn?'Mute microphone':'Unmute microphone',onclick:toggleMic},icon(audio.micOn?'mic':'micoff'),h('span',null,muted?'Muted by host':audio.micOn?'Mute':'Unmute')));
     else{const pend=D.my_request==='pending';btns.push(h('button',{class:'sp-hand-btn'+(pend?' on':''),disabled:reqBusy,onclick:async e=>{reqBusy=true;try{if(pend){await rpc('space_cancel_request',{p_space:id});toast('Request cancelled');}else{await rpc('space_request_speak',{p_space:id});toast('The host has been asked. Hang tight.');}await tick();}catch(er){toast(friendlyError(er),'err');}finally{reqBusy=false;paintBar();}}},'✋',h('span',null,pend?'Cancel':'Raise hand')));}
     btns.push(h('button',{class:'sp-round','aria-label':'React',onclick:reactSheet},'😊'));
-    if(D.space.chat_enabled)btns.push(h('button',{class:'sp-round'+(chatOpen?' on':''),'aria-label':'Chat',onclick:()=>{chatOpen=!chatOpen;chatBox.classList.toggle('open',chatOpen);if(chatOpen){chatSeen=lastMsg;msgs.scrollTop=msgs.scrollHeight;}paintBar();}},icon('chat'),(!chatOpen&&unread>0)?h('i',{class:'sp-dot'}):null));
+    if(D.space.chat_enabled)btns.push(h('button',{class:'sp-round'+(chatOpen?' on':''),'aria-label':'Chat',onclick:()=>{chatOpen=!chatOpen;chatBox.classList.toggle('open',chatOpen);if(chatOpen){chatSeen=lastMsg;msgs.scrollTop=msgs.scrollHeight;}paintBar();}},icon('chat'),(!chatOpen&&unread>0)?h('i',{class:'sp-dot'},unread>9?'9+':String(unread)):null));
     btns.push(h('button',{class:'sp-leave',onclick:leave},isHost()?'Leave':'Leave quietly'));
     bar.replaceChildren(...btns);
   }
