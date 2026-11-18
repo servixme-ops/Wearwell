@@ -134,6 +134,8 @@ class PC{
   setState(s){this.ops=this.ops.filter(o=>o.k!=='m');if(s>0)this.ops.push({k:'m',s});}
   load(ops){this.ops=Array.isArray(ops)?ops.filter(o=>o&&(o.k==='s'||o.k==='clr'||o.k==='m')):[];this.redo=[];this.render();}
   empty(){return !this.ops.some(o=>o.k==='s');}
+  /* re-draws the strokes at k times the size, so saved and downloaded paintings stay sharp */
+  hires(k){const c=document.createElement('canvas');c.width=CW*k;c.height=CH*k;const t=Object.create(PC.prototype);t.g=c.getContext('2d');t.cv=c;t.g.scale(k,k);t.blank();for(const op of this.ops){if(op.k==='clr')t.blank();else if(op.k==='s')t.seg(op,0);}return c;}
   texture(){if(!this.tex){this.tex=new T.CanvasTexture(this.cv);this.tex.encoding=T.sRGBEncoding;this.tex.anisotropy=4;}return this.tex;}
 }
 
@@ -146,8 +148,9 @@ async function galleryView(spaceId,title,opts){
   rows.sort((a,b)=>(b.done-a.done));
   rows.forEach(r=>{const pc=new PC();pc.load(r.ops);const url=pc.cv.toDataURL('image/jpeg',.88),mine=Auth.user&&r.user_id===Auth.user.id;
     const save=mine?h('button',{class:'btn small coral'},'Save to my gallery'):null;
-    if(save)save.onclick=()=>guard(save,async()=>{const blob=await (await fetch(url)).blob();const path=await uploadFile('room-images',blob,'jpg','image/jpeg');const x=await sb.rpc('paint_artwork_save',{p_path:path,p_title:'Painting by @'+r.username,p_space_title:title||''});if(x.error)throw x.error;save.textContent='Saved';save.disabled=true;toast('Saved to your gallery');});
-    grid.append(h('div',{class:'pt-gc'},h('img',{src:url,alt:'Painting by @'+r.username}),h('div',{class:'pt-gw'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,'@'+r.username),h('span',null,(r.done?'Completed':'In progress')+' · '+(title||'Gist & Paint')))),save));});
+    if(save)save.onclick=()=>guard(save,async()=>{const blob=await new Promise(res=>pc.hires(2).toBlob(res,'image/jpeg',.95));const path=await uploadFile('room-images',blob,'jpg','image/jpeg');const x=await sb.rpc('paint_artwork_save',{p_path:path,p_title:'Painting by @'+r.username,p_space_title:title||''});if(x.error)throw x.error;save.textContent='Saved';save.disabled=true;toast('Saved to your gallery');});
+    const dl=h('button',{class:'btn small'},'Download HD');dl.onclick=()=>guard(dl,async()=>{const blob=await new Promise(res=>pc.hires(4).toBlob(res,'image/png'));download(blob,'openwalls-painting-'+(r.username||'art')+'.png');});
+    grid.append(h('div',{class:'pt-gc'},h('img',{src:url,alt:'Painting by @'+r.username}),h('div',{class:'pt-gw'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,'@'+r.username),h('span',null,(r.done?'Completed':'In progress')+' · '+(title||'Gist & Paint')))),save,dl));});
   return box;
 }
 function openArtwork(a){
@@ -190,8 +193,12 @@ function attach(R,ctx){
   /* plants */
   [-1.75,1.75].forEach(x=>{bx(.34,.34,.34,mat(0xf1eef9,.5),x,.17,SZ-1.1);const b=mat(0x2f9e5b,.8);for(let i=0;i<7;i++){const s=new T.Mesh(new T.SphereGeometry(.17+.05*(i%3),10,8),b);s.scale.set(.8,1.3,.8);s.position.set(x+Math.sin(i*1.7)*.2,.62+i*.05,SZ-1.1+Math.cos(i*1.7)*.15);G.add(s);}});
   /* neon sign */
-  const sign=document.createElement('canvas');sign.width=768;sign.height=300;{const g=sign.getContext('2d');g.textAlign='center';g.font='italic 800 118px Georgia,serif';g.shadowColor='#ff3fd0';g.shadowBlur=28;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.shadowBlur=22;g.fillStyle='#ff6fe0';g.fillText('Gist & Paint',384,125);g.shadowBlur=0;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.font='italic 600 40px Georgia,serif';g.shadowColor='#ffd23f';g.shadowBlur=12;g.fillText('Create · Gist · Connect',384,200);g.shadowBlur=0;g.strokeStyle='#ffd23f';g.lineWidth=8;g.lineCap='round';g.beginPath();g.moveTo(190,230);g.lineTo(580,222);g.stroke();}
-  const signT=new T.CanvasTexture(sign);signT.encoding=T.sRGBEncoding;const sm=new T.Mesh(new T.PlaneGeometry(1.7,.665),new T.MeshBasicMaterial({map:signT,transparent:true}));sm.position.set(0,2.62,SZ-1.31);G.add(sm);
+  const sign=document.createElement('canvas');sign.width=768;sign.height=300;
+  const NEONS=['#ff3fd0','#3fa9ff','#3dff9a','#ffd23f','#ff8a1f','#ff4d4d','#a66bff','#ffffff'];
+  let neonC=(R.room&&R.room.theme&&R.room.theme.neon)||NEONS[0];let signT=null;
+  function drawSign(col){neonC=col||neonC;const g=sign.getContext('2d');g.clearRect(0,0,768,300);g.textAlign='center';g.font='italic 800 118px Georgia,serif';g.shadowColor=neonC;g.shadowBlur=28;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.shadowBlur=22;g.fillStyle=neonC;g.fillText('Gist & Paint',384,125);g.shadowBlur=0;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.font='italic 600 40px Georgia,serif';g.shadowColor=neonC;g.shadowBlur=12;g.fillText('Create \u00b7 Gist \u00b7 Connect',384,200);g.shadowBlur=0;g.strokeStyle=neonC;g.lineWidth=8;g.lineCap='round';g.beginPath();g.moveTo(190,230);g.lineTo(580,222);g.stroke();if(signT)signT.needsUpdate=true;}
+  drawSign();
+  signT=new T.CanvasTexture(sign);signT.encoding=T.sRGBEncoding;const sm=new T.Mesh(new T.PlaneGeometry(1.7,.665),new T.MeshBasicMaterial({map:signT,transparent:true}));sm.position.set(0,2.62,SZ-1.31);G.add(sm);
   /* reference screen */
   const wall=document.createElement('canvas');wall.width=1024;wall.height=576;const wg=wall.getContext('2d');const wallT=new T.CanvasTexture(wall);wallT.encoding=T.sRGBEncoding;wallT.anisotropy=4;
   bx(1.86,1.1,.05,mat(0x15112a,.4),0,1.78,SZ-1.31);const wm=new T.Mesh(new T.PlaneGeometry(1.76,.99),new T.MeshBasicMaterial({map:wallT}));wm.position.set(0,1.78,SZ-1.28);G.add(wm);
@@ -249,7 +256,7 @@ function attach(R,ctx){
   function connect(){
     try{ch=sb.channel('pt:'+spaceId,{config:{broadcast:{self:false}}});
       ch.on('broadcast',{event:'seg'},({payload:p})=>onSeg(p)).on('broadcast',{event:'sync'},({payload:p})=>{if(!p||!p.u||p.u===me||!Array.isArray(p.ops))return;if(!p.total||p.total<2){get(p.u).load(p.ops);return;}const b=syncIn[p.u]&&syncIn[p.u].sid===p.sid?syncIn[p.u]:(syncIn[p.u]={sid:p.sid,parts:{},n:0});if(!b.parts[p.part]){b.parts[p.part]=p.ops;b.n++;}if(b.n>=p.total){let all=[];for(let i=0;i<p.total;i++)all=all.concat(b.parts[i]||[]);delete syncIn[p.u];get(p.u).load(all);}})
-        .on('broadcast',{event:'hello'},({payload:p})=>{if(p&&p.u!==me&&!mine.empty())setTimeout(()=>sendSync(),200+Math.random()*600);})
+        .on('broadcast',{event:'neon'},({payload:p})=>{if(p&&typeof p.c==='string'&&/^#[0-9a-f]{6}$/i.test(p.c))drawSign(p.c);}).on('broadcast',{event:'hello'},({payload:p})=>{if(p&&p.u!==me&&!mine.empty())setTimeout(()=>sendSync(),200+Math.random()*600);})
         .subscribe(s=>{if(s==='SUBSCRIBED'){chOk=true;send('hello',{u:me});}else if(s==='CLOSED'||s==='CHANNEL_ERROR')chOk=false;});}catch(e){}
   }
   const syncIn={};
@@ -362,7 +369,9 @@ function attach(R,ctx){
       const saveN=h('button',{class:'btn small'},'Show on the screen');saveN.onclick=()=>send_('note',note.value);
       const clr=h('button',{class:'btn small'},'Clear picture');clr.onclick=()=>send_('ref','');
       const ctl=h('div',{class:'pt-hc'},sp.state==='waiting'?h('button',{class:'btn coral',onclick:()=>send_('start')},'Start painting'):sp.state==='painting'?h('button',{class:'btn',onclick:()=>send_('pause')},'Pause'):h('button',{class:'btn coral',onclick:()=>send_('resume')},'Resume'));
+      const neonRow=h('div',{class:'pt-neon'},NEONS.map(c=>h('button',{class:'pt-nsw'+(c.toLowerCase()===String(neonC).toLowerCase()?' on':''),style:{background:c},'aria-label':'Neon colour '+c,onclick:()=>{drawSign(c);send('neon',{c});Store.hostNeon&&Store.hostNeon(c);[...neonRow.children].forEach(x=>x.classList.toggle('on',x===neonRow.children[NEONS.indexOf(c)]));}})));
       body.append(h('p',{class:'f-hint'},'Session: '+(sp.state==='waiting'?'waiting to start':sp.state)),ctl,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Reference picture'),grid,h('div',{class:'pt-hc',style:{marginTop:'8px'}},clr),h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Instructions'),note,h('div',{style:{marginTop:'6px'}},saveN),
+        h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Neon sign colour'),neonRow,
         h('div',{class:'pt-hc',style:{marginTop:'14px'}},h('button',{class:'btn small',onclick:()=>{close();galleryModal();}},'Show all paintings')));
     };build();
     });

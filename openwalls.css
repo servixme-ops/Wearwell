@@ -596,3 +596,5 @@ button.fm-int{border:0}
 .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1d1a2b;border:1.5px solid rgba(29,26,43,.18);font-weight:700}
 .gbtn .gmark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;background:conic-gradient(from -45deg,#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0)}
 .or-line{display:flex;align-items:center;gap:10px;margin:14px 0 10px;color:rgba(29,26,43,.5);font-size:12px}.or-line:before,.or-line:after{content:"";flex:1;height:1px;background:rgba(29,26,43,.14)}
+.pt-neon{display:flex;flex-wrap:wrap;gap:10px}.pt-nsw{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.7);box-shadow:0 0 0 1px rgba(0,0,0,.25)}.pt-nsw.on{outline:3px solid #6c4bff;outline-offset:2px}
+.pt-gc .btn.small{margin:6px 0 0 6px}
