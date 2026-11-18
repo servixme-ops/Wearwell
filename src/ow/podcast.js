@@ -105,7 +105,7 @@ P.stageTick=function(dt){
     const ce=Math.cos(c.el),cam=this.cam;cam.position.set(c.tx+Math.sin(c.az)*ce*c.dist,c.ty+Math.sin(c.el)*c.dist,c.tz+Math.cos(c.az)*ce*c.dist);cam.lookAt(c.tx,c.ty,c.tz);cam.updateMatrixWorld();
     if(this.caps){const wf=this.wf();this.caps.forEach(({m,k})=>{const f=wf[k];m.visible=f.n[0]*(cam.position.x-f.o[0])+f.n[2]*(cam.position.z-f.o[2])>0;});}
     const w=this.host.clientWidth,hh=this.host.clientHeight,v=new T.Vector3();
-    st.map.forEach(en=>{if(!en.el)return;v.set(SX[en.idx],st.paint?.8:1.58,SZ).project(cam);en.el.style.transform='translate(-50%,-100%) translate('+((v.x*.5+.5)*w)+'px,'+((-v.y*.5+.5)*hh)+'px)';en.el.style.opacity=e&&st.focus!==undefined&&st.map.get(st.focus)!==en?.55:1;
+    st.map.forEach(en=>{if(!en.el)return;v.set(SX[en.idx],st.paint?1.26:1.58,SZ).project(cam);en.el.style.transform='translate(-50%,-100%) translate('+((v.x*.5+.5)*w)+'px,'+((-v.y*.5+.5)*hh)+'px)';en.el.style.opacity=e&&st.focus!==undefined&&st.map.get(st.focus)!==en?.55:1;
       en.el.classList.toggle('speak',st.speaking.has([...st.map.keys()].find(k=>st.map.get(k)===en)));});
     this.markDirty();
   }
