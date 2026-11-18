@@ -3,7 +3,7 @@
    - strokes are batched over a realtime broadcast channel (pt:<space>) and saved to the database (paint_canvases)
    - the host chooses the reference picture, starts / pauses the session; everyone paints their own version */
 const OWPaint=(()=>{
-const T=THREE,PAPER='#fffdf8',CW=512,CH=640,MAXPTS=120000;let fullAt=0;const fullToast=()=>{if(Date.now()-fullAt<4000)return;fullAt=Date.now();fullToast();};
+const T=THREE,PAPER='#fffdf8',CW=512,CH=640;
 const COLS=[['Red','#e63946'],['Blue','#2d6cdf'],['Yellow','#ffd23f'],['Green','#2bb673'],['Purple','#7b4dff'],['Orange','#ff8a1f'],['Black','#1a1a1f'],['White','#ffffff'],['Brown','#8b5a3c'],['Pink','#ff6fae']];
 const STATES=['Painting','Almost done','Completed'];
 const REFS=[['sunset','Palm sunset'],['flowers','Flower vase'],['mountains','Mountain lake'],['city','City at night'],['abstract','Colour circles'],['cat','Sleepy cat'],['sunflower','Sunflower'],['fish','Goldfish bowl'],['house','Cosy house'],['rocket','Rocket in space'],['balloon','Hot-air balloon']];
@@ -125,8 +125,8 @@ class PC{
     if(p.length===2||i0===0&&p.length<4){g.beginPath();g.arc(p[0],p[1],g.lineWidth/2,0,7);g.fill();if(p.length<4)return;}
     g.beginPath();g.moveTo(p[Math.max(0,i0-2)],p[Math.max(0,i0-2)+1]);for(let i=Math.max(2,i0);i<p.length;i+=2)g.lineTo(p[i],p[i+1]);g.stroke();g.globalAlpha=1;}
   render(){this.blank();this.pts=0;for(const op of this.ops){if(op.k==='clr')this.blank();else if(op.k==='s'){this.seg(op,0);this.pts+=op.p.length;}}this.onChange();}
-  start(t,c,z,x,y,id){if(this.pts>MAXPTS)return null;const op={k:'s',t,c,z,p:[Math.round(x),Math.round(y)],id:id||null};this.ops.push(op);this.redo=[];this.seg(op,0);this.pts+=2;this.onChange();return op;}
-  extend(op,x,y){x=Math.round(x);y=Math.round(y);const p=op.p,lx=p[p.length-2],ly=p[p.length-1];if(Math.abs(x-lx)<2&&Math.abs(y-ly)<2)return false;if(this.pts>MAXPTS)return false;p.push(x,y);this.pts+=2;this.seg(op,p.length-2);this.onChange();return true;}
+  start(t,c,z,x,y,id){const op={k:'s',t,c,z,p:[Math.round(x),Math.round(y)],id:id||null};this.ops.push(op);this.redo=[];this.seg(op,0);this.pts+=2;this.onChange();return op;}
+  extend(op,x,y){x=Math.round(x);y=Math.round(y);const p=op.p,lx=p[p.length-2],ly=p[p.length-1];if(Math.abs(x-lx)<2&&Math.abs(y-ly)<2)return false;p.push(x,y);this.pts+=2;this.seg(op,p.length-2);this.onChange();return true;}
   undo(){let i=this.ops.length-1;while(i>=0&&this.ops[i].k==='m')i--;if(i<0)return false;this.redo.push(...this.ops.splice(i,1));this.render();return true;}
   redoOp(){const o=this.redo.pop();if(!o)return false;this.ops.push(o);this.render();return true;}
   clear(){this.ops.push({k:'clr'});this.redo=[];this.render();}
@@ -325,7 +325,7 @@ function attach(R,ctx){
     const allowed=()=>sp.state==='painting';
     function paintBan(){banner.textContent=sp.state==='painting'?'':(sp.state==='paused'?'Painting is paused by the host':'Waiting for the host to start the session');banner.style.display=sp.state==='painting'?'none':'';}
     const pos=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*CW,(e.clientY-r.top)/r.height*CH];};
-    const down=e=>{if(!allowed()||drawing!==null)return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;fullToast();return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
+    const down=e=>{if(!allowed()||drawing!==null)return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
     const move=e=>{if(drawing!==e.pointerId||!cur)return;e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];(ev.length?ev:[e]).forEach(q=>{const[x,y]=pos(q);if(mine.extend(cur,x,y))sendBuf.push(Math.round(x),Math.round(y));});const n=Date.now();if(n-lastSend>110)flush();if(n-lastPaintPing>600){lastPaintPing=n;R.stagePaint(me);}};
     const up=e=>{if(drawing!==e.pointerId)return;drawing=null;flush();cur=null;saveSoon();};
     function flush(){lastSend=Date.now();if(!cur||!sendBuf.length)return;const p={u:me,id:cur.id,p:sendBuf};if(cur.first){p.t=cur.t;p.c=cur.c;p.z=cur.z;cur.first=false;}send('seg',p);sendBuf=[];}
