@@ -67,6 +67,10 @@ function authSheet(mode,why){
         close();toast('Welcome to OpenWalls','ok');
       });}},
       why?h('p',{class:'tag',style:{marginBottom:'12px'}},why):null,
+      mode==='reset'?null:h('div',null,
+        h('button',{type:'button',class:'btn block gbtn',onclick:async()=>{err.textContent='';const r=await Auth.signInGoogle();if(r&&r.error)err.textContent=r.error.message||'Google sign-in is not available right now.';}},
+          h('span',{class:'gmark'},'G'),'Continue with Google'),
+        h('div',{class:'or-line'},h('span',null,'or use email'))),
       mode==='signup'?[field('Name',name),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),user,hint)]:null,
       field('Email',em),mode==='reset'?null:field('Password',h('div',{class:'pw-wrap'},pw,eye)),err,go1,
       h('div',{style:{display:'flex',justifyContent:'space-between',marginTop:'12px'}},
