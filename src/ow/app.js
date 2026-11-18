@@ -451,7 +451,7 @@ async function visitView(hs0){
   host.replaceChildren();document.title=d.room.name+' · @'+o.username+' · OpenWalls';
   let R=null;
   let hud=null;
-  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+hs0;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);App.teardown=()=>{OWTv.close(d.room.id);OWTv.park();hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
+  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+hs0;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);try{OWTv.unpark();}catch(e){}App.teardown=()=>{OWTv.close(d.room.id);OWTv.park();hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
     R.liveStart({roomId:d.room.id,uid:Auth.user&&Auth.user.id,ownerId:o.id,cb:{onTap:info=>info.owner?ownerSheet(o,cn):sheet(info.name,(b,close)=>{b.append(info.username?h('button',{class:'btn coral block',onclick:()=>{close();go('#/@'+info.username);}},'View profile'):h('p',{class:'tag'},'Visiting this room'));})}});}
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}

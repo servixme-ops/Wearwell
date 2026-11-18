@@ -95,6 +95,7 @@ function createSheet(onDone,preset){
       if(title.value.trim().length<3){toast('Give your space a title.','err');return;}
       if(!live&&!st.value){toast('Pick a start time.','err');return;}
       const id=await rpc('space_create',{p_title:title.value,p_desc:desc.value,p_category:cat.value,p_visibility:vis,p_start:live?null:new Date(st.value).toISOString(),p_end:!live&&en.value?new Date(en.value).toISOString():null,p_go_live:live,p_chat:chat});
+      if(cat.value==='sipandpaint'||preset==='sipandpaint'){if(live)Store.hostLight(true);}
       close();if(live)go('#/space/'+id);else{toast('Space scheduled');onDone&&onDone('upcoming');}
     });
     b.append(field('Title',title),field('Description',desc),preset==='sipandpaint'?null:field('Category',cat),
@@ -309,12 +310,14 @@ async function room(id){
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);
     if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
     try{await rpc('space_leave',{p_space:id});}catch(e){}
+    if(paintMode()&&isHost())Store.hostLight(false);
     /* replace the room's history entry so Back from the list never drops you into the session again */
     location.replace(paintMode()?'#/discover':'#/spaces');
   }
   async function finish(msg){
     const wasPaint=paintMode(),title=D&&D.space&&D.space.title;
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
+    if(wasPaint&&isHost())Store.hostLight(false);
     const end=h('div',{class:'sp-ended'},h('h2',null,'This space has ended'),h('p',{class:'tag'},msg||'Thanks for listening.'),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces'));
     v.replaceChildren(end);
     if(wasPaint&&typeof OWPaint!=='undefined'){v.classList.add('pt-endv');end.after(await OWPaint.galleryView(id,title));}

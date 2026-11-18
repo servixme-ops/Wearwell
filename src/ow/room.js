@@ -85,9 +85,10 @@ class OWRoom{
     const hd=new THREE.Mesh(new THREE.SphereGeometry(.035,10,8),M('#d4a82e',.3,.8));hd.position.set(-W/2+.08,1.0,dz+.35);g.add(hd);
     for(const[y,hh]of[[1.55,.7],[.6,.7]]){const p=new THREE.Mesh(new THREE.BoxGeometry(.02,hh,.62),M('#7a4a28',.7));p.position.set(-W/2+.06,y,dz);g.add(p);}}
     /* pendant light */
-    if(false){/* pendant fixture removed from every room; its light stays */const cord=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.6,6),M('#222'));cord.position.set(0,H-.3,0);g.add(cord);
+    const lightOff=hid.light&&(!hid.until||Date.now()<hid.until);
+    if(!lightOff){const cord=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.6,6),M('#222'));cord.position.set(0,H-.3,0);g.add(cord);
     const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,16,12),new THREE.MeshStandardMaterial({color:'#fff2cc',emissive:'#ffd98a',emissiveIntensity:1.2}));bulb.position.set(0,H-.62,0);g.add(bulb);}
-    this.pend.intensity=.55;this.pend.position.set(0,H-.7,0);
+    this.pend.intensity=lightOff?.12:.55;this.pend.position.set(0,H-.7,0);
     this.sun.position.set(W*.55,H*2.4,D*.55);this.sun.target.position.set(0,0,0);const sc2=this.sun.shadow.camera,R=Math.max(W,D)*.8;sc2.left=-R;sc2.right=R;sc2.top=R;sc2.bottom=-R;sc2.near=1;sc2.far=40;sc2.updateProjectionMatrix();
     this.cam0.dist=this.fitDist();this.markDirty(true);
   }

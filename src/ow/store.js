@@ -1,6 +1,13 @@
 /* ---------- room storage: Supabase tables rooms + room_items, pictures in the room-images bucket ---------- */
 const ITEM_COLS=['id','kind','type','x','y','z','rot','scale','width','height','wall','frame','color','image_path','title','description','link','props','z_index'];
 const Store={
+  /* the ceiling light is switched off only while the owner hosts a Gist & Paint session (it comes back by itself after 35 minutes) */
+  async hostLight(off){
+    try{if(!Auth.user)return;const r=await sb.from('rooms').select('id,theme').eq('owner_id',Auth.user.id).maybeSingle();if(r.error||!r.data)return;
+      const th=Object.assign({},r.data.theme),hide=Object.assign({},th.hide);
+      if(off){hide.light=1;hide.until=Date.now()+35*60000;}else{delete hide.light;delete hide.until;}
+      th.hide=hide;await sb.from('rooms').update({theme:th}).eq('id',r.data.id);}catch(e){}
+  },
   async mine(){
     if(!Auth.user)return null;
     const r=await sb.from('rooms').select('*').eq('owner_id',Auth.user.id).maybeSingle();if(r.error)throw r.error;if(!r.data)return null;
