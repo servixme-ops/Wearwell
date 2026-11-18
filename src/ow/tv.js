@@ -123,6 +123,7 @@ const OWTv=(()=>{
     if(o.music){Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&k!==ck&&cur[k]&&cur[k].alive)cur[k].destroy();});o=Object.assign({},o,{host:musicHost()});}
     const me=o.uid||('g'+Math.random().toString(36).slice(2,8));
     let S={q:[],i:0,play:true,pos:0},ad=null,adP=null,applySeq=0,loadedId=null,busyUntil=0,lead=false,alive=true,got=false,ch=null,hb=0,tick=0,lastRx=0,seeking=false;
+    const ro=!!(o.quiet&&!o.isOwner);/* in a Gist & Paint session only the host controls the music */
     let volLvl=o.vol!=null?o.vol:1,duckF=1,duckT=0,lastV=-1;
     const busy=(ms)=>{busyUntil=Date.now()+(ms||900);};
     const isBusy=()=>Date.now()<busyUntil;
@@ -154,7 +155,7 @@ const OWTv=(()=>{
     const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,mp,ctlB,bList,rxB,cmB,rot,ex,mn,cl),screen,seekRow,ctr,rx,pl,cmP);
     if(o.quiet){const vr=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(volLvl*100)),class:'tv-vol','aria-label':'Music volume'});vr.addEventListener('input',()=>{volLvl=vr.value/100;});vr.addEventListener('pointerdown',e=>e.stopPropagation());mn.before(vr);}
     o.host.append(box);
-    if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(o.quiet){box.classList.add('tv-space');setTimeout(()=>{try{if(!box.classList.contains('mini'))mn.click();}catch(e){}},90);}else if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
+    if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(o.quiet){box.classList.add('tv-space');if(ro)box.classList.add('tv-ro');setTimeout(()=>{try{if(!box.classList.contains('mini'))mn.click();}catch(e){}},90);}else if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
 
     /* ----- messaging ----- */
     const send=(payload)=>{try{ch&&ch.send({type:'broadcast',event:'tv',payload});}catch(e){}};
@@ -166,8 +167,8 @@ const OWTv=(()=>{
     /* ----- applying state to the player ----- */
     const evt={
       busy:()=>busy(900),
-      state:p=>{if(!alive||isBusy())return;if(p&&!S.play){S.play=true;render();announce();}else if(!p&&S.play){S.play=false;render();announce();}},
-      end:()=>{if(!alive||isBusy())return;if(S.i+1<S.q.length){const i=S.i+1;S.i=i;apply({q:S.q,i,play:true,pos:0});}else{S.play=false;render();}},
+      state:p=>{if(!alive||isBusy()||ro)return;if(p&&!S.play){S.play=true;render();announce();}else if(!p&&S.play){S.play=false;render();announce();}},
+      end:()=>{if(!alive||isBusy()||ro)return;if(S.i+1<S.q.length){const i=S.i+1;S.i=i;apply({q:S.q,i,play:true,pos:0});}else{S.play=false;render();}},
       err:()=>{if(!alive)return;const m=box.querySelector('.tv-msg');m.textContent='This video cannot be played here. Skipping\u2026';setTimeout(()=>{m.textContent='';if(alive&&S.i+1<S.q.length)next();},1800);},
       blocked:on=>{startB.classList.toggle('on',!!on);}
     };
@@ -200,17 +201,19 @@ const OWTv=(()=>{
     }
 
     /* ----- actions (always shared) ----- */
-    const toggle=()=>{S.play=!S.play;busy();try{S.play?ad.play():ad.pause();}catch(e){}render();announce();};
-    const seekBy=d=>{const t=Math.max(0,pos()+d);S.pos=t;busy();try{ad.seek(t);}catch(e){}announce(true);};
-    const playIndex=i=>{if(i<0||i>=S.q.length)return;S.i=i;S.pos=0;S.play=true;apply({q:S.q,i,play:true,pos:0});announce(true);};
-    const next=()=>{if(S.i+1<S.q.length)playIndex(S.i+1);else toast('That was the last video in the queue');};
+    const toggle=()=>{if(ro)return;S.play=!S.play;busy();try{S.play?ad.play():ad.pause();}catch(e){}render();announce();};
+    const seekBy=d=>{if(ro)return;const t=Math.max(0,pos()+d);S.pos=t;busy();try{ad.seek(t);}catch(e){}announce(true);};
+    const playIndex=i=>{if(ro||i<0||i>=S.q.length)return;S.i=i;S.pos=0;S.play=true;apply({q:S.q,i,play:true,pos:0});announce(true);};
+    const next=()=>{if(ro)return;if(S.i+1<S.q.length)playIndex(S.i+1);else toast('That was the last video in the queue');};
     async function add(src){
+      if(ro)return;
       if(S.q.some(v=>v.id===src.id)){toast('Already in the queue');return;}
       const t=await titleOf(src);S.q=S.q.concat([Object.assign({},src,{t,by:me})]);
       if(S.q.length===1){S.i=0;S.pos=0;S.play=true;apply({q:S.q,i:0,play:true,pos:0});}else render();
       announce();toast('Added to the TV queue','ok');
     }
     function remove(i){
+      if(ro)return;
       const was=i===S.i;S.q=S.q.filter((_,k)=>k!==i);
       if(i<S.i)S.i--;if(S.i>=S.q.length)S.i=Math.max(0,S.q.length-1);
       if(was)apply({q:S.q,i:S.i,play:S.play&&S.q.length>0,pos:0});else render();announce(was);
@@ -231,6 +234,7 @@ const OWTv=(()=>{
         setTimeout(()=>fin([]),14000);});
     }
     async function addMany(list){
+      if(ro)return;
       list=list.filter(x=>valid(x)&&!S.q.some(v=>v.id===x.id));if(!list.length){toast('Those are already in the queue');return;}
       const ts=await Promise.all(list.map(x=>x.pre?Promise.resolve(x.n):titleOf(x).catch(()=>x.n)));
       const first=S.q.length===0;S.q=S.q.concat(list.map((x,i)=>({id:x.id,k:x.k,u:x.u,t:ts[i]||x.n,by:me})));
@@ -240,6 +244,7 @@ const OWTv=(()=>{
     async function resolveSC(src){try{const c=window.AbortController?new AbortController():null;if(c)setTimeout(()=>c.abort(),5000);const r=await fetch('https://soundcloud.com/oembed?format=json&url='+encodeURIComponent(src.u),c?{signal:c.signal}:{}),j=await r.json(),m=/url=([^&"]+)/.exec(j.html||'');
       if(m){const u=decodeURIComponent(m[1]).replace(/[?&].*$/,'');if(/^https:\/\/api\.soundcloud\.com\/(tracks|playlists)\/\d+$/.test(u)){src.u=u;src.id='sc_'+h36(u);if(/\/playlists\//.test(u)){src.k='scs';src.id='scs_'+h36(u);}}}if(j.title)src.n=String(j.title).slice(0,120);}catch(e){}return src;}
     async function fromInput(){
+      if(ro)return;
       const src=parse(urlIn.value);if(!src){toast(o.music?'That link cannot play on the speaker. Use SoundCloud, YouTube or YouTube Music, Spotify, Audiomack, or a direct .mp3 / .m4a link.':'That link cannot play on the TV. Use YouTube, Vimeo, Dailymotion, Streamable, Twitch, Loom, or a direct .mp4 / .webm / .m3u8 link.','err');return;}
       urlIn.value='';if(src.k==='sc'&&/on\.soundcloud\.com/.test(src.u))await resolveSC(src);
       try{
@@ -327,7 +332,7 @@ const OWTv=(()=>{
       unpark(){if(!box.classList.contains('parked'))return;box.classList.remove('parked');box.style.left='';box.style.top='';if(box.classList.contains('mini'))mn.click();},
       setVol(x){volLvl=Math.max(0,Math.min(1,x));},
       duck(on){clearTimeout(duckT);if(on)duckF=.2;else duckT=setTimeout(()=>{duckF=1;},1500);},
-      addOrFocus(src){if(!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
+      addOrFocus(src){if(ro||!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
       destroy(){if(!alive)return;alive=false;if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
     cur[ck]=api;return api;
