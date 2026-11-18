@@ -222,7 +222,7 @@ async function room(id){
     let on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
     if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));on=all.slice(0,4);ls=all.slice(4);}
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
-    crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},'No listeners yet. Share the link to invite people.')]));
+    crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},paintMode()?'No viewers yet. Share the link to invite people.':'No listeners yet. Share the link to invite people.')]));const lh=v.querySelector('#sp-lh');if(lh)lh.textContent=paintMode()?'Viewing':'Listening';
     const sc=crowd.parentNode;if(sc&&sc.classList)sc.classList.toggle('nol',!ls.length);
     metaEl.replaceChildren(...[h('span',{class:'sp-live'},h('i'),'LIVE'),h('span',{class:'sp-cat'},catLabel(D.space.category)),D.space.visibility==='private'&&h('span',{class:'sp-lock'},icon('lock')),h('span',{class:'sp-count'},icon('mic'),String(on.length),' · ',icon('people'),String(ls.length))].filter(Boolean));
   }
@@ -287,11 +287,11 @@ async function room(id){
     sheet(person(p),(b,close)=>{
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:async()=>{close();try{await cb();}catch(e){toast(friendlyError(e),'err');}}},icon(ic),l);
       const act=(a,extra)=>async()=>{await adm(a,id,Object.assign({user_id:p.id},extra||{}));await tick();};
-      b.append(...[h('div',{class:'sp-pcard'},sp_av(p,'lg'),h('b',null,person(p)),h('span',null,'@'+p.username+' · '+(p.role==='host'?'Host':p.role==='speaker'?'Speaker':'Listener'))),
+      b.append(...[h('div',{class:'sp-pcard'},sp_av(p,'lg'),h('b',null,person(p)),h('span',null,'@'+p.username+' · '+(p.role==='host'?'Host':p.role==='speaker'?'Speaker':(paintMode()?'Viewer':'Listener')))),
         row('View profile','user',()=>go('#/@'+p.username)),
         isHost()&&!mine&&p.role==='listener'?row('Invite to speak','mic',act('promote')):null,
         isHost()&&!mine&&p.role==='speaker'?row(p.muted?'Allow to unmute':'Mute','micoff',act(p.muted?'unmute':'mute')):null,
-        isHost()&&!mine&&p.role==='speaker'?row('Move to listeners','people',act('demote')):null,
+        isHost()&&!mine&&p.role==='speaker'?row(paintMode()?'Move to viewers':'Move to listeners','people',act('demote')):null,
         isHost()&&!mine?row('Remove from space','close',async()=>{if(await confirmBox('Remove '+person(p)+'?','They will not be able to rejoin this space.','Remove',true))await act('remove')();},true):null,
         !mine?row(p.blocked?'Unblock':'Block','lock',async()=>{if(await blockUser(user(p),!p.blocked)){await tick();}},true):null,
         !mine?row('Report','flag',()=>reportSheet(id,user(p)),true):null].filter(Boolean));
