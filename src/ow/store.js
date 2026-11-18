@@ -8,6 +8,10 @@ const Store={
       if(off){hide.light=1;hide.until=Date.now()+35*60000;}else{delete hide.light;delete hide.until;}
       th.hide=hide;await sb.from('rooms').update({theme:th}).eq('id',r.data.id);}catch(e){}
   },
+  async hostNeon(c){
+    try{if(!Auth.user||!/^#[0-9a-f]{6}$/i.test(c))return;const r=await sb.from('rooms').select('id,theme').eq('owner_id',Auth.user.id).maybeSingle();if(r.error||!r.data)return;
+      const th=Object.assign({},r.data.theme,{neon:c});await sb.from('rooms').update({theme:th}).eq('id',r.data.id);}catch(e){}
+  },
   async mine(){
     if(!Auth.user)return null;
     const r=await sb.from('rooms').select('*').eq('owner_id',Auth.user.id).maybeSingle();if(r.error)throw r.error;if(!r.data)return null;
