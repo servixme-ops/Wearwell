@@ -575,7 +575,7 @@ function introBuild(){
   const C={v:'#6c4bff',c:'#ff5a3c',s:'#ffd23f',m:'#3ddc97',i:'#1d1a2b',p:'#f6efe4',b:'#3b82f6',k:'#ff7ab8'};
   const av=(x,y,col,r)=>`<circle cx="${x}" cy="${y-r*1.5}" r="${r*.62}" fill="#f2c9a0"/><path d="M${x-r} ${y+r*1.1}q0-${r*1.5} ${r}-${r*1.5}t${r} ${r*1.5}z" fill="${col}"/>`;
   const S=[
-    {t:'Choose your avatar',d:'Design your look, step into your room, play your favourite music and movies, and drop in on friends’ rooms.',
+    {t:'Choose your avatar',d:'Design your look, step into your room and drop in on friends’ rooms to see their art.',
      art:`<rect x="30" y="20" width="140" height="118" rx="10" fill="${C.v}" opacity=".18"/><rect x="118" y="40" width="40" height="86" rx="4" fill="#8a6b4a"/><circle cx="150" cy="86" r="3" fill="${C.s}"/>${av(78,112,C.c,22)}<circle cx="46" cy="40" r="8" fill="${C.s}"/><path d="M40 118h56" stroke="#00000022" stroke-width="6" stroke-linecap="round"/>`},
     {t:'Paint together',d:'Join a Gist & Paint session and paint the same picture with friends. When you finish, hang it on your wall.',
      art:`<rect x="14" y="16" width="172" height="118" rx="10" fill="${C.i}"/><g>${[0,1,2,3].map(n=>`<rect x="${26+n*40}" y="40" width="32" height="42" rx="3" fill="#fffdf8"/>`).join('')}</g><circle cx="42" cy="58" r="9" fill="${C.k}"/><circle cx="82" cy="62" r="10" fill="${C.b}"/><circle cx="122" cy="56" r="8" fill="${C.s}"/><circle cx="162" cy="62" r="10" fill="${C.m}"/><g>${[0,1,2,3].map(n=>av(42+n*40,122,[C.c,C.v,C.s,C.m][n],9)).join('')}</g><rect x="84" y="20" width="32" height="10" rx="5" fill="${C.c}"/>`},
