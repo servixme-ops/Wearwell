@@ -152,12 +152,12 @@ const OWTv=(()=>{
     const cmP=h('div',{class:'tv-cmp'},cHead,cList,cChips,cRow);
     const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,mp,ctlB,bList,rxB,cmB,rot,ex,mn,cl),screen,seekRow,ctr,rx,pl,cmP);
     o.host.append(box);
-    if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
+    if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(o.quiet){box.classList.add('tv-space');setTimeout(()=>{try{if(!box.classList.contains('mini'))mn.click();}catch(e){}},90);}else if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
 
     /* ----- messaging ----- */
     const send=(payload)=>{try{ch&&ch.send({type:'broadcast',event:'tv',payload});}catch(e){}};
     const snap=(seek)=>({k:'state',s:{q:S.q,i:S.i,play:S.play,pos:pos(),seek:!!seek}});
-    const announce=(seek)=>{lead=true;send(snap(seek));};
+    const announce=(seek)=>{lead=true;send(snap(seek));try{o.onQueue&&o.onQueue(S.q);}catch(e){}};
     function react(e){const t=Date.now();if(t-lastRx<250)return;lastRx=t;float(e);send({k:'react',e});}
     function float(e){const s=h('span',{class:'tv-fe',style:{left:(10+Math.random()*80)+'%'}},e);fl.append(s);setTimeout(()=>s.remove(),2200);while(fl.children.length>14)fl.firstChild.remove();}
 
@@ -304,7 +304,7 @@ const OWTv=(()=>{
         (o.isOwner||q.by===me)?h('button',{class:'tv-x','aria-label':'Remove from queue',onclick:()=>remove(k)},ic('close')):null)):[h('p',{class:'tv-none'},'The queue is empty. Paste a video link above.')]));
     }
     tick=setInterval(()=>{if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
-    let lastRep=0;const report=on=>{if(!o.isOwner||!o.roomId)return;try{sb.rpc('ow_activity_set',{p_room:o.roomId,p_kind:on?(o.music?'music':'movie'):null,p_title:on?((S.q[S.i]&&S.q[S.i].t)||null):null}).then(()=>{},()=>{});}catch(e){}};
+    let lastRep=0;const report=on=>{if(!o.isOwner||!o.roomId||!/^[0-9a-f-]{36}$/i.test(String(o.roomId)))return;try{sb.rpc('ow_activity_set',{p_room:o.roomId,p_kind:on?(o.music?'music':'movie'):null,p_title:on?((S.q[S.i]&&S.q[S.i].t)||null):null}).then(()=>{},()=>{});}catch(e){}};
     hb=setInterval(()=>{if(alive&&lead&&S.play&&S.q.length)send(snap());if(alive&&o.isOwner&&S.play&&S.q.length&&Date.now()-lastRep>45000){lastRep=Date.now();report(true);}},8000);
 
     /* ----- channel ----- */
@@ -315,7 +315,9 @@ const OWTv=(()=>{
     }
     /* nobody answered: this person starts the TV with the video they tapped */
     setTimeout(()=>{if(!alive)return;if(!got){got=true;const t=o.title;S={q:[],i:0,play:true,pos:0};if(o.vid&&valid(o.vid)){S.q=[Object.assign({},o.vid,{t:t||o.vid.n||'Video',by:me})];apply({q:S.q,i:0,play:true,pos:0});lead=true;if(!t)titleOf(o.vid).then(x=>{if(S.q[0])S.q[0].t=x;render();});}}
-      else if(o.vid&&valid(o.vid)&&!S.q.some(v=>v.id===o.vid.id))add(o.vid);},1400);
+      else if(o.vid&&valid(o.vid)&&!S.q.some(v=>v.id===o.vid.id))add(o.vid);
+      /* the owner's saved playlist fills an empty player (and starts by itself when asked to) */
+      if(!S.q.length&&Array.isArray(o.seed)&&o.seed.length){const q=o.seed.filter(valid).map(norm).map(x=>Object.assign({},x,{by:me}));if(q.length){apply({q,i:0,play:!!o.autoplay,pos:0});announce(true);}}},1400);
     render();
 
     const api={alive:true,
