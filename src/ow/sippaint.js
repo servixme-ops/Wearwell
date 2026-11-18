@@ -3,7 +3,7 @@
    - strokes are batched over a realtime broadcast channel (pt:<space>) and saved to the database (paint_canvases)
    - the host chooses the reference picture, starts / pauses the session; everyone paints their own version */
 const OWPaint=(()=>{
-const T=THREE,PAPER='#fffdf8',CW=512,CH=640,MAXPTS=60000;
+const T=THREE,PAPER='#fffdf8',CW=512,CH=640,MAXPTS=120000;let fullAt=0;const fullToast=()=>{if(Date.now()-fullAt<4000)return;fullAt=Date.now();fullToast();};
 const COLS=[['Red','#e63946'],['Blue','#2d6cdf'],['Yellow','#ffd23f'],['Green','#2bb673'],['Purple','#7b4dff'],['Orange','#ff8a1f'],['Black','#1a1a1f'],['White','#ffffff'],['Brown','#8b5a3c'],['Pink','#ff6fae']];
 const STATES=['Painting','Almost done','Completed'];
 const REFS=[['sunset','Palm sunset'],['flowers','Flower vase'],['mountains','Mountain lake'],['city','City at night'],['abstract','Colour circles'],['cat','Sleepy cat'],['sunflower','Sunflower'],['fish','Goldfish bowl'],['house','Cosy house'],['rocket','Rocket in space'],['balloon','Hot-air balloon']];
@@ -325,7 +325,7 @@ function attach(R,ctx){
     const allowed=()=>sp.state==='painting';
     function paintBan(){banner.textContent=sp.state==='painting'?'':(sp.state==='paused'?'Painting is paused by the host':'Waiting for the host to start the session');banner.style.display=sp.state==='painting'?'none':'';}
     const pos=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*CW,(e.clientY-r.top)/r.height*CH];};
-    const down=e=>{if(!allowed()||drawing!==null)return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;toast('This painting is full. Undo something or clear it to keep going.');return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
+    const down=e=>{if(!allowed()||drawing!==null)return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;fullToast();return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
     const move=e=>{if(drawing!==e.pointerId||!cur)return;e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];(ev.length?ev:[e]).forEach(q=>{const[x,y]=pos(q);if(mine.extend(cur,x,y))sendBuf.push(Math.round(x),Math.round(y));});const n=Date.now();if(n-lastSend>110)flush();if(n-lastPaintPing>600){lastPaintPing=n;R.stagePaint(me);}};
     const up=e=>{if(drawing!==e.pointerId)return;drawing=null;flush();cur=null;saveSoon();};
     function flush(){lastSend=Date.now();if(!cur||!sendBuf.length)return;const p={u:me,id:cur.id,p:sendBuf};if(cur.first){p.t=cur.t;p.c=cur.c;p.z=cur.z;cur.first=false;}send('seg',p);sendBuf=[];}
