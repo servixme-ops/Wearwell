@@ -395,10 +395,36 @@ async function room(id){
     return new Blob([txt],{type:'text/calendar'});};
   const dayLabel=t=>{const d=new Date(t),n=new Date(),tm=new Date(n.getTime()+86400000);return d.toDateString()===n.toDateString()?'Today':d.toDateString()===tm.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});};
   const sr=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,mine=Auth.user&&hs&&hs.id===Auth.user.id,t=new Date(r.scheduled_start);
-    const btn=mine?h('button',{class:'sc-btn go',onclick:e=>{e.stopPropagation();go('#/space/'+r.id);}},'Open'):h('button',{class:'sc-btn',onclick:e=>{e.stopPropagation();download(icsFor(r),'gist-and-paint.ics');toast('Added a reminder to your calendar');}},icon('bell'),'Remind me');
+    const btn=mine?h('button',{class:'sc-btn go',onclick:e=>{e.stopPropagation();go('#/space/'+r.id);}},'Open'):remindBtn(r);
     return h('div',{class:'sc-row',onclick:()=>{if(mine)go('#/space/'+r.id);else toast('Starts '+when(r.scheduled_start)+'.');}},
       h('span',{class:'sc-time'},t.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})),
       h('span',{class:'sc-mid'},h('b',null,r.title),h('span',null,(hs?'@'+hs.username:'a creator')+' hosts')),btn);};
+/* ---- push notifications: a real reminder that reaches the phone even when the app is closed ---- */
+const REM=new Set();
+const u8=b=>{const p='='.repeat((4-b.length%4)%4),r=(b+p).replace(/-/g,'+').replace(/_/g,'/'),a=atob(r);return Uint8Array.from(a,c=>c.charCodeAt(0));};
+async function pushReady(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return false;
+  const perm=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
+  if(perm!=='granted')return false;
+  const key=await rpc('push_public_key');if(!key)return false;
+  const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(key)});
+  const j=sub.toJSON();await rpc('push_subscribe',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth});return true;
+}
+function remindBtn(r){
+  const set=()=>REM.has(r.id);
+  const b=h('button',{class:'sc-btn'});
+  const paint=()=>b.replaceChildren(icon('bell'),set()?'Reminder on':'Remind me');
+  const on=()=>b.classList.toggle('on',set());paint();on();
+  b.onclick=e=>{e.stopPropagation();guard(b,async()=>{
+    if(!Auth.user){authSheet('signin','Sign in to get reminders');return;}
+    if(set()){await rpc('space_remind',{p_space:r.id,p_on:false});REM.delete(r.id);paint();on();toast('Reminder removed');return;}
+    let ok=false;try{ok=await pushReady();}catch(x){ok=false;}
+    if(ok){await rpc('space_remind',{p_space:r.id,p_on:true});REM.add(r.id);paint();on();toast('We will notify you 10 minutes before it starts','ok');}
+    else{download(icsFor(r),'gist-and-paint.ics');toast('Notifications are off on this phone, so a calendar reminder was added instead');}
+  });};
+  return b;
+}
 function scheduledPage(){
   const v=setView(false);drawNav('discover');
   const list=h('div',{class:'sc-list',style:{padding:'0 18px'}},spinner());
@@ -408,7 +434,7 @@ function scheduledPage(){
   function load(){return rpc('space_discover',{p_filter:'upcoming',p_category:'sipandpaint'}).then(rows0=>{const rows=(rows0||[]).filter(r=>r.scheduled_start).sort((a,b)=>new Date(a.scheduled_start)-new Date(b.scheduled_start));
     const out=[];let last='';rows.forEach(r=>{const d=dayLabel(r.scheduled_start);if(d!==last){last=d;out.push(h('div',{class:'sc-day'},d));}out.push(sr(r));});
     list.replaceChildren(...(out.length?out:[empty('Nothing scheduled','Tap Schedule to plan a painting session with friends.')]));}).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));}
-  load();
+  rpc('space_my_reminders').then(a=>{(a||[]).forEach(x=>REM.add(x));}).catch(()=>{}).then(load);
 }
 function paintSection(){
   const list=h('div',{class:'sp-list'},spinner());

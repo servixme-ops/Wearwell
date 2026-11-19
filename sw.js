@@ -1,5 +1,5 @@
 /* OpenWalls service worker: offline shell, never caches API or payment traffic. */
-const VER='openwalls-v138';
+const VER='openwalls-v139';
 const SHELL=['vendor/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js','./','index.html','openwalls.css','manifest.webmanifest','src/config.js','src/logo.js','src/ui.js','src/util.js','src/api.js','src/ow/ads.js','src/ow/catalog.js','src/ow/avatar-data.js','src/ow/glb-lite.js','src/ow/avatar-wear.js','src/ow/avatar.js','src/ow/room.js','src/ow/walk.js','src/ow/store.js','src/ow/tv.js','src/ow/previews.js','src/ow/app.js','src/ow/avatar-ui.js','src/ow/presence.js','src/ow/podcast.js','src/ow/sippaint.js','src/ow/forum.js','src/ow/spaces.js','https://cdn.jsdelivr.net/npm/livekit-client@2.5.7/dist/livekit-client.umd.js','src/pwa.js','icons/icon-192.png','icons/icon-512.png','icons/logo.png'];
 const OFFLINE=`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenWalls</title>
 <body style="margin:0;font-family:system-ui,sans-serif;background:#f6efe4;color:#1d1a2b;display:grid;place-items:center;min-height:100vh;text-align:center;padding:24px">
@@ -20,6 +20,10 @@ self.addEventListener('install',e=>{e.waitUntil((async()=>{
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{const ks=await caches.keys(),olds=ks.filter(k=>k!==VER&&k!=='ow-glb');await Promise.all(olds.map(k=>caches.delete(k)));await self.clients.claim();
   /* a whole new version is now saved and active: tell open pages once (nothing is announced for first installs) */
   if(olds.length)(await self.clients.matchAll({type:'window'})).forEach(c=>c.postMessage({type:'upd'}));})());});
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{};}catch(x){d={title:'OpenWalls',body:e.data?e.data.text():''};}
+  e.waitUntil(self.registration.showNotification(d.title||'OpenWalls',{body:d.body||'',tag:d.tag||'openwalls',icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{url:d.url||'#/discover'},renotify:true}));});
+self.addEventListener('notificationclick',e=>{e.notification.close();const url=self.registration.scope+((e.notification.data&&e.notification.data.url)||'#/discover');
+  e.waitUntil((async()=>{const cs=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const c of cs){if('focus' in c){try{await c.focus();if('navigate' in c)await c.navigate(url);return;}catch(x){}}}if(self.clients.openWindow)await self.clients.openWindow(url);})());});
 let told=0;const tell=()=>{if(Date.now()-told<20000)return;told=Date.now();self.clients.matchAll().then(cs=>cs.forEach(c=>c.postMessage({type:'upd'})));};
 self.addEventListener('fetch',e=>{
   const r=e.request;if(r.method!=='GET')return;
