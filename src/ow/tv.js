@@ -357,7 +357,7 @@ const OWTv=(()=>{
     const x=open({host:musicHost(),roomId:j.roomId,uid:j.uid,isOwner:!!j.isOwner,music:true,vid:null,restore:j,autoplay:!!j.play});if(x&&x.park)setTimeout(()=>x.park(),300);return true;}catch(e){return false;}}
   const showMusic=()=>{let n=0;Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].show){cur[k].show();n++;}});return n>0;};
   const kickMusic=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].kick)cur[k].kick();});};
-  const duckMusic=on=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].duck)cur[k].duck(on);});};
+  const duckMusic=on=>{return;/* auto-ducking removed: music volume is set only by the slider */Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].duck)cur[k].duck(on);});};
   const park=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].park)cur[k].park();});};
   const unpark=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].unpark)cur[k].unpark();});};
   return{open,parse,park,unpark,duckMusic,kickMusic,showMusic,restore,close:id=>{cur[id]&&cur[id].destroy();},stopMusic:()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k])cur[k].destroy();});},_state:()=>cur};
