@@ -610,3 +610,9 @@ button.fm-int{border:0}
 .tvplayer.tv-blocked .tv-mp{background:#ff5a3c;color:#fff;border-radius:50%;animation:tvpulse 1.1s infinite}
 @keyframes tvpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 .tvplayer.tv-away{display:none!important}
+.gp-cnt{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;margin-left:8px;border-radius:12px;background:#ff5a3c;color:#fff;font-size:13px;font-weight:800;vertical-align:middle}
+.gp-h2{margin-top:22px}
+.sc-list{display:flex;flex-direction:column}.sc-day{margin:12px 0 4px;font-size:13px;font-weight:700;opacity:.6}
+.sc-row{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid rgba(29,26,43,.1);cursor:pointer}
+.sc-time{flex:0 0 74px;font-weight:800;font-size:15px}.sc-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.sc-mid b{font-size:16px;line-height:1.25}.sc-mid span{font-size:13px;opacity:.6}
+.sc-btn{flex:0 0 auto;display:flex;align-items:center;gap:6px;border:0;background:rgba(29,26,43,.07);border-radius:20px;padding:9px 13px;font-weight:700;font-size:13px;color:inherit}.sc-btn svg{width:16px;height:16px}.sc-btn.go{background:#6c4bff;color:#fff}
