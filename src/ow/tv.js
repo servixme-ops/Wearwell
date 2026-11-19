@@ -275,20 +275,20 @@ const OWTv=(()=>{
     tap.addEventListener('click',()=>{if(!box.classList.contains('rot')){clearTimeout(ctlT);if(PP.some(c=>box.classList.contains(c)))PP.forEach(c=>box.classList.remove(c));else{pp('pp-ctl');ctlT=setTimeout(()=>box.classList.remove('pp-ctl'),4000);}return;}if(box.classList.contains('side-on')){box.classList.remove('side-on','pl-on','cm-on');showUi();return;}if(box.classList.contains('ui-on')){box.classList.remove('ui-on');clearTimeout(uiT);}else showUi();});
     box.addEventListener('pointerdown',()=>{if(box.classList.contains('rot')&&box.classList.contains('ui-on')&&!box.classList.contains('side-on'))showUi();});
     let cT=0;
-    async function loadC(){const v=S.q[S.i];if(!o.comments||!alive||!v){cList.replaceChildren(h('p',{class:'tv-none'},'Nothing is playing.'));return;}try{const cs=await o.comments.load(v.id);if(!S.q[S.i]||S.q[S.i].id!==v.id)return;cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;cnt[v.id]=cs.length;seen[v.id]=cs.length;badge();}catch(e){}}
+    async function loadC(){const v=S.q[S.i];if(!o.comments||!alive||!v){cList.replaceChildren(h('p',{class:'tv-none'},'Nothing is playing.'));return;}try{const cs=await o.comments.load(v.id);if(!S.q[S.i]||S.q[S.i].id!==v.id)return;cList.replaceChildren(...(cs.length?cs.slice(-40).map(c=>h('div',{class:'tv-c1'},h('b',null,'@'+c.username),' '+c.body)):[h('p',{class:'tv-none'},'No comments yet.')]));cList.scrollTop=cList.scrollHeight;cnt[v.id]=cs.length;seen[v.id]=cs.length;saveSeen();badge();}catch(e){}}
     cmB.style.display=o.comments?'':'none';
     /* unread count on the comment icon: comments on this video you have not opened yet */
-    const cnt={},seen={};
+    const cnt={};let seen={};try{seen=JSON.parse(localStorage.getItem('ow_cseen')||'{}')||{};}catch(e){seen={};}const saveSeen=()=>{try{const k=Object.keys(seen);if(k.length>300)k.slice(0,100).forEach(x=>delete seen[x]);localStorage.setItem('ow_cseen',JSON.stringify(seen));}catch(e){}};
     let prevN=0,pingT=0;
     function badge(){const v=S.q[S.i],n=v?Math.max(0,(cnt[v.id]||0)-(seen[v.id]||0)):0;if(n>prevN&&box.classList.contains('rot')&&!box.classList.contains('cm-on')){ping.textContent='\ud83d\udcac '+n+(n===1?' new comment':' new comments');ping.classList.add('on');clearTimeout(pingT);pingT=setTimeout(()=>ping.classList.remove('on'),4000);}prevN=n;bdg.textContent=n>99?'99+':String(n||'');bdg.classList.toggle('on',n>0);cmB.setAttribute('aria-label',n?'Comments, '+n+' new':'Comments');}
-    async function refreshCount(){const v=S.q[S.i];if(!o.comments||!alive||!v||document.hidden)return;try{const cs=await o.comments.load(v.id);cnt[v.id]=cs.length;if(box.classList.contains('cm-on'))seen[v.id]=cs.length;badge();}catch(e){}}
+    async function refreshCount(){const v=S.q[S.i];if(!o.comments||!alive||!v||document.hidden)return;try{const cs=await o.comments.load(v.id);cnt[v.id]=cs.length;if(box.classList.contains('cm-on')){seen[v.id]=cs.length;saveSeen();}badge();}catch(e){}}
     const cI=setInterval(refreshCount,2500);setTimeout(refreshCount,1800);
     /* the icons in the title bar each open one panel over the video; tapping the icon again closes it */
     const PP=['pp-ctl','pp-rx','pl-on','cm-on'];
     const pp=k=>{const on=!box.classList.contains(k);PP.forEach(c=>box.classList.remove(c));if(on)box.classList.add(k);box.classList.toggle('side-on',box.classList.contains('cm-on')||box.classList.contains('pl-on'));
       clearInterval(cT);if(k==='cm-on'&&on){loadC();cT=setInterval(loadC,5000);}if(box.classList.contains('rot'))showUi();};
     cmB.onclick=()=>pp('cm-on');ctlB.onclick=()=>pp('pp-ctl');rxB.onclick=()=>pp('pp-rx');
-    const postC=async(txt)=>{const t=(typeof txt==='string'?txt:cIn.value).trim();const v=S.q[S.i];if(!t||!o.comments||!v)return;try{await o.comments.post(v.id,t);if(typeof txt!=='string')cIn.value='';seen[v.id]=(cnt[v.id]||0)+1;cnt[v.id]=seen[v.id];badge();cIn.blur();PP.forEach(c=>box.classList.remove(c));box.classList.remove('side-on');clearInterval(cT);undodge();send({k:'cm',v:v.id});}catch(e){}};
+    const postC=async(txt)=>{const t=(typeof txt==='string'?txt:cIn.value).trim();const v=S.q[S.i];if(!t||!o.comments||!v)return;try{await o.comments.post(v.id,t);if(typeof txt!=='string')cIn.value='';seen[v.id]=(cnt[v.id]||0)+1;cnt[v.id]=seen[v.id];saveSeen();badge();cIn.blur();PP.forEach(c=>box.classList.remove(c));box.classList.remove('side-on');clearInterval(cT);undodge();send({k:'cm',v:v.id});}catch(e){}};
     cSend.onclick=()=>postC();cIn.addEventListener('keydown',e=>{if(e.key==='Enter')postC();});
     /* typing needs the phone keyboard, which cannot share a sideways full screen. So "Write a comment" leaves full screen and
        puts the video in the top corner, with the comment box right under it, so the keyboard never covers the picture. */

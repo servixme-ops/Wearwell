@@ -11,7 +11,7 @@ async function fn(name,body){
   if(r.data&&r.data.error)throw new Error(r.data.error);return r.data;
 }
 const adm=(action,space,extra)=>fn('space-admin',Object.assign({action,space_id:space},extra||{}));
-const person=p=>(p&&(p.display_name||p.username))||'Someone';
+const person=p=>(p&&p.username?'@'+p.username:(p&&p.display_name))||'Someone';
 const sp_av=(p,cls)=>h('span',{class:'sp-av '+(cls||'')},avatarEl(p));
 const when=t=>{const d=new Date(t),n=new Date(),same=d.toDateString()===n.toDateString();return(same?'Today':d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}))+' · '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});};
 
@@ -276,7 +276,7 @@ async function room(id){
     if(onStage())btns.push(h('button',{class:'sp-mic-btn'+(audio.micOn?' live':''),disabled:!!muted||connState!=='connected','aria-label':audio.micOn?'Mute microphone':'Unmute microphone',onclick:toggleMic},icon(audio.micOn?'mic':'micoff'),h('span',null,muted?'Muted by host':audio.micOn?'Mute':'Unmute')));
     else{const pend=D.my_request==='pending';btns.push(h('button',{class:'sp-hand-btn'+(pend?' on':''),disabled:reqBusy,onclick:async e=>{reqBusy=true;try{if(pend){await rpc('space_cancel_request',{p_space:id});toast('Request cancelled');}else{await rpc('space_request_speak',{p_space:id});toast('The host has been asked. Hang tight.');}await tick();}catch(er){toast(friendlyError(er),'err');}finally{reqBusy=false;paintBar();}}},'✋',h('span',null,pend?'Cancel':'Raise hand')));}
     btns.push(h('button',{class:'sp-round','aria-label':'React',onclick:reactSheet},'😊'));
-    if(D.space.chat_enabled)btns.push(h('button',{class:'sp-round'+(chatOpen?' on':''),'aria-label':'Chat',onclick:()=>{chatOpen=!chatOpen;chatBox.classList.toggle('open',chatOpen);if(chatOpen){chatSeen=lastMsg;msgs.scrollTop=msgs.scrollHeight;}paintBar();}},icon('chat'),total>0?h('i',{class:'sp-dot'+(!chatOpen&&unread>0?'':' calm')},total>99?'99+':String(total)):null));
+    if(D.space.chat_enabled)btns.push(h('button',{class:'sp-round'+(chatOpen?' on':''),'aria-label':'Chat',onclick:()=>{chatOpen=!chatOpen;chatBox.classList.toggle('open',chatOpen);if(chatOpen){chatSeen=lastMsg;msgs.scrollTop=msgs.scrollHeight;}paintBar();}},icon('chat'),(!chatOpen&&unread>0)?h('i',{class:'sp-dot'},unread>99?'99+':String(unread)):null));
     btns.push(h('button',{class:'sp-leave',onclick:leave},isHost()?'Leave':'Leave quietly'));
     bar.replaceChildren(...btns);
   }
@@ -349,7 +349,7 @@ async function room(id){
       const first=lastMsg===0;
       rows.forEach(m=>{lastMsg=Math.max(lastMsg,m.id);
         if(m.kind==='reaction'){if(m.body.startsWith('host:')){if(!first&&m.user_id!==Auth.user.id&&R&&R.stageReact)R.stageReact(m.user_id,m.body.slice(5));return;}if(!first&&m.user_id!==Auth.user.id)pop(m.body);return;}
-        total++;msgs.appendChild(h('div',{class:'sp-msg'+(m.user_id===Auth.user.id?' me':'')},h('b',null,m.name),h('span',null,m.body)));if(!first&&m.user_id!==Auth.user.id&&!chatOpen)unread++;});
+        total++;msgs.appendChild(h('div',{class:'sp-msg'+(m.user_id===Auth.user.id?' me':'')},h('b',null,m.name),h('span',null,m.body)));if(m.user_id!==Auth.user.id&&!chatOpen)unread++;});
       while(msgs.childNodes.length>80)msgs.firstChild.remove();
       if(chatOpen){chatSeen=lastMsg;unread=0;msgs.scrollTop=msgs.scrollHeight;}paintBar();
     }catch(e){}
