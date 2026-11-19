@@ -53,16 +53,17 @@ function authSheet(mode,why){
   sheet(mode==='signup'?'Create your account':mode==='reset'?'Reset password':'Welcome back',(body,close)=>{
     const err=h('p',{class:'f-hint',style:{color:'#b3261e',minHeight:'18px'}});
     const em=h('input',{type:'email',autocomplete:'email',placeholder:'you@email.com'});const pw=h('input',{type:'password',autocomplete:mode==='signup'?'new-password':'current-password',placeholder:'Password (8+ characters)'});
-    const name=h('input',{type:'text',maxlength:'60',placeholder:'Your name'}),user=h('input',{type:'text',maxlength:'24',autocapitalize:'none',placeholder:'username'}),hint=h('span',{class:'f-hint'},'3 to 24 letters, numbers or underscores.');
+    const pw2=h('input',{type:'password',autocomplete:'new-password',placeholder:'Type the password again'}),name=h('input',{type:'text',maxlength:'60',placeholder:'Your name'}),user=h('input',{type:'text',maxlength:'24',autocapitalize:'none',placeholder:'username'}),hint=h('span',{class:'f-hint'},'3 to 24 letters, numbers or underscores.');
     let t;user.addEventListener('input',()=>{user.value=slugify(user.value);clearTimeout(t);if(user.value.length<3){hint.textContent='3 to 24 letters, numbers or underscores.';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:user.value});hint.textContent=r.error?'':(r.data?'✓ Available':'Already taken');},350);});
     const eye=h('button',{type:'button',class:'pw-eye','aria-label':'Show password'},icon('eye'));eye.onclick=()=>{const s=pw.type==='password';pw.type=s?'text':'password';eye.replaceChildren(icon(s?'eyeOff':'eye'));};
     const go1=h('button',{class:'btn primary block',type:'submit'},mode==='signup'?'Create account':mode==='reset'?'Send reset link':'Sign in');
     const form=h('form',{onsubmit:async e=>{e.preventDefault();err.textContent='';
       if(mode==='signup'&&user.value.length<3){err.textContent='Choose a username (3+ characters).';return;}
       if(mode!=='reset'&&pw.value.length<8){err.textContent='Password must be at least 8 characters.';return;}
+      if(mode==='signup'&&pw.value!==pw2.value){err.textContent='The two passwords do not match.';return;}
       await guard(go1,async()=>{
         if(mode==='reset'){const r=await Auth.resetPassword(em.value.trim());if(r.error)throw r.error;toast('Check your email','ok');close();return;}
-        if(mode==='signup'){const r=await Auth.signUp(em.value.trim(),pw.value,{username:user.value,display_name:name.value.trim()});if(r.error)throw r.error;if(r.needsConfirm){toast('Check your email to confirm your account','ok');close();return;}}
+        if(mode==='signup'){const r=await Auth.signUp(em.value.trim(),pw.value,{username:user.value,display_name:name.value.trim()});if(r.error)throw r.error;if(r.exists){err.textContent='An account with this email already exists. Check your email for the confirmation message, or sign in or reset your password.';return;}if(r.needsConfirm){toast('Check your email to confirm your account','ok');close();return;}}
         else{const r=await Auth.signIn(em.value.trim(),pw.value);if(r.error)throw r.error;}
         close();toast('Welcome to OpenWalls','ok');
       });}},
@@ -72,7 +73,7 @@ function authSheet(mode,why){
           h('span',{class:'gmark'},'G'),'Continue with Google'),
         h('div',{class:'or-line'},h('span',null,'or use email'))),
       mode==='signup'?[field('Name',name),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),user,hint)]:null,
-      field('Email',em),mode==='reset'?null:field('Password',h('div',{class:'pw-wrap'},pw,eye)),err,go1,
+      field('Email',em),mode==='reset'?null:field('Password',h('div',{class:'pw-wrap'},pw,eye)),mode==='signup'?field('Confirm password',pw2):null,err,go1,
       h('div',{style:{display:'flex',justifyContent:'space-between',marginTop:'12px'}},
         mode==='signin'?h('button',{type:'button',class:'btn small',onclick:()=>{close();authSheet('reset');}},'Forgot password'):null,
         h('button',{type:'button',class:'btn small',onclick:()=>{close();authSheet(mode==='signup'?'signin':'signup');}},mode==='signup'?'I have an account':'Create account')));
@@ -85,8 +86,8 @@ function editProfileSheet(){
     const dn=h('input',{type:'text',maxlength:'60',value:p.display_name||''}),un=h('input',{type:'text',maxlength:'24',value:p.username||'',autocapitalize:'none'}),bio=h('textarea',{maxlength:'240'});bio.value=p.bio||'';
     const hint=h('span',{class:'f-hint'});let t;un.addEventListener('input',()=>{un.value=slugify(un.value);clearTimeout(t);if(un.value===p.username||un.value.length<3){hint.textContent='';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:un.value});hint.textContent=r.error?'':(r.data?'✓ Available':'Already taken');},350);});
     const av=h('span',{class:'muted small-t'},'Your profile photo is your avatar. Change your avatar to change it.');
-    const save=h('button',{class:'btn primary block',onclick:()=>guard(save,async()=>{const r=await Auth.saveProfile({username:un.value,bio:bio.value.trim()||null});if(r.error)throw r.error;toast('Saved','ok');close();route();})},'Save');
-    body.append(h('div',{style:{display:'flex',alignItems:'center',gap:'12px',marginBottom:'14px'}},avatarEl(p,'lg'),av),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),field('Bio',bio),save);
+    const save=h('button',{class:'btn primary block',onclick:()=>guard(save,async()=>{const r=await Auth.saveProfile({display_name:dn.value.trim()||null,username:un.value,bio:bio.value.trim()||null});if(r.error)throw r.error;toast('Saved','ok');close();route();})},'Save');
+    body.append(h('div',{style:{display:'flex',alignItems:'center',gap:'12px',marginBottom:'14px'}},avatarEl(p,'lg'),av),field('Name',dn),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),field('Bio',bio),save);
   });
 }
 
@@ -130,7 +131,7 @@ async function discoverView(){
   const drawCreators=()=>{
     const seenU={},rows=[];
     act.forEach(a=>{if(!seenU[a.username]){seenU[a.username]=1;rows.push({username:a.username,display_name:a.display_name,avatar_url:a.avatar_url,a});}});
-    [...feed].sort((x,y)=>y.visits-x.visits).forEach(r=>{if(!seenU[r.username]&&rows.length<14){seenU[r.username]=1;rows.push(r);}});
+    [...feed].sort((x,y)=>y.visits-x.visits).forEach(r=>{if(!seenU[r.username]&&rows.length<30){seenU[r.username]=1;rows.push(r);}});
     if(!rows.length){crBox.replaceChildren();return;}
     crBox.replaceChildren(h('h2',{class:'sec'},'Creators'),h('p',{class:'sec-sub'},act.length?'A glowing ring means they are live right now. Tap to join.':'Rings light up when a creator goes live, watches a video or plays music.'),
       h('div',{class:'creators'},rows.map(r=>{const a=r.a,u={avatar_url:r.avatar_url,display_name:r.display_name,username:r.username};
@@ -217,14 +218,14 @@ async function meView(){
   let mine=null,cn={followers:0,following:0};try{[mine,cn]=await Promise.all([Store.mine(),Store.counts(Auth.user.id)]);}catch(e){console.warn(e);}
   const room=mine&&mine.room,prev=room&&Store.previewUrl(room.theme,room.updated_at);
   v.replaceChildren(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Me'))),
-    h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.username||p.display_name||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
+    h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},room?OWPrev.node(Object.assign({},room,{id:room.id}),'pshot','Your room'):h('div',{class:'pshot ph'},'Your room is not built yet'),
       activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my open room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
       PWA.canInstall()?h('button',{onclick:()=>PWA.install()},icon('download'),h('span',{class:'grow'},'Install OpenWalls')):null,
       updRow(),
       h('button',{onclick:()=>OWPaint.myArtworks()},icon('cam'),h('span',{class:'grow'},'My artworks')),
-      h('button',{onclick:()=>go('#/ads')},icon('sliders'),h('span',{class:'grow'},'Advertise on OpenWalls')),
+      h('button',{onclick:()=>go('#/ads')},icon('megaphone'),h('span',{class:'grow'},'Advertise on OpenWalls')),
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
       h('button',{onclick:()=>settingsSheet()},icon('sliders'),h('span',{class:'grow'},'Settings')),
       h('button',{onclick:async()=>{await Auth.signOut();try{OWTv.stopMusic();}catch(e){}toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
@@ -258,7 +259,7 @@ function photoSheet(R,name,hasMe){
 }
 function ownerSheet(o,cn){
   sheet('@'+o.username,(body,close)=>{
-    body.append(h('div',{style:{textAlign:'center'}},h('div',{style:{display:'flex',justifyContent:'center'}},avatarEl(o,'lg')),h('h3',{style:{margin:'10px 0 2px',font:'800 22px var(--disp)'}},'@'+(o.username||o.display_name)),o.bio?h('p',null,o.bio):null,
+    body.append(h('div',{style:{textAlign:'center'}},h('div',{style:{display:'flex',justifyContent:'center'}},avatarEl(o,'lg')),h('h3',{style:{margin:'10px 0 2px',font:'800 22px var(--disp)'}},o.display_name||('@'+o.username)),o.display_name?h('div',{class:'muted'},'@'+o.username):null,o.bio?h('p',null,o.bio):null,
       h('div',{class:'counts'},h('button',{onclick:()=>{close();followSheet(o.id,'followers');}},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>{close();followSheet(o.id,'following');}},h('b',null,cn.following),h('span',null,'following')))),activeSpaces(o.id,close));
   });
 }
@@ -300,13 +301,34 @@ function starterRoom(){
   const f=(type,x,z,rot,extra)=>Object.assign({id:uuid(),kind:'furniture',type,x:x*kx,y:0,z:z*kz,rot:rot||0,scale:1,color:null,z_index:0,props:{}},extra||{});
   const d=(type,wall,x,y,extra)=>{const dd=OW.decor(type);return Object.assign({id:uuid(),kind:'decor',type,wall,x:x*(wall==='left'||wall==='right'?kz:kx),y,z:0,rot:0,scale:1,width:dd.w,height:dd.h,frame:dd.frame||null,color:null,z_index:0,props:{}},extra||{});};
   const items=[f('rug',0,-.5),f('sofa',0,-2.15),f('coffee_table',0,-.6),f('bookshelf',-2.8,-1.2,Math.PI/2),f('plant',2.5,-2.2),f('floor_lamp',-2.5,-2.3),f('tv_stand',2.75,-.4,-Math.PI/2),f('tv',2.75,-.4,-Math.PI/2),
-    d('curtains','back',1.08,1.5,{width:2.0,color:'#c4532d',z_index:1}),d('frame','back',-2.0,1.65,{z_index:2}),d('poster','back',-1.15,1.55,{z_index:3}),d('photo_frame','back',-.35,1.8,{z_index:4}),d('wall_clock','back',-1.15,2.3,{z_index:5}),d('neon','left',-.4,1.9,{title:'OPEN WALLS',z_index:6})];
+    d('curtains','back',1.08,1.5,{width:2.0,color:'#c4532d',z_index:1}),d('wall_clock','back',-1.15,2.3,{z_index:5}),d('neon','left',-.4,1.9,{title:'OPEN WALLS',z_index:6})];
   return{room,items};
 }
 
 /* every account gets a room of its own the first time it signs in (it only reaches the Wall once a picture is hung) */
 let ensuring=false;
-async function ensureRoom(){if(ensuring||!Auth.user)return;ensuring=true;try{const m=await Store.mine();if(!m){const st=starterRoom();await Store.createRoom(st.room,st.items);if(App.route==='me')route();}}catch(e){console.warn('ensureRoom',e);}ensuring=false;}
+async function ensureRoom(){if(ensuring||!Auth.user||needsSetup())return;ensuring=true;try{const m=await Store.mine();if(!m){const st=starterRoom();await Store.createRoom(st.room,st.items);if(App.route==='me')route();}}catch(e){console.warn('ensureRoom',e);}ensuring=false;}
+/* ---------- first-time setup: username (never generated), then avatar ---------- */
+let onboarding=false;
+const needsSetup=()=>!!(Auth.user&&Auth.profile&&(!Auth.profile.username||/^lukks_/.test(Auth.profile.username)));
+function setupSheet(done){
+  sheet('Set up your profile',(body,close)=>{
+    const p=Auth.profile||{};
+    const dn=h('input',{type:'text',maxlength:'60',value:p.display_name||'',placeholder:'Your name'}),un=h('input',{type:'text',maxlength:'24',autocapitalize:'none',placeholder:'username',value:/^lukks_/.test(p.username||'')?'':(p.username||'')});
+    const hint=h('span',{class:'f-hint'},'3 to 24 letters, numbers or underscores. This is what everyone sees.'),err=h('p',{class:'f-hint',style:{color:'#b3261e',minHeight:'18px'}});let t;
+    un.addEventListener('input',()=>{un.value=slugify(un.value);clearTimeout(t);if(un.value.length<3){hint.textContent='3 to 24 letters, numbers or underscores. This is what everyone sees.';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:un.value});hint.textContent=r.error?'':(r.data?'\u2713 Available':'Already taken');},350);});
+    const go1=h('button',{class:'btn primary block',onclick:()=>guard(go1,async()=>{err.textContent='';if(un.value.length<3){err.textContent='Choose a username (3+ characters).';return;}
+      const r=await Auth.saveProfile({display_name:dn.value.trim()||null,username:un.value});if(r.error){err.textContent=/duplicate|unique/i.test(r.error.message||'')?'That username is taken.':(r.error.message||'Could not save.');return;}close();done&&done();})},'Continue');
+    body.append(h('p',{class:'tag',style:{marginBottom:'12px'}},'Choose your username, then style your avatar.'),field('Name',dn),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),err,go1);
+  });
+}
+async function onboard(){
+  if(onboarding||!Auth.user||!Auth.profile)return;onboarding=true;
+  try{
+    const avatarStep=async()=>{await ensureRoom();const cfg=await Store.loadAvatar();if(!cfg)chooseAvatar();};
+    if(needsSetup())setupSheet(()=>{onboarding=false;avatarStep();});else{await avatarStep();onboarding=false;}
+  }catch(e){onboarding=false;}
+}
 /* ---------- ROOM EDITOR ---------- */
 async function editorView(){
   if(!Auth.user){go('#/me');authSheet('signin','Sign in to edit your room');return;}
@@ -660,8 +682,8 @@ window.addEventListener('hashchange',route);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
   Auth.init().then(()=>{route();try{if(Auth.user)OWTv.restore(Auth.user.id);}catch(e){}
     if(Auth.user&&window.OWA&&OWA.prefetch){let g='f';try{g=(JSON.parse(localStorage.getItem('ow_avatar')||'{}').g)||'f';}catch(e){}OWA.prefetch([g]);setTimeout(()=>OWA.prefetch(['m','f']),5000);}
-    refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
-  Auth.on(ev=>{if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});
+    refreshUnread();onboard();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
+  Auth.on(ev=>{if(ev==='signin'){onboard();}if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});
   /* when the connection comes back, reload what is on screen by itself (never inside a room, editor, chat or space, where it would interrupt) */
   let wasOff=!navigator.onLine;
   window.addEventListener('offline',()=>{wasOff=true;});

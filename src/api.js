@@ -75,7 +75,8 @@ const Auth={
     if(!sb)return{error:{message:'The server is not reachable right now.'}};
     const r=await sb.auth.signUp({email,password,options:{data:meta,emailRedirectTo:CFG.site}});
     if(!r.error&&r.data&&r.data.session)await this._adopt(r.data.session.user);
-    return{error:r.error,needsConfirm:!r.error&&r.data&&!r.data.session};
+    const exists=!r.error&&r.data&&r.data.user&&Array.isArray(r.data.user.identities)&&r.data.user.identities.length===0;
+    return{error:r.error,exists,needsConfirm:!r.error&&!exists&&r.data&&!r.data.session};
   },
   async signIn(email,password){
     if(!sb)return{error:{message:'The server is not reachable right now.'}};
