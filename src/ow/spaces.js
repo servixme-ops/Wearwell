@@ -96,7 +96,7 @@ function createSheet(onDone,preset){
       if(!live&&!st.value){toast('Pick a start time.','err');return;}
       const id=await rpc('space_create',{p_title:title.value,p_desc:desc.value,p_category:cat.value,p_visibility:vis,p_start:live?null:new Date(st.value).toISOString(),p_end:!live&&en.value?new Date(en.value).toISOString():null,p_go_live:live,p_chat:chat});
       if(cat.value==='sipandpaint'||preset==='sipandpaint'){if(live)Store.hostLight(true);}
-      close();if(live)go('#/space/'+id);else{toast('Space scheduled');onDone&&onDone('upcoming');}
+      close();if(live)go('#/space/'+id);else{toast('Space scheduled');try{pushReady().then(ok=>{if(ok)toast('We will remind you 10 minutes before it starts','ok');});}catch(e){}onDone&&onDone('upcoming');}
     });
     b.append(field('Title',title),field('Description',desc),preset==='sipandpaint'?null:field('Category',cat),
       field('Who can join',visw,'Private spaces are only visible to people you invite.'),
