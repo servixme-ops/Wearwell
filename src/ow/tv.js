@@ -126,6 +126,7 @@ const OWTv=(()=>{
     const ro=!!(o.quiet&&!o.isOwner);/* in a Gist & Paint session only the host controls the music */
     let stall=0,lastT=-1,tk=0,userOpened=false;
     let volLvl=o.vol!=null?o.vol:1,duckF=1,duckT=0,lastV=-1;
+    const applyVol=()=>{if(alive&&ad&&ad.vol){const v=volLvl*duckF;lastV=v;try{ad.vol(v);}catch(e){}}};
     const busy=(ms)=>{busyUntil=Date.now()+(ms||900);};
     const isBusy=()=>Date.now()<busyUntil;
     const pos=()=>{try{return ad?ad.time():S.pos;}catch(e){return S.pos;}};
@@ -313,7 +314,11 @@ const OWTv=(()=>{
         h('button',{class:'tv-th','aria-label':'Play '+q.t,onclick:()=>playIndex(k)},(q.k==='yt'?h('img',{src:'https://i.ytimg.com/vi/'+q.u+'/default.jpg',alt:'',loading:'lazy',width:'64',height:'36'}):h('span',{class:'tv-gth'},'\u25b6')),h('span',null,(k===S.i?'▶ ':'')+q.t)),
         (o.isOwner||q.by===me)?h('button',{class:'tv-x','aria-label':'Remove from queue',onclick:()=>remove(k)},ic('close')):null)):[h('p',{class:'tv-none'},'The queue is empty. Paste a video link above.')]));
     }
-    tick=setInterval(()=>{tk++;if(o.music&&alive&&ad&&ad.ctl&&S.play&&S.q.length&&!seeking){let t0=0;try{t0=ad.time()||0;}catch(e){}if(Math.abs(t0-lastT)<.01)stall++;else{stall=0;if(box.classList.contains('tv-blocked')&&!startB.classList.contains('on'))box.classList.remove('tv-blocked');}lastT=t0;if(stall>=8)box.classList.add('tv-blocked');}else stall=0;if(tk%4===0)saveLocal();if(alive&&ad&&ad.vol){const v=volLvl*duckF;if(Math.abs(v-lastV)>.005){lastV=v;try{ad.vol(v);}catch(e){}}}if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
+    /* keep playing when the tab is hidden / phone locked; resume on return */
+    const onVis=()=>{if(!alive||!o.music)return;if(document.hidden){busy(10000);}else{busy(2500);if(S.play&&ad&&ad.play){setTimeout(()=>{try{ad.play();}catch(e){}},150);setTimeout(()=>{try{ad.play();}catch(e){}},1200);}}};
+    document.addEventListener('visibilitychange',onVis);
+    try{if(o.music&&navigator.mediaSession){navigator.mediaSession.metadata=new MediaMetadata({title:'OpenWalls music',artist:'Gist & Paint'});navigator.mediaSession.setActionHandler('play',()=>{try{ad&&ad.play();}catch(e){}});navigator.mediaSession.setActionHandler('pause',()=>{});}}catch(e){}
+    tick=setInterval(()=>{tk++;if(document.hidden&&o.music)busy(3000);if(o.music&&alive&&ad&&ad.ctl&&S.play&&S.q.length&&!seeking){let t0=0;try{t0=ad.time()||0;}catch(e){}if(Math.abs(t0-lastT)<.01)stall++;else{stall=0;if(box.classList.contains('tv-blocked')&&!startB.classList.contains('on'))box.classList.remove('tv-blocked');}lastT=t0;if(stall>=8)box.classList.add('tv-blocked');}else stall=0;if(tk%4===0)saveLocal();if(alive&&ad&&ad.vol){const v=volLvl*duckF;if(Math.abs(v-lastV)>.005){lastV=v;try{ad.vol(v);}catch(e){}}}if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
     let lastRep=0;const report=on=>{if(!o.isOwner||!o.roomId||!/^[0-9a-f-]{36}$/i.test(String(o.roomId)))return;try{sb.rpc('ow_activity_set',{p_room:o.roomId,p_kind:on?(o.music?'music':'movie'):null,p_title:on?((S.q[S.i]&&S.q[S.i].t)||null):null}).then(()=>{},()=>{});}catch(e){}};
     hb=setInterval(()=>{if(alive&&lead&&S.play&&S.q.length)send(snap());if(alive&&o.isOwner&&S.play&&S.q.length&&Date.now()-lastRep>45000){lastRep=Date.now();report(true);}},8000);
 
@@ -338,9 +343,9 @@ const OWTv=(()=>{
       show(){box.classList.remove('tv-away');},
       kick(){if(!alive||!S.play||!ad||!ad.play)return;if(box.classList.contains('tv-blocked')||stall>=2||startB.classList.contains('on')){try{ad.play();}catch(e){}box.classList.remove('tv-blocked');startB.classList.remove('on');stall=0;}},
       setVol(x){volLvl=Math.max(0,Math.min(1,x));},
-      duck(on){clearTimeout(duckT);if(on)duckF=.2;else duckT=setTimeout(()=>{duckF=1;},1500);},
+      duck(on){clearTimeout(duckT);if(on)duckF=.06;else duckT=setTimeout(()=>{duckF=1;applyVol();},900);applyVol();},
       addOrFocus(src){if(ro||!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
-      destroy(){if(!alive)return;alive=false;if(o.music){try{localStorage.removeItem('ow_music_state');}catch(e){}}if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
+      destroy(){if(!alive)return;alive=false;if(o.music){try{localStorage.removeItem('ow_music_state');}catch(e){}}if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);document.removeEventListener('visibilitychange',onVis);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>{if(o.quiet){box.classList.add('tv-away');return;}api.destroy();};
     cur[ck]=api;return api;
   }

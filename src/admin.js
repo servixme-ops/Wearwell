@@ -45,8 +45,8 @@ function owads(main){return OWAds.adminPanel(main,dialog);}
 async function owctl(main){
   const box=sect(main,'Spaces & Gist & Paint');box.append(spinner());
   const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};
-  let fl=[],sp=[],rp=[],bans=[],art=[];
-  try{[fl,sp,rp,bans,art]=await Promise.all([rpc('admin_flags'),rpc('admin_spaces'),rpc('admin_space_reports'),rpc('admin_space_bans'),rpc('admin_paint_artworks')]);}
+  let fl=[],sp=[],rp=[],bans=[],art=[],fb=[];
+  try{[fl,sp,rp,bans,art,fb]=await Promise.all([rpc('admin_flags'),rpc('admin_spaces'),rpc('admin_space_reports'),rpc('admin_space_bans'),rpc('admin_paint_artworks'),rpc('admin_feedback')]);}
   catch(e){box.replaceChildren(h('p',{class:'err-t'},errMsg(e)));return;}
   const again=()=>owctl(main);
   const sec=(t,sub)=>[h('h3',{style:{marginTop:'22px'}},t),sub?h('p',{class:'muted small-t',style:{margin:'0 0 8px'}},sub):null].filter(Boolean);
@@ -66,6 +66,12 @@ async function owctl(main){
   rp.forEach(r=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,r.space||'Removed space'),h('span',{class:'chipS s-'+(r.status==='open'?'pending':'approved')},r.status)),
     h('div',{class:'muted small-t'},(r.reason||'')+(r.details?' — '+r.details:'')+' · by @'+(r.reporter||'?')+(r.reported?' · about @'+r.reported:'')+' · '+timeAgo(r.created_at)+' ago')),
     h('div',{class:'acts'},r.status==='open'&&h('button',{class:'btn primary',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_space_report_set',{p_id:r.id,p_status:'reviewed'});again();})},'Mark reviewed'),r.status==='open'&&h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_space_report_set',{p_id:r.id,p_status:'dismissed'});again();})},'Dismiss')))));
+  out.push(...sec('Suggestions & complaints'));
+  if(!fb.length)out.push(empty('Nothing yet'));
+  fb.forEach(f=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,f.kind==='complaint'?'Complaint':'Suggestion'),h('span',{class:'chipS s-'+(f.status==='open'?'pending':'approved')},f.status)),
+    h('div',{style:{whiteSpace:'pre-wrap',margin:'4px 0'}},f.body),h('div',{class:'muted small-t'},'@'+(f.user||'?')+' · '+timeAgo(f.created_at)+' ago')),
+    h('div',{class:'acts'},f.status==='open'&&h('button',{class:'btn primary',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_feedback_set',{p_id:f.id,p_status:'reviewed'});again();})},'Done'),
+      h('button',{class:'btn',onclick:e=>guard(e.currentTarget,async()=>{await rpc('admin_feedback_set',{p_id:f.id,p_status:'deleted'});again();})},'Delete')))));
   out.push(...sec('Blocked hosts'));
   if(!bans.length)out.push(empty('Nobody is blocked'));
   bans.forEach(b=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('b',null,'@'+(b.username||b.user_id.slice(0,8))),h('div',{class:'muted small-t'},(b.reason||'No reason given')+' · '+timeAgo(b.created_at)+' ago')),
