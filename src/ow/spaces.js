@@ -26,7 +26,7 @@ class Audio{
     await this.close(true);
     const room=new L.Room({adaptiveStream:false,dynacast:true,audioCaptureDefaults:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     this.room=room;this.role=t.role;
-    room.on(L.RoomEvent.TrackSubscribed,(tr,pub,p)=>{if(tr.kind!=='audio')return;if(this.blocked.has(p.identity)){try{pub.setSubscribed(false);}catch(e){}return;}const el=tr.attach();el.dataset.uid=p.identity;this.box.appendChild(el);});
+    room.on(L.RoomEvent.TrackSubscribed,(tr,pub,p)=>{if(tr.kind!=='audio')return;if(this.blocked.has(p.identity)){try{pub.setSubscribed(false);}catch(e){}return;}const el=tr.attach();el.dataset.uid=p.identity;try{el.volume=this.voiceVol();}catch(e){}this.box.appendChild(el);});
     room.on(L.RoomEvent.TrackUnsubscribed,(tr)=>{try{tr.detach().forEach(e=>e.remove());}catch(e){}});
     room.on(L.RoomEvent.ActiveSpeakersChanged,s=>this.ev('speaking',new Set(s.map(x=>x.identity))));
     room.on(L.RoomEvent.TrackMuted,()=>this.ev('mics'));room.on(L.RoomEvent.TrackUnmuted,()=>this.ev('mics'));
@@ -40,6 +40,8 @@ class Audio{
     this.state='connected';this.ev('state','connected');this.ev('playback',room.canPlaybackAudio);
     return t;
   }
+  voiceVol(){let v=1;try{const x=parseFloat(localStorage.getItem('ow_voice_vol'));if(x>=0&&x<=1)v=x;}catch(e){}return v;}
+  setVoiceVol(v){v=Math.max(0,Math.min(1,v));try{localStorage.setItem('ow_voice_vol',String(v));}catch(e){}this.box.querySelectorAll('audio,video').forEach(e=>{try{e.volume=v;}catch(x){}});}
   get canPublish(){const p=this.room&&this.room.localParticipant;return !!(p&&p.permissions&&p.permissions.canPublish);}
   get micOn(){const p=this.room&&this.room.localParticipant;return !!(p&&p.isMicrophoneEnabled);}
   isMicOn(uid){const r=this.room;if(!r)return false;const p=r.localParticipant&&r.localParticipant.identity===uid?r.localParticipant:(r.remoteParticipants||r.participants||new Map()).get(uid);return !!(p&&p.isMicrophoneEnabled);}
@@ -289,7 +291,8 @@ async function room(id){
   function menu(){
     sheet('Space options',(b,close)=>{
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:()=>{close();cb();}},icon(ic),l);
-      b.append(...[D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
+      const vs=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(audio.voiceVol()*100)),'aria-label':'Voices volume',style:{width:'100%'}});vs.addEventListener('input',()=>audio.setVoiceVol(vs.value/100));
+      b.append(...[h('div',{class:'sp-vv'},h('b',null,'Voices volume'),h('span',{class:'muted small-t',style:{display:'block',margin:'2px 0 6px'}},'Only changes how loud people speaking sound. Music has its own volume in the music player.'),vs),D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
         row('Share link','share',async()=>{const u=CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
         paintMode()&&typeof OWTv!=='undefined'?row('Music','music',()=>{if(!OWTv.showMusic()&&startMusic)startMusic();}):null,
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
