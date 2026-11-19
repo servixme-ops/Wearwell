@@ -153,7 +153,7 @@ async function discover(){
 async function room(id){
   if(!Auth.user){authSheet('signin','Sign in to join Live Spaces');go('#/spaces');return;}
   const v=setView(true);v.classList.add('sp-view');
-  let musicOn=false,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
+  let musicOn=false,startMusic=null,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
   const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl);let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
@@ -185,7 +185,7 @@ async function room(id){
     const want=onStage();
     if(!want&&audio.micOn){try{await audio.mic(false);}catch(e){}}
     if(want&&!audio.canPublish){if(lastRole!==role()){lastRole=role();await reconnect();}return;}
-    if(want&&!audio.micOn&&!micErr&&lastRole!=='mic-'+role()&&!(me()&&me().muted)){lastRole='mic-'+role();try{await audio.mic(true);}catch(e){micErr=e.message;if(e.message==='mic-denied'||e.message==='mic-missing')micSheet(e.message);}}
+    if(want&&!paintMode()&&!audio.micOn&&!micErr&&lastRole!=='mic-'+role()&&!(me()&&me().muted)){lastRole='mic-'+role();try{await audio.mic(true);}catch(e){micErr=e.message;if(e.message==='mic-denied'||e.message==='mic-missing')micSheet(e.message);}}
     if(me()&&me().muted&&audio.micOn){try{await audio.mic(false);}catch(e){}}
     paintBar();paintStage();
   }
@@ -239,7 +239,7 @@ async function room(id){
       let d=null;try{d=await Store.byUsername(D.host.username);}catch(e){}
       const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
       const r=new OWRoom(box,{edit:false});const rm=d&&d.room?Object.assign({},d.room):{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}};if(paintMode()){const th=Object.assign({},rm.theme),hd=Object.assign({},th.hide);hd.light=1;delete hd.until;th.hide=hd;rm.theme=th;}r.load(rm,d&&d.room?d.items:[]);
-      if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
+      if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;startMusic=()=>{try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}};const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
       r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');v.classList.toggle('sp-paintroom',!!paintMode());
       if(paintMode()&&typeof OWPaint!=='undefined'){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
@@ -277,6 +277,7 @@ async function room(id){
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:()=>{close();cb();}},icon(ic),l);
       b.append(...[D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
         row('Share link','share',async()=>{const u=CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
+        paintMode()&&typeof OWTv!=='undefined'?row('Music','music',()=>{if(!OWTv.showMusic()&&startMusic)startMusic();}):null,
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
         isHost()?row('Invite people','people',()=>inviteSheet(D.space)):null,
         isHost()?row('End space for everyone','close',endSpace,true):null,
