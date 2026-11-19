@@ -120,7 +120,7 @@ class PC{
   style(op){const g=this.g;g.lineCap='round';g.lineJoin='round';g.globalAlpha=1;
     if(op.t==='e'){g.strokeStyle=g.fillStyle=PAPER;g.lineWidth=op.z*1.7;}
     else if(op.t==='p'){g.strokeStyle=g.fillStyle=op.c;g.lineWidth=Math.max(1.2,op.z*.28);}
-    else{g.strokeStyle=g.fillStyle=op.c;g.lineWidth=op.z;g.globalAlpha=.96;}}
+    else{g.strokeStyle=g.fillStyle=op.c;g.lineWidth=op.z;}}
   seg(op,i0){const p=op.p,g=this.g;if(!p||p.length<2)return;this.style(op);
     if(p.length===2||i0===0&&p.length<4){g.beginPath();g.arc(p[0],p[1],g.lineWidth/2,0,7);g.fill();if(p.length<4)return;}
     g.beginPath();g.moveTo(p[Math.max(0,i0-2)],p[Math.max(0,i0-2)+1]);for(let i=Math.max(2,i0);i<p.length;i+=2)g.lineTo(p[i],p[i+1]);g.stroke();g.globalAlpha=1;}
