@@ -124,7 +124,7 @@ const OWTv=(()=>{
     const me=o.uid||('g'+Math.random().toString(36).slice(2,8));
     let S={q:[],i:0,play:true,pos:0},ad=null,adP=null,applySeq=0,loadedId=null,busyUntil=0,lead=false,alive=true,got=false,ch=null,hb=0,tick=0,lastRx=0,seeking=false;
     const ro=!!(o.quiet&&!o.isOwner);/* in a Gist & Paint session only the host controls the music */
-    let stall=0,lastT=-1,tk=0;
+    let stall=0,lastT=-1,tk=0,userOpened=false;
     let volLvl=o.vol!=null?o.vol:1,duckF=1,duckT=0,lastV=-1;
     const busy=(ms)=>{busyUntil=Date.now()+(ms||900);};
     const isBusy=()=>Date.now()<busyUntil;
@@ -157,7 +157,7 @@ const OWTv=(()=>{
     const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,mpv,mp,mnx,ctlB,bList,rxB,cmB,rot,ex,mn,cl),screen,seekRow,ctr,rx,pl,cmP);
     if(o.quiet){const vr=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(volLvl*100)),class:'tv-vol','aria-label':'Music volume'});vr.addEventListener('input',()=>{volLvl=vr.value/100;});vr.addEventListener('pointerdown',e=>e.stopPropagation());mn.before(vr);}
     o.host.append(box);
-    if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(o.quiet){box.classList.add('tv-space');if(ro)box.classList.add('tv-ro');setTimeout(()=>{try{if(!box.classList.contains('mini'))mn.click();}catch(e){}},90);}else if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
+    if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(o.quiet){box.classList.add('tv-space');if(ro)box.classList.add('tv-ro');const goMini=()=>{try{if(userOpened)return;box.classList.add('mini');mn.replaceChildren(ic('chevU'));mn.setAttribute('aria-label','Open');box.classList.remove('cm-on','pl-on','rx-on');}catch(e){}};setTimeout(goMini,90);setTimeout(goMini,1800);setTimeout(goMini,5000);}else if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
 
     /* ----- messaging ----- */
     const send=(payload)=>{try{ch&&ch.send({type:'broadcast',event:'tv',payload});}catch(e){}};
@@ -257,7 +257,7 @@ const OWTv=(()=>{
       add(src);
     }
     addB.onclick=fromInput;urlIn.addEventListener('keydown',e=>{if(e.key==='Enter')fromInput();});
-    mn.onclick=()=>{const m=box.classList.toggle('mini');mn.replaceChildren(ic(m?'chevU':'chevD'));mn.setAttribute('aria-label',m?'Open':'Minimise');if(m){box.classList.remove('cm-on','pl-on','rx-on');}};mp.onclick=()=>{if(box.classList.contains('tv-blocked')){box.classList.remove('tv-blocked');startB.onclick();return;}bPlay.click();};mnx.onclick=()=>next();mpv.onclick=()=>{if(pos()>4||S.i<1)seekBy(-pos());else playIndex(S.i-1);};
+    mn.onclick=()=>{userOpened=true;const m=box.classList.toggle('mini');mn.replaceChildren(ic(m?'chevU':'chevD'));mn.setAttribute('aria-label',m?'Open':'Minimise');if(m){box.classList.remove('cm-on','pl-on','rx-on');}};mp.onclick=()=>{if(box.classList.contains('tv-blocked')){box.classList.remove('tv-blocked');startB.onclick();return;}bPlay.click();};mnx.onclick=()=>next();mpv.onclick=()=>{if(pos()>4||S.i<1)seekBy(-pos());else playIndex(S.i-1);};
     bPlay.onclick=toggle;bBack.onclick=()=>seekBy(-10);bFwd.onclick=()=>seekBy(10);bNext.onclick=next;
     bList.onclick=()=>pp('pl-on');
     rng.addEventListener('input',()=>{seeking=true;});
