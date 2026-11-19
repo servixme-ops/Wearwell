@@ -611,6 +611,7 @@ function route(){
   if(hs==='welcome'){history.replaceState(null,'','#/wall');App.route='wall';return wallView?wallView():discoverView();}
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
+  if(hs==='scheduled')return Spaces.scheduledPage();
   if(hs==='paint'){history.replaceState(null,'','#/discover');return discoverView();}
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
   if(hs==='forum'||hs.startsWith('forum/')||hs.startsWith('topic/')){appFlags().then(F=>{if(F.forum!==true){history.replaceState(null,'','#/discover');return discoverView();}return hs==='forum'?OWForum.boardView(null):hs.startsWith('forum/')?OWForum.boardView(hs.slice(6)):OWForum.topicView(hs.slice(6));});return;}

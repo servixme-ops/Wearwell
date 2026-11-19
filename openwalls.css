@@ -616,3 +616,5 @@ button.fm-int{border:0}
 .sc-row{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid rgba(29,26,43,.1);cursor:pointer}
 .sc-time{flex:0 0 74px;font-weight:800;font-size:15px}.sc-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.sc-mid b{font-size:16px;line-height:1.25}.sc-mid span{font-size:13px;opacity:.6}
 .sc-btn{flex:0 0 auto;display:flex;align-items:center;gap:6px;border:0;background:rgba(29,26,43,.07);border-radius:20px;padding:9px 13px;font-weight:700;font-size:13px;color:inherit}.sc-btn svg{width:16px;height:16px}.sc-btn.go{background:#6c4bff;color:#fff}
+.gp-cnt.calm{background:rgba(29,26,43,.12);color:inherit;margin-left:auto}
+.sc-link{display:flex;align-items:center;gap:10px;width:100%;margin-top:18px;padding:14px 16px;border:0;border-radius:16px;background:#fff;box-shadow:0 2px 10px rgba(29,26,43,.08);font-weight:700;font-size:15px;color:inherit;text-align:left}.sc-link svg{width:20px;height:20px}.sc-link .gp-cnt{margin-left:auto}.sc-arr{font-style:normal;font-size:24px;opacity:.5;line-height:1}
