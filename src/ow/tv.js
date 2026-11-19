@@ -126,7 +126,8 @@ const OWTv=(()=>{
     const ro=!!(o.quiet&&!o.isOwner);/* in a Gist & Paint session only the host controls the music */
     let stall=0,lastT=-1,tk=0,userOpened=false;
     let volLvl=o.vol!=null?o.vol:1,duckF=1,duckT=0,lastV=-1;
-    const applyVol=()=>{if(alive&&ad&&ad.vol){const v=volLvl*duckF;lastV=v;try{ad.vol(v);}catch(e){}}};
+    let curV=-1;const applyVol=()=>{if(!(alive&&ad&&ad.vol))return;const t=volLvl*duckF;if(curV<0||!o.quiet)curV=t;else curV=t<curV?Math.max(t,curV-.12):Math.min(t,curV+.02);lastV=curV;try{ad.vol(curV);}catch(e){}};
+    const ramp=o.quiet?setInterval(applyVol,100):0;
     const busy=(ms)=>{busyUntil=Date.now()+(ms||900);};
     const isBusy=()=>Date.now()<busyUntil;
     const pos=()=>{try{return ad?ad.time():S.pos;}catch(e){return S.pos;}};
@@ -156,7 +157,7 @@ const OWTv=(()=>{
     const cRow=h('div',{class:'tv-add-row tv-typing'},cIn,cSend);
     const cmP=h('div',{class:'tv-cmp'},cHead,cList,cChips,cRow);
     const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,mpv,mp,mnx,ctlB,bList,rxB,cmB,rot,ex,mn,cl),screen,seekRow,ctr,rx,pl,cmP);
-    if(o.quiet){const vr=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(volLvl*100)),class:'tv-vol','aria-label':'Music volume'});vr.addEventListener('input',()=>{volLvl=vr.value/100;});vr.addEventListener('pointerdown',e=>e.stopPropagation());mn.before(vr);}
+    if(o.quiet){const vr=h('input',{type:'range',min:'0',max:'60',value:String(Math.round(volLvl*100)),class:'tv-vol','aria-label':'Music volume'});vr.addEventListener('input',()=>{volLvl=vr.value/100;});vr.addEventListener('pointerdown',e=>e.stopPropagation());mn.before(vr);}
     o.host.append(box);
     if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(o.quiet){box.classList.add('tv-space');if(ro)box.classList.add('tv-ro');const goMini=()=>{try{if(userOpened)return;box.classList.add('mini');mn.replaceChildren(ic('chevU'));mn.setAttribute('aria-label','Open');box.classList.remove('cm-on','pl-on','rx-on');}catch(e){}};setTimeout(goMini,90);setTimeout(goMini,1800);setTimeout(goMini,5000);}else if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
 
@@ -318,7 +319,7 @@ const OWTv=(()=>{
     const onVis=()=>{if(!alive||!o.music)return;if(document.hidden){busy(10000);}else{busy(2500);if(S.play&&ad&&ad.play){setTimeout(()=>{try{ad.play();}catch(e){}},150);setTimeout(()=>{try{ad.play();}catch(e){}},1200);}}};
     document.addEventListener('visibilitychange',onVis);
     try{if(o.music&&navigator.mediaSession){navigator.mediaSession.metadata=new MediaMetadata({title:'OpenWalls music',artist:'Gist & Paint'});navigator.mediaSession.setActionHandler('play',()=>{try{ad&&ad.play();}catch(e){}});navigator.mediaSession.setActionHandler('pause',()=>{});}}catch(e){}
-    tick=setInterval(()=>{tk++;if(document.hidden&&o.music)busy(3000);if(o.music&&alive&&ad&&ad.ctl&&S.play&&S.q.length&&!seeking){let t0=0;try{t0=ad.time()||0;}catch(e){}if(Math.abs(t0-lastT)<.01)stall++;else{stall=0;if(box.classList.contains('tv-blocked')&&!startB.classList.contains('on'))box.classList.remove('tv-blocked');}lastT=t0;if(stall>=8)box.classList.add('tv-blocked');}else stall=0;if(tk%4===0)saveLocal();if(alive&&ad&&ad.vol){const v=volLvl*duckF;if(Math.abs(v-lastV)>.005){lastV=v;try{ad.vol(v);}catch(e){}}}if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
+    tick=setInterval(()=>{tk++;if(document.hidden&&o.music)busy(3000);if(o.music&&alive&&ad&&ad.ctl&&S.play&&S.q.length&&!seeking){let t0=0;try{t0=ad.time()||0;}catch(e){}if(Math.abs(t0-lastT)<.01)stall++;else{stall=0;if(box.classList.contains('tv-blocked')&&!startB.classList.contains('on'))box.classList.remove('tv-blocked');}lastT=t0;if(stall>=8)box.classList.add('tv-blocked');}else stall=0;if(tk%4===0)saveLocal();if(alive&&ad&&ad.vol&&!o.quiet){const v=volLvl*duckF;if(Math.abs(v-lastV)>.005){lastV=v;try{ad.vol(v);}catch(e){}}}if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
     let lastRep=0;const report=on=>{if(!o.isOwner||!o.roomId||!/^[0-9a-f-]{36}$/i.test(String(o.roomId)))return;try{sb.rpc('ow_activity_set',{p_room:o.roomId,p_kind:on?(o.music?'music':'movie'):null,p_title:on?((S.q[S.i]&&S.q[S.i].t)||null):null}).then(()=>{},()=>{});}catch(e){}};
     hb=setInterval(()=>{if(alive&&lead&&S.play&&S.q.length)send(snap());if(alive&&o.isOwner&&S.play&&S.q.length&&Date.now()-lastRep>45000){lastRep=Date.now();report(true);}},8000);
 
@@ -343,9 +344,9 @@ const OWTv=(()=>{
       show(){box.classList.remove('tv-away');},
       kick(){if(!alive||!S.play||!ad||!ad.play)return;if(box.classList.contains('tv-blocked')||stall>=2||startB.classList.contains('on')){try{ad.play();}catch(e){}box.classList.remove('tv-blocked');startB.classList.remove('on');stall=0;}},
       setVol(x){volLvl=Math.max(0,Math.min(1,x));},
-      duck(on){clearTimeout(duckT);if(on)duckF=.06;else duckT=setTimeout(()=>{duckF=1;applyVol();},900);applyVol();},
+      duck(on){clearTimeout(duckT);if(on)duckF=.3;else duckT=setTimeout(()=>{duckF=1;},2500);applyVol();},
       addOrFocus(src){if(ro||!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
-      destroy(){if(!alive)return;alive=false;if(o.music){try{localStorage.removeItem('ow_music_state');}catch(e){}}if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);document.removeEventListener('visibilitychange',onVis);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
+      destroy(){if(!alive)return;alive=false;if(o.music){try{localStorage.removeItem('ow_music_state');}catch(e){}}if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(ramp);document.removeEventListener('visibilitychange',onVis);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>{if(o.quiet){box.classList.add('tv-away');return;}api.destroy();};
     cur[ck]=api;return api;
   }
