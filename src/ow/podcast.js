@@ -33,6 +33,7 @@ P.stageReact=function(uid,name){
 };
 P.stageStart=function(cb,opts){
   if(this.stage)return;
+  this.fpsCap=34;if(opts&&opts.paint){try{this.r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));this.resize();}catch(e){}}
   const st=this.stage={g:new T.Group(),seats:[null,null,null,null],map:new Map(),mics:[],speaking:new Set(),focus:null,hold:0,auto:true,cb:cb||{},hidden:[],t:0,
     paint:!!(opts&&opts.paint),cur:{az:0,el:.2,dist:5,tx:0,ty:1.05,tz:SZ},lbl:h('div',{class:'sp-lbls'}),acc:0,fov0:this.cam.fov};
   const wood=M(0x8a6a4a,.6);

@@ -72,7 +72,7 @@ const OWTv=(()=>{
     p=new YT.Player(el.id,{host:'https://www.youtube-nocookie.com',width:'100%',height:'100%',playerVars:{controls:0,disablekb:1,fs:0,playsinline:1,rel:0,modestbranding:1,iv_load_policy:3,autoplay:1},events:{
       onReady:()=>rd(),onStateChange:e=>{if(e.data===1)evt.state(true);else if(e.data===2)evt.state(false);else if(e.data===0){if(isPl){try{const l=p.getPlaylist(),i=p.getPlaylistIndex();if(l&&i<l.length-1)return;}catch(x){}}evt.end();}},onError:()=>evt.err()}});
     await ready;
-    return{ctl:true,vol(x){try{p.setVolume(Math.round(x*100));}catch(e){}},load(v,pos,play){if(isPl)p.loadPlaylist({list:v.u,listType:'playlist',index:0,startSeconds:pos||0});else p.loadVideoById(v.u,pos||0);if(!play)setTimeout(()=>{evt.busy();try{p.pauseVideo();}catch(e){}},700);},play(){p.playVideo();},pause(){p.pauseVideo();},seek(t){p.seekTo(t,true);},time(){return p.getCurrentTime()||0;},dur(){return p.getDuration()||0;},destroy(){try{p.destroy();}catch(e){}d.remove();}};
+    return{ctl:true,lowq(){try{p.setPlaybackQuality('tiny');}catch(e){}},vol(x){try{p.setVolume(Math.round(x*100));}catch(e){}},load(v,pos,play){if(isPl)p.loadPlaylist({list:v.u,listType:'playlist',index:0,startSeconds:pos||0});else p.loadVideoById(v.u,pos||0);if(!play)setTimeout(()=>{evt.busy();try{p.pauseVideo();}catch(e){}},700);},play(){p.playVideo();},pause(){p.pauseVideo();},seek(t){p.seekTo(t,true);},time(){return p.getCurrentTime()||0;},dur(){return p.getDuration()||0;},destroy(){try{p.destroy();}catch(e){}d.remove();}};
   }
   async function A_vm(slot,evt){
     await loadScript('https://player.vimeo.com/api/player.js',()=>window.Vimeo&&Vimeo.Player);const d=mount(slot);let p=null,t=0,du=0;
@@ -124,6 +124,7 @@ const OWTv=(()=>{
     const me=o.uid||('g'+Math.random().toString(36).slice(2,8));
     let S={q:[],i:0,play:true,pos:0},ad=null,adP=null,applySeq=0,loadedId=null,busyUntil=0,lead=false,alive=true,got=false,ch=null,hb=0,tick=0,lastRx=0,seeking=false;
     const ro=!!(o.quiet&&!o.isOwner);/* in a Gist & Paint session only the host controls the music */
+    let stall=0,lastT=-1,tk=0;
     let volLvl=o.vol!=null?o.vol:1,duckF=1,duckT=0,lastV=-1;
     const busy=(ms)=>{busyUntil=Date.now()+(ms||900);};
     const isBusy=()=>Date.now()<busyUntil;
@@ -132,6 +133,7 @@ const OWTv=(()=>{
     /* ----- UI ----- */
     const ic=(n)=>icon(n);
     const bdg=h('i',{class:'tv-badge'}),cmB=h('button',{class:'tv-b tv-cm','aria-label':'Comments'},ic('chat'),bdg),rot=h('button',{class:'tv-b','aria-label':'Rotate to landscape'},ic('rotate')),ex=h('button',{class:'tv-b','aria-label':'Expand'},ic('expand')),cl=h('button',{class:'tv-b','aria-label':'Close'},ic('close')),mn=h('button',{class:'tv-b tv-mn','aria-label':'Minimise'},ic('chevD')),mp=h('button',{class:'tv-b tv-mp','aria-label':'Play or pause'},ic('play'));
+    const mpv=h('button',{class:'tv-b tv-mpv tv-mq','aria-label':'Previous song'},ic('next')),mnx=h('button',{class:'tv-b tv-mnx tv-mq','aria-label':'Next song'},ic('next'));
     const ttl=h('span',null,o.music?'Speaker':'TV');
     const slot=h('div',{class:'tv-slot'}),startB=h('button',{class:'tv-start'},'Tap to play');
     const fl=h('div',{class:'tv-float'});
@@ -152,7 +154,7 @@ const OWTv=(()=>{
     const cChips=h('div',{class:'tv-chips'},...QUICK.map(t=>h('button',{onclick:()=>postC(t)},t)),cWrite);
     const cRow=h('div',{class:'tv-add-row tv-typing'},cIn,cSend);
     const cmP=h('div',{class:'tv-cmp'},cHead,cList,cChips,cRow);
-    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,mp,ctlB,bList,rxB,cmB,rot,ex,mn,cl),screen,seekRow,ctr,rx,pl,cmP);
+    const box=h('div',{class:'tvplayer'},h('div',{class:'tv-bar'},ttl,mpv,mp,mnx,ctlB,bList,rxB,cmB,rot,ex,mn,cl),screen,seekRow,ctr,rx,pl,cmP);
     if(o.quiet){const vr=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(volLvl*100)),class:'tv-vol','aria-label':'Music volume'});vr.addEventListener('input',()=>{volLvl=vr.value/100;});vr.addEventListener('pointerdown',e=>e.stopPropagation());mn.before(vr);}
     o.host.append(box);
     if(o.music){box.classList.add('tv-music');urlIn.placeholder='Paste a SoundCloud, YouTube, Spotify or Audiomack link';if(o.quiet){box.classList.add('tv-space');if(ro)box.classList.add('tv-ro');setTimeout(()=>{try{if(!box.classList.contains('mini'))mn.click();}catch(e){}},90);}else if(!o.vid)setTimeout(()=>{try{bList.click();}catch(e){}},60);}
@@ -160,7 +162,8 @@ const OWTv=(()=>{
     /* ----- messaging ----- */
     const send=(payload)=>{try{ch&&ch.send({type:'broadcast',event:'tv',payload});}catch(e){}};
     const snap=(seek)=>({k:'state',s:{q:S.q,i:S.i,play:S.play,pos:pos(),seek:!!seek}});
-    const announce=(seek)=>{lead=true;send(snap(seek));try{o.onQueue&&o.onQueue(S.q);}catch(e){}};
+    const saveLocal=()=>{if(!o.music||!alive||ro||!S.q.length)return;try{localStorage.setItem('ow_music_state',JSON.stringify({roomId:o.roomId,uid:o.uid||null,isOwner:!!o.isOwner,q:S.q.map(x=>({k:x.k,id:x.id,u:x.u,t:x.t,by:x.by})),i:S.i,pos:pos(),play:S.play,at:Date.now()}));}catch(e){}};
+    const announce=(seek)=>{lead=true;saveLocal();send(snap(seek));try{o.onQueue&&o.onQueue(S.q);}catch(e){}};
     function react(e){const t=Date.now();if(t-lastRx<250)return;lastRx=t;float(e);send({k:'react',e});}
     function float(e){const s=h('span',{class:'tv-fe',style:{left:(10+Math.random()*80)+'%'}},e);fl.append(s);setTimeout(()=>s.remove(),2200);while(fl.children.length>14)fl.firstChild.remove();}
 
@@ -170,7 +173,7 @@ const OWTv=(()=>{
       state:p=>{if(!alive||isBusy()||ro)return;if(p&&!S.play){S.play=true;render();announce();}else if(!p&&S.play){S.play=false;render();announce();}},
       end:()=>{if(!alive||isBusy()||ro)return;if(S.i+1<S.q.length){const i=S.i+1;S.i=i;apply({q:S.q,i,play:true,pos:0});}else{S.play=false;render();}},
       err:()=>{if(!alive)return;const m=box.querySelector('.tv-msg');m.textContent='This video cannot be played here. Skipping\u2026';setTimeout(()=>{m.textContent='';if(alive&&S.i+1<S.q.length)next();},1800);},
-      blocked:on=>{startB.classList.toggle('on',!!on);}
+      blocked:on=>{startB.classList.toggle('on',!!on);box.classList.toggle('tv-blocked',!!on&&!!o.music);}
     };
     startB.onclick=()=>{startB.classList.remove('on');try{ad&&ad.play();}catch(e){}};
     function use(kind){
@@ -188,7 +191,7 @@ const OWTv=(()=>{
       if(!alive||my!==applySeq)return;
       busy(1200);startB.classList.remove('on');
       try{
-        if(v.id!==loadedId){loadedId=v.id;lastV=-1;a.load(v,S.pos||0,S.play);}
+        if(v.id!==loadedId){loadedId=v.id;lastV=-1;a.load(v,S.pos||0,S.play);if(o.music&&a.lowq){a.lowq();setTimeout(()=>{try{a.lowq();}catch(e){}},1500);}}
         else if(a.ctl){const d=Math.abs(a.time()-S.pos);if(s.seek||(S.play&&d>2.5)||(!S.play&&d>1))a.seek(S.pos);S.play?a.play():a.pause();}
       }catch(e){}
     }
@@ -254,7 +257,7 @@ const OWTv=(()=>{
       add(src);
     }
     addB.onclick=fromInput;urlIn.addEventListener('keydown',e=>{if(e.key==='Enter')fromInput();});
-    mn.onclick=()=>{const m=box.classList.toggle('mini');mn.replaceChildren(ic(m?'chevU':'chevD'));mn.setAttribute('aria-label',m?'Open':'Minimise');if(m){box.classList.remove('cm-on','pl-on','rx-on');}};mp.onclick=()=>bPlay.click();
+    mn.onclick=()=>{const m=box.classList.toggle('mini');mn.replaceChildren(ic(m?'chevU':'chevD'));mn.setAttribute('aria-label',m?'Open':'Minimise');if(m){box.classList.remove('cm-on','pl-on','rx-on');}};mp.onclick=()=>{if(box.classList.contains('tv-blocked')){box.classList.remove('tv-blocked');startB.onclick();return;}bPlay.click();};mnx.onclick=()=>next();mpv.onclick=()=>{if(pos()>4||S.i<1)seekBy(-pos());else playIndex(S.i-1);};
     bPlay.onclick=toggle;bBack.onclick=()=>seekBy(-10);bFwd.onclick=()=>seekBy(10);bNext.onclick=next;
     bList.onclick=()=>pp('pl-on');
     rng.addEventListener('input',()=>{seeking=true;});
@@ -299,7 +302,7 @@ const OWTv=(()=>{
 
     /* draggable by its title bar (not while expanded or rotated) */
     (function(){const bar=box.querySelector('.tv-bar');let st=null;
-      bar.addEventListener('pointerdown',e=>{if(e.target.closest('button')||box.classList.contains('rot'))return;const r=box.getBoundingClientRect(),hr=o.host.getBoundingClientRect();st={dx:e.clientX-r.left,dy:e.clientY-r.top,hr};bar.setPointerCapture(e.pointerId);e.preventDefault();});
+      bar.addEventListener('pointerdown',e=>{if(e.target.closest('button')||e.target.closest('input')||box.classList.contains('rot'))return;if(box.classList.contains('parked')){const r0=box.getBoundingClientRect(),h0=o.host.getBoundingClientRect();box.classList.remove('parked');box.style.left=(r0.left-h0.left)+'px';box.style.top=(r0.top-h0.top)+'px';}const r=box.getBoundingClientRect(),hr=o.host.getBoundingClientRect();st={dx:e.clientX-r.left,dy:e.clientY-r.top,hr};bar.setPointerCapture(e.pointerId);e.preventDefault();});
       bar.addEventListener('pointermove',e=>{if(!st)return;const w=box.offsetWidth,hh=box.offsetHeight;let x=e.clientX-st.dx-st.hr.left,y=e.clientY-st.dy-st.hr.top;x=Math.max(0,Math.min(st.hr.width-w,x));y=Math.max(0,Math.min(st.hr.height-hh,y));box.style.left=x+'px';box.style.top=y+'px';});
       const end=()=>{st=null;};bar.addEventListener('pointerup',end);bar.addEventListener('pointercancel',end);})();
 
@@ -310,7 +313,7 @@ const OWTv=(()=>{
         h('button',{class:'tv-th','aria-label':'Play '+q.t,onclick:()=>playIndex(k)},(q.k==='yt'?h('img',{src:'https://i.ytimg.com/vi/'+q.u+'/default.jpg',alt:'',loading:'lazy',width:'64',height:'36'}):h('span',{class:'tv-gth'},'\u25b6')),h('span',null,(k===S.i?'▶ ':'')+q.t)),
         (o.isOwner||q.by===me)?h('button',{class:'tv-x','aria-label':'Remove from queue',onclick:()=>remove(k)},ic('close')):null)):[h('p',{class:'tv-none'},'The queue is empty. Paste a video link above.')]));
     }
-    tick=setInterval(()=>{if(alive&&ad&&ad.vol){const v=volLvl*duckF;if(Math.abs(v-lastV)>.005){lastV=v;try{ad.vol(v);}catch(e){}}}if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
+    tick=setInterval(()=>{tk++;if(o.music&&alive&&ad&&ad.ctl&&S.play&&S.q.length&&!seeking){let t0=0;try{t0=ad.time()||0;}catch(e){}if(Math.abs(t0-lastT)<.01)stall++;else{stall=0;if(box.classList.contains('tv-blocked')&&!startB.classList.contains('on'))box.classList.remove('tv-blocked');}lastT=t0;if(stall>=8)box.classList.add('tv-blocked');}else stall=0;if(tk%4===0)saveLocal();if(alive&&ad&&ad.vol){const v=volLvl*duckF;if(Math.abs(v-lastV)>.005){lastV=v;try{ad.vol(v);}catch(e){}}}if(!ad||!ad.ctl||!alive)return;try{const d=ad.dur()||0,t=ad.time()||0;tm.textContent=fmt(t)+(d?' / '+fmt(d):'');if(!seeking&&d)rng.value=Math.round(t/d*1000);}catch(e){}},500);
     let lastRep=0;const report=on=>{if(!o.isOwner||!o.roomId||!/^[0-9a-f-]{36}$/i.test(String(o.roomId)))return;try{sb.rpc('ow_activity_set',{p_room:o.roomId,p_kind:on?(o.music?'music':'movie'):null,p_title:on?((S.q[S.i]&&S.q[S.i].t)||null):null}).then(()=>{},()=>{});}catch(e){}};
     hb=setInterval(()=>{if(alive&&lead&&S.play&&S.q.length)send(snap());if(alive&&o.isOwner&&S.play&&S.q.length&&Date.now()-lastRep>45000){lastRep=Date.now();report(true);}},8000);
 
@@ -324,23 +327,30 @@ const OWTv=(()=>{
     setTimeout(()=>{if(!alive)return;if(!got){got=true;const t=o.title;S={q:[],i:0,play:true,pos:0};if(o.vid&&valid(o.vid)){S.q=[Object.assign({},o.vid,{t:t||o.vid.n||'Video',by:me})];apply({q:S.q,i:0,play:true,pos:0});lead=true;if(!t)titleOf(o.vid).then(x=>{if(S.q[0])S.q[0].t=x;render();});}}
       else if(o.vid&&valid(o.vid)&&!S.q.some(v=>v.id===o.vid.id))add(o.vid);
       /* the owner's saved playlist fills an empty player (and starts by itself when asked to) */
+      if(!S.q.length&&!ro){let st=o.restore||null;if(!st&&o.music){try{const j=JSON.parse(localStorage.getItem('ow_music_state')||'null');if(j&&String(j.roomId)===String(o.roomId)&&Date.now()-j.at<6*36e5)st=j;}catch(e){}}
+        if(st&&Array.isArray(st.q)){const q=st.q.filter(valid).map(norm);if(q.length){const i=Math.min(st.i|0,q.length-1),pp=(+st.pos||0)+(st.play?(Date.now()-st.at)/1000:0);apply({q,i,play:o.autoplay?true:!!st.play,pos:pp});announce(true);}}}
       if(!S.q.length&&Array.isArray(o.seed)&&o.seed.length){const q=o.seed.filter(valid).map(norm).map(x=>Object.assign({},x,{by:me}));if(q.length){apply({q,i:0,play:!!o.autoplay,pos:0});announce(true);}}},1400);
     render();
 
     const api={alive:true,
       park(){if(!o.music||!alive)return;box.classList.add('parked');if(!box.classList.contains('mini'))mn.click();},
       unpark(){if(!box.classList.contains('parked'))return;box.classList.remove('parked');box.style.left='';box.style.top='';if(box.classList.contains('mini'))mn.click();},
+      kick(){if(!alive||!S.play||!ad||!ad.play)return;if(box.classList.contains('tv-blocked')||stall>=2||startB.classList.contains('on')){try{ad.play();}catch(e){}box.classList.remove('tv-blocked');startB.classList.remove('on');stall=0;}},
       setVol(x){volLvl=Math.max(0,Math.min(1,x));},
       duck(on){clearTimeout(duckT);if(on)duckF=.2;else duckT=setTimeout(()=>{duckF=1;},1500);},
       addOrFocus(src){if(ro||!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
-      destroy(){if(!alive)return;alive=false;if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
+      destroy(){if(!alive)return;alive=false;if(o.music){try{localStorage.removeItem('ow_music_state');}catch(e){}}if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
     cl.onclick=()=>api.destroy();
     cur[ck]=api;return api;
   }
   /* music outlives the room page: it lives in its own holder on the page and is parked as a small bar until the person stops it */
   function musicHost(){let m=document.getElementById('ow-music-host');if(!m){m=document.createElement('div');m.id='ow-music-host';document.body.appendChild(m);}return m;}
+  /* after a page reload the speaker comes back where it was (parked as a small bar) */
+  function restore(uid){try{const j=JSON.parse(localStorage.getItem('ow_music_state')||'null');if(!j||!Array.isArray(j.q)||!j.q.length||!uid||j.uid!==uid||Date.now()-j.at>6*36e5||String(j.roomId).startsWith('gp'))return false;
+    const x=open({host:musicHost(),roomId:j.roomId,uid:j.uid,isOwner:!!j.isOwner,music:true,vid:null,restore:j,autoplay:!!j.play});if(x&&x.park)setTimeout(()=>x.park(),300);return true;}catch(e){return false;}}
+  const kickMusic=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].kick)cur[k].kick();});};
   const duckMusic=on=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].duck)cur[k].duck(on);});};
   const park=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].park)cur[k].park();});};
   const unpark=()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k]&&cur[k].alive&&cur[k].unpark)cur[k].unpark();});};
-  return{open,parse,park,unpark,duckMusic,close:id=>{cur[id]&&cur[id].destroy();},stopMusic:()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k])cur[k].destroy();});},_state:()=>cur};
+  return{open,parse,park,unpark,duckMusic,kickMusic,restore,close:id=>{cur[id]&&cur[id].destroy();},stopMusic:()=>{Object.keys(cur).forEach(k=>{if(k.startsWith('m:')&&cur[k])cur[k].destroy();});},_state:()=>cur};
 })();

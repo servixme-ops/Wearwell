@@ -222,10 +222,11 @@ class OWRoom{
     if(this.tapOk&&this.ptrs.size===0){const it=this.tapItem;if(!this.edit){if(this.walkOn||this.res)this.walkTap(it,e);else if(it&&this.cb.onOpen)this.cb.onOpen(it);}else if(!it)this.select(null);}
   }
   /* ----- loop ----- */
+  setPaused(b){this.paused=!!b;if(!b){this.t0=0;this.markDirty(true);}}
   markDirty(sh){this.dirty=true;if(sh)this.shadowDirty=true;}
   resize(){if(!this.host)return;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;this.r.setSize(w,h,false);this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';this.cam.aspect=w/h;this.cam.fov=w/h<.8?52:40;this.cam.updateProjectionMatrix();this.cam0.dist=this.fitDist();if(!this.wTarget&&(!this.userZ||this.dist>this.cam0.dist))this.setCam(this.az,this.el,this.cam0.dist);this.applyView();}
   loop(){
-    if(!this.alive)return;requestAnimationFrame(this.loop);const now=performance.now(),dt=Math.min(.05,(now-(this.t0||now))/1000);this.t0=now;if(this.walkTick)this.walkTick(dt);
+    if(!this.alive)return;requestAnimationFrame(this.loop);if(this.paused)return;const now=performance.now();if(this.fpsCap&&now-(this.tl||0)<this.fpsCap-3)return;this.tl=now;const dt=Math.min(.05,(now-(this.t0||now))/1000);this.t0=now;if(this.walkTick)this.walkTick(dt);
     if(this.camT&&!this.walkOn){const c=this.camT;c.t=Math.min(1,c.t+.06);const k=c.t*c.t*(3-2*c.t);this.setCam(this.az+(c.az-this.az)*(k>.99?1:.16),this.el+(c.el-this.el)*.16,this.dist+(c.dist-this.dist)*.16);if(Math.abs(c.az-this.az)<.004&&Math.abs(c.el-this.el)<.004&&Math.abs(c.dist-this.dist)<.02){this.setCam(c.az,c.el,c.dist);this.camT=null;}}
     if(this.dirty){this.dirty=false;if(this.shadowDirty){this.r.shadowMap.needsUpdate=true;this.shadowDirty=false;}this.r.render(this.scene,this.cam);}
   }
