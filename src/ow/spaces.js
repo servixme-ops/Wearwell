@@ -388,13 +388,35 @@ async function room(id){
 }
 
 /* Gist & Paint lives inside Discover: a banner to host, and the sessions that are live now */
+/* ================= scheduled Gist & Paint sessions (own page) ================= */
+  const icsFor=r=>{const st=new Date(r.scheduled_start),en=new Date(st.getTime()+45*60000),f=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+    const t=(r.title||'Gist & Paint').replace(/[\r\n,;]/g,' ');
+    const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//OpenWalls//Gist and Paint//EN','BEGIN:VEVENT','UID:'+r.id+'@openwalls','DTSTAMP:'+f(new Date()),'DTSTART:'+f(st),'DTEND:'+f(en),'SUMMARY:Gist & Paint - '+t,'DESCRIPTION:Join the painting session: '+CFG.site+'#/space/'+r.id,'URL:'+CFG.site+'#/space/'+r.id,'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Gist & Paint starts soon','TRIGGER:-PT10M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+    return new Blob([txt],{type:'text/calendar'});};
+  const dayLabel=t=>{const d=new Date(t),n=new Date(),tm=new Date(n.getTime()+86400000);return d.toDateString()===n.toDateString()?'Today':d.toDateString()===tm.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});};
+  const sr=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,mine=Auth.user&&hs&&hs.id===Auth.user.id,t=new Date(r.scheduled_start);
+    const btn=mine?h('button',{class:'sc-btn go',onclick:e=>{e.stopPropagation();go('#/space/'+r.id);}},'Open'):h('button',{class:'sc-btn',onclick:e=>{e.stopPropagation();download(icsFor(r),'gist-and-paint.ics');toast('Added a reminder to your calendar');}},icon('bell'),'Remind me');
+    return h('div',{class:'sc-row',onclick:()=>{if(mine)go('#/space/'+r.id);else toast('Starts '+when(r.scheduled_start)+'.');}},
+      h('span',{class:'sc-time'},t.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})),
+      h('span',{class:'sc-mid'},h('b',null,r.title),h('span',null,(hs?'@'+hs.username:'a creator')+' hosts')),btn);};
+function scheduledPage(){
+  const v=setView(false);drawNav('discover');
+  const list=h('div',{class:'sc-list',style:{padding:'0 18px'}},spinner());
+  const bk=h('button',{class:'fm-back','aria-label':'Back',onclick:()=>{if(history.length>1&&App.hadRoute)history.back();else go('#/discover');}},'\u2039');
+  const add=h('button',{class:'btn coral small',onclick:()=>{if(!needAuth('Sign in to host a Gist & Paint'))return;createSheet(()=>load(),'sipandpaint');}},icon('plus'),' Schedule');
+  v.append(h('div',{class:'pg-head sp-head'},h('div',{class:'row-flex'},bk,h('div',null,h('div',{class:'brand'},h('b',null,'Scheduled')),h('p',{class:'tag'},'Gist & Paint sessions coming up.'))),add),list);
+  function load(){return rpc('space_discover',{p_filter:'upcoming',p_category:'sipandpaint'}).then(rows0=>{const rows=(rows0||[]).filter(r=>r.scheduled_start).sort((a,b)=>new Date(a.scheduled_start)-new Date(b.scheduled_start));
+    const out=[];let last='';rows.forEach(r=>{const d=dayLabel(r.scheduled_start);if(d!==last){last=d;out.push(h('div',{class:'sc-day'},d));}out.push(sr(r));});
+    list.replaceChildren(...(out.length?out:[empty('Nothing scheduled','Tap Schedule to plan a painting session with friends.')]));}).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));}
+  load();
+}
 function paintSection(){
   const list=h('div',{class:'sp-list'},spinner());
-  const liveH=h('h3',{class:'gp-h'},'Live now'),schH=h('h3',{class:'gp-h gp-h2'},'Scheduled'),schList=h('div',{class:'sc-list'});
+  const liveH=h('h3',{class:'gp-h'},'Live now'),schCnt=h('span',{class:'gp-cnt calm'},'0'),schLink=h('button',{class:'sc-link',onclick:()=>go('#/scheduled')},icon('bell'),h('span',null,'Scheduled sessions'),schCnt,h('i',{class:'sc-arr'},'\u203a'));
   const el=h('div',{class:'gp-sec'},
     h('div',{class:'ent2 paint gp-banner'},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Gist & Paint'),h('span',null,'Paint the same picture with friends, then hang it on your wall')),
       h('button',{class:'ent2-go',onclick:()=>{if(!needAuth('Sign in to host a Gist & Paint'))return;createSheet(()=>{load();loadSched();},'sipandpaint');}},'Host')),
-    liveH,list,schH,schList);
+    liveH,list,schLink);
   const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
     return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
       h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room')),
@@ -407,21 +429,8 @@ function paintSection(){
       list.replaceChildren(...(rows.length?rows.map(pc):[h('div',{class:'pn-none'},h('span',{class:'pn-ic'},icon('palette')),h('b',null,'No sessions live right now'),h('span',null,'Tap Host and invite friends to paint with you.'))]));
     }).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));
   }
-  const icsFor=r=>{const st=new Date(r.scheduled_start),en=new Date(st.getTime()+45*60000),f=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
-    const t=(r.title||'Gist & Paint').replace(/[\r\n,;]/g,' ');
-    const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//OpenWalls//Gist and Paint//EN','BEGIN:VEVENT','UID:'+r.id+'@openwalls','DTSTAMP:'+f(new Date()),'DTSTART:'+f(st),'DTEND:'+f(en),'SUMMARY:Gist & Paint - '+t,'DESCRIPTION:Join the painting session: '+CFG.site+'#/space/'+r.id,'URL:'+CFG.site+'#/space/'+r.id,'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Gist & Paint starts soon','TRIGGER:-PT10M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
-    return new Blob([txt],{type:'text/calendar'});};
-  const dayLabel=t=>{const d=new Date(t),n=new Date(),tm=new Date(n.getTime()+86400000);return d.toDateString()===n.toDateString()?'Today':d.toDateString()===tm.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});};
-  const sr=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,mine=Auth.user&&hs&&hs.id===Auth.user.id,t=new Date(r.scheduled_start);
-    const btn=mine?h('button',{class:'sc-btn go',onclick:e=>{e.stopPropagation();go('#/space/'+r.id);}},'Open'):h('button',{class:'sc-btn',onclick:e=>{e.stopPropagation();download(icsFor(r),'gist-and-paint.ics');toast('Added a reminder to your calendar');}},icon('bell'),'Remind me');
-    return h('div',{class:'sc-row',onclick:()=>{if(mine)go('#/space/'+r.id);else toast('Starts '+when(r.scheduled_start)+'.');}},
-      h('span',{class:'sc-time'},t.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})),
-      h('span',{class:'sc-mid'},h('b',null,r.title),h('span',null,(hs?'@'+hs.username:'a creator')+' hosts')),btn);};
   function loadSched(){
-    return rpc('space_discover',{p_filter:'upcoming',p_category:'sipandpaint'}).then(rows0=>{const rows=(rows0||[]).filter(r=>r.scheduled_start).sort((a,b)=>new Date(a.scheduled_start)-new Date(b.scheduled_start));
-      schH.style.display=rows.length?'':'none';
-      const out=[];let last='';rows.forEach(r=>{const d=dayLabel(r.scheduled_start);if(d!==last){last=d;out.push(h('div',{class:'sc-day'},d));}out.push(sr(r));});
-      schList.replaceChildren(...out);}).catch(()=>{});
+    return rpc('space_discover',{p_filter:'upcoming',p_category:'sipandpaint'}).then(rows0=>{const n=(rows0||[]).filter(r=>r.scheduled_start).length;schCnt.textContent=String(n);}).catch(()=>{});
   }
   load();loadSched();
   const iv=setInterval(()=>{if(!document.body.contains(el)){clearInterval(iv);return;}load();loadSched();},20000);
@@ -430,5 +439,5 @@ function paintSection(){
 /* the old Gist & Paint page is gone: send people to Discover */
 function paintPage(){history.replaceState(null,'','#/discover');return null;}
 function paintHub(){go('#/discover');}
-return{discover,room,createSheet,paintHub,paintPage,paintSection};
+return{discover,room,createSheet,paintHub,paintPage,paintSection,scheduledPage};
 })();
