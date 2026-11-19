@@ -625,7 +625,7 @@ window.addEventListener('hashchange',route);
   {const sp=new URLSearchParams(location.search),rf=sp.get('reference')||sp.get('trxref');if(rf&&/^OWAD-/.test(rf))history.replaceState(null,'',location.pathname+location.search+'#/ads');}
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
-  Auth.init().then(()=>{route();
+  Auth.init().then(()=>{route();try{if(Auth.user)OWTv.restore(Auth.user.id);}catch(e){}
     if(Auth.user&&window.OWA&&OWA.prefetch){let g='f';try{g=(JSON.parse(localStorage.getItem('ow_avatar')||'{}').g)||'f';}catch(e){}OWA.prefetch([g]);setTimeout(()=>OWA.prefetch(['m','f']),5000);}
     refreshUnread();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
   Auth.on(ev=>{if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});

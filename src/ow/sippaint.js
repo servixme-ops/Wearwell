@@ -176,7 +176,7 @@ async function myArtworks(){
 function attach(R,ctx){
   const st=R.stage,S=R.STAGE,SX=S.SX,SZ=S.SZ,DESKY=S.DESKY,me=Auth.user.id,spaceId=ctx.id;
   const canv=new Map();let dead=false,ch=null,chOk=false,saveT=null,flushT=null,pending=null,cur=null,sp={ref:null,state:'waiting',note:'',title:''},nSeated=0,lastPaintPing=0,ov=null,lockUntil=0;
-  const redraw=(()=>{let q=false;return()=>{if(q||dead)return;q=true;requestAnimationFrame(()=>{q=false;if(dead)return;canv.forEach(pc=>{if(pc.tex)pc.tex.needsUpdate=true;});R.markDirty&&R.markDirty();});};})();
+  const redraw=(()=>{let q=false;return()=>{if(q||dead)return;q=true;requestAnimationFrame(()=>{q=false;if(dead||ov)return;canv.forEach(pc=>{if(pc.tex)pc.tex.needsUpdate=true;});R.markDirty&&R.markDirty();});};})();
   const get=uid=>{let pc=canv.get(uid);if(!pc){pc=new PC(redraw);canv.set(uid,pc);}return pc;};
   const mine=get(me);
 
@@ -347,12 +347,12 @@ function attach(R,ctx){
     document.addEventListener('keydown',key);
     function fit(){const w=frame.clientWidth,hh=frame.clientHeight;if(!w||!hh)return;const s=Math.min(w/CW,hh/CH);cv.style.width=Math.floor(CW*s)+'px';cv.style.height=Math.floor(CH*s)+'px';}
     const ro=window.ResizeObserver?new ResizeObserver(fit):null;
-    function close(){if(!ov)return;flush();document.removeEventListener('keydown',key);ro&&ro.disconnect();stack.remove();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;redraw();saveNow();sendSync();}
+    function close(){if(!ov)return;flush();document.removeEventListener('keydown',key);ro&&ro.disconnect();stack.remove();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;R.setPaused&&R.setPaused(false);redraw();saveNow();sendSync();}
     ov=h('div',{class:'pt-ov'},
       h('div',{class:'pt-top'},h('button',{class:'pt-done',onclick:close},'Done'),h('b',null,'My canvas'),h('button',{class:'pt-ref',onclick:showRef},'Reference')),
       banner,frame,mini,
       h('div',{class:'pt-dock'},tools,h('div',{class:'pt-sz'},h('span',null,'Size'),size_),sw,stch));
-    document.body.appendChild(ov);ro&&ro.observe(frame);fit();paintTools();paintSw();paintState();paintBan();drawMini();drawGuide();
+    document.body.appendChild(ov);R.setPaused&&R.setPaused(true);ro&&ro.observe(frame);fit();paintTools();paintSw();paintState();paintBan();drawMini();drawGuide();
     ov._upd=()=>{paintBan();drawMini();drawGuide();};
   }
 
