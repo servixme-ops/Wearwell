@@ -179,6 +179,37 @@ function updRow(){
     else if(st==='old'){lab.textContent='A new version is available';hint.textContent='Tap to update';}
     else{lab.textContent='Get the latest version';hint.textContent='Reloads the app';}});
   return b;}
+
+/* ---- Settings: suggestions, complaints, password, sign out everywhere ---- */
+function settingsSheet(){
+  sheet('Settings',(body,close)=>{
+    const msg=(kind,title,ph)=>{
+      sheet(title,(b,c)=>{
+        const t=h('textarea',{maxlength:'2000',rows:'6',placeholder:ph,style:{width:'100%'}});
+        b.append(t,h('button',{class:'btn primary',style:{marginTop:'10px',width:'100%'},onclick:e=>guard(e.currentTarget,async()=>{
+          const v=t.value.trim();if(v.length<3){toast('Write a little more','err');return;}
+          const r=await sb.rpc('feedback_submit',{p_kind:kind,p_body:v});if(r.error){toast(errMsg(r.error),'err');return;}
+          toast('Thank you, we got it','ok');c();})},'Send'));
+      });
+    };
+    const pw=()=>sheet('Change password',(b,c)=>{
+      const a=h('input',{type:'password',autocomplete:'new-password',placeholder:'New password (6+ characters)'}),
+            z=h('input',{type:'password',autocomplete:'new-password',placeholder:'Type it again'});
+      b.append(field('New password',a),field('Confirm',z),h('button',{class:'btn primary',style:{marginTop:'10px',width:'100%'},onclick:e=>guard(e.currentTarget,async()=>{
+        if(a.value.length<6){toast('Use at least 6 characters','err');return;}
+        if(a.value!==z.value){toast('The two do not match','err');return;}
+        const r=await sb.auth.updateUser({password:a.value});if(r.error){toast(errMsg(r.error),'err');return;}
+        toast('Password changed','ok');c();})},'Save password'));
+    });
+    body.append(h('div',{class:'list'},
+      h('button',{onclick:()=>msg('suggestion','Suggestion','What would make OpenWalls better?')},icon('sliders'),h('span',{class:'grow'},'Suggestions')),
+      h('button',{onclick:()=>msg('complaint','Complaint','Tell us what went wrong')},icon('lock'),h('span',{class:'grow'},'Complaint')),
+      h('button',{onclick:pw},icon('lock'),h('span',{class:'grow'},'Change password')),
+      h('button',{onclick:async()=>{if(!await confirmBox('Log out of all devices?','You will be signed out here and on every other phone or computer.','Log out everywhere',true))return;
+        try{await sb.auth.signOut({scope:'global'});}catch(e){}
+        try{await Auth.signOut();OWTv.stopMusic();}catch(e){}close();toast('Signed out everywhere');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Log out of all devices'))));
+  });
+}
 async function meView(){
   const v=setView(false);drawNav('me');
   if(!Auth.user){v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},logoEl(38),h('b',null,'OpenWalls'))),empty('Your room is waiting','Sign in to build your room and share it with everyone.',h('div',{style:{display:'flex',gap:'8px',justifyContent:'center'}},h('button',{class:'btn coral',onclick:()=>authSheet('signup')},'Create account'),h('button',{class:'btn',onclick:()=>authSheet('signin')},'Sign in'))));return;}
@@ -195,6 +226,7 @@ async function meView(){
       h('button',{onclick:()=>OWPaint.myArtworks()},icon('cam'),h('span',{class:'grow'},'My artworks')),
       h('button',{onclick:()=>go('#/ads')},icon('sliders'),h('span',{class:'grow'},'Advertise on OpenWalls')),
       Auth.isAdmin?h('button',{onclick:()=>{location.href='admin.html';}},icon('lock'),h('span',{class:'grow'},'Admin')):null,
+      h('button',{onclick:()=>settingsSheet()},icon('sliders'),h('span',{class:'grow'},'Settings')),
       h('button',{onclick:async()=>{await Auth.signOut();try{OWTv.stopMusic();}catch(e){}toast('Signed out');go('#/wall');}},icon('lock'),h('span',{class:'grow'},'Sign out'))));
 }
 function followSheet(uid,kind){
