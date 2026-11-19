@@ -609,3 +609,4 @@ button.fm-int{border:0}
 .tvplayer.tv-ro.tv-blocked .tv-mp{display:grid!important}
 .tvplayer.tv-blocked .tv-mp{background:#ff5a3c;color:#fff;border-radius:50%;animation:tvpulse 1.1s infinite}
 @keyframes tvpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.tvplayer.tv-away{display:none!important}
