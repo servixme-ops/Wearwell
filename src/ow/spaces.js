@@ -47,23 +47,10 @@ class Audio{
   isMicOn(uid){const r=this.room;if(!r)return false;const p=r.localParticipant&&r.localParticipant.identity===uid?r.localParticipant:(r.remoteParticipants||r.participants||new Map()).get(uid);return !!(p&&p.isMicrophoneEnabled);}
   async mic(on){
     const p=this.room&&this.room.localParticipant;if(!p)return false;
-    try{await p.setMicrophoneEnabled(on);this.vad(on);return true;}
+    try{await p.setMicrophoneEnabled(on);return true;}
     catch(e){if(on){const n=(e&&e.name)||'';const err=new Error(/NotAllowed|Permission|Security/i.test(n+(e.message||''))?'mic-denied':/NotFound|Devices/i.test(n+(e.message||''))?'mic-missing':(e.message||'mic-failed'));throw err;}throw e;}
   }
   /* Local voice detector: ducks the shared music the instant you start talking (no waiting for the server's speaker list) */
-  vad(on){
-    try{clearInterval(this._vt);if(this._vc){try{this._vc.close();}catch(e){}this._vc=null;}
-      if(!on){try{OWTv.duckMusic(false);}catch(e){}return;}
-      const pub=this.room.localParticipant.getTrackPublication&&this.room.localParticipant.getTrackPublication('microphone');
-      const tr=pub&&pub.track&&pub.track.mediaStreamTrack;if(!tr)return;
-      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-      const c=new AC(),an=c.createAnalyser();an.fftSize=512;c.createMediaStreamSource(new MediaStream([tr])).connect(an);this._vc=c;
-      const buf=new Uint8Array(an.fftSize);let hold=0,ducked=false;
-      this._vt=setInterval(()=>{an.getByteTimeDomainData(buf);let m=0;for(let i=0;i<buf.length;i++){const d=Math.abs(buf[i]-128);if(d>m)m=d;}
-        const loud=m>10;if(loud){hold=Date.now()+700;if(!ducked){ducked=true;try{OWTv.duckMusic(true);}catch(e){}}}
-        else if(ducked&&Date.now()>hold){ducked=false;try{OWTv.duckMusic(false);}catch(e){}}},60);
-    }catch(e){}
-  }
   async startPlayback(){try{await this.room.startAudio();}catch(e){}}
   setBlocked(ids){
     this.blocked=new Set(ids);const r=this.room;if(!r)return;
@@ -182,7 +169,7 @@ async function room(id){
 
   const ev=(k,a,b)=>{
     if(dead)return;
-    if(k==='speaking'){speaking=a;try{OWTv.duckMusic(a&&a.size>0);}catch(e){}paintSpeaking();R&&R.stageSpeaking(a);}
+    if(k==='speaking'){speaking=a;paintSpeaking();R&&R.stageSpeaking(a);}
     else if(k==='mics')paintStage();
     else if(k==='playback'){playbackOk=a;paintBanner();}
     else if(k==='state'){connState=a;paintBanner();if(a==='disconnected'&&!dead&&!connecting&&D&&D.space.status==='live'&&me()&&me().status==='active')setTimeout(()=>reconnect(),1500);}
