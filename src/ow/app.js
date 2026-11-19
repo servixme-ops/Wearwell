@@ -84,9 +84,9 @@ function editProfileSheet(){
   sheet('Edit profile',(body,close)=>{
     const dn=h('input',{type:'text',maxlength:'60',value:p.display_name||''}),un=h('input',{type:'text',maxlength:'24',value:p.username||'',autocapitalize:'none'}),bio=h('textarea',{maxlength:'240'});bio.value=p.bio||'';
     const hint=h('span',{class:'f-hint'});let t;un.addEventListener('input',()=>{un.value=slugify(un.value);clearTimeout(t);if(un.value===p.username||un.value.length<3){hint.textContent='';return;}t=setTimeout(async()=>{const r=await sb.rpc('username_available',{p_username:un.value});hint.textContent=r.error?'':(r.data?'✓ Available':'Already taken');},350);});
-    const av=h('button',{class:'btn small',onclick:async()=>{const f=await pickFile('image/jpeg,image/png,image/webp');if(!f)return;await guard(av,async()=>{const pr=await prepareImage(f,{max:512,quality:.85,maxMB:CFG.limits.avatarMB*3});const path=await uploadFile('avatars',pr.blob,'jpg','image/jpeg');const url=publicUrl('avatars',path);const r=await Auth.saveProfile({avatar_url:url});if(r.error)throw r.error;toast('Photo updated','ok');close();route();});}},'Change photo');
-    const save=h('button',{class:'btn primary block',onclick:()=>guard(save,async()=>{const r=await Auth.saveProfile({display_name:dn.value.trim()||null,username:un.value,bio:bio.value.trim()||null});if(r.error)throw r.error;toast('Saved','ok');close();route();})},'Save');
-    body.append(h('div',{style:{display:'flex',alignItems:'center',gap:'12px',marginBottom:'14px'}},avatarEl(p,'lg'),av),field('Name',dn),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),field('Bio',bio),save);
+    const av=h('span',{class:'muted small-t'},'Your profile photo is your avatar. Change your avatar to change it.');
+    const save=h('button',{class:'btn primary block',onclick:()=>guard(save,async()=>{const r=await Auth.saveProfile({username:un.value,bio:bio.value.trim()||null});if(r.error)throw r.error;toast('Saved','ok');close();route();})},'Save');
+    body.append(h('div',{style:{display:'flex',alignItems:'center',gap:'12px',marginBottom:'14px'}},avatarEl(p,'lg'),av),h('label',{class:'field'},h('span',{class:'f-label'},'Username'),un,hint),field('Bio',bio),save);
   });
 }
 
@@ -217,7 +217,7 @@ async function meView(){
   let mine=null,cn={followers:0,following:0};try{[mine,cn]=await Promise.all([Store.mine(),Store.counts(Auth.user.id)]);}catch(e){console.warn(e);}
   const room=mine&&mine.room,prev=room&&Store.previewUrl(room.theme,room.updated_at);
   v.replaceChildren(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Me'))),
-    h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.display_name||p.username||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
+    h('div',{class:'me-card'},avatarEl(p,'lg'),h('h3',null,p.username||p.display_name||'You'),h('div',{class:'un'},'@'+(p.username||'')),p.bio?h('p',null,p.bio):null,h('div',{class:'counts'},h('button',{onclick:()=>followSheet(Auth.user.id,'followers')},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>followSheet(Auth.user.id,'following')},h('b',null,cn.following),h('span',null,'following')),h('div',null,h('b',null,room?room.visits:0),h('span',null,'room visits'))),h('button',{class:'btn small',onclick:editProfileSheet},'Edit profile')),
     h('div',{class:'roomcard'},room?OWPrev.node(Object.assign({},room,{id:room.id}),'pshot','Your room'):h('div',{class:'pshot ph'},'Your room is not built yet'),
       activeSpaces(Auth.user.id),h('div',{class:'row'},h('button',{class:'btn coral',onclick:()=>go('#/edit')},room?'Edit room':'Build my open room'),room?h('button',{class:'btn light',onclick:()=>go('#/@'+p.username)},'View'):null,room?h('button',{class:'btn light',onclick:()=>shareRoom(p.username,room.name,room.visibility)},'Share'):null)),
     h('div',{class:'list'},h('button',{onclick:()=>{App.avBack='#/me';go('#/avatar');}},icon('body'),h('span',{class:'grow'},'My avatar')),room?h('button',{onclick:()=>roomSettings(room,()=>meView())},icon('sliders'),h('span',{class:'grow'},'Room settings')):null,
@@ -232,7 +232,7 @@ async function meView(){
 function followSheet(uid,kind){
   sheet(kind==='followers'?'Followers':'Following',(body,close)=>{
     body.append(spinner());
-    Store.followList(uid,kind).then(xs=>{body.replaceChildren(xs.length?h('div',{class:'list',style:{margin:0}},xs.map(u=>h('button',{onclick:()=>{close();go('#/@'+u.username);}},avatarEl(u,'sm'),h('span',{class:'grow'},h('b',null,u.display_name||'@'+u.username),h('div',{class:'f-hint'},'@'+u.username))))):empty(kind==='followers'?'No followers yet':'Not following anyone yet',''));}).catch(e=>body.replaceChildren(empty('Could not load',friendlyError(e))));
+    Store.followList(uid,kind).then(xs=>{body.replaceChildren(xs.length?h('div',{class:'list',style:{margin:0}},xs.map(u=>h('button',{onclick:()=>{close();go('#/@'+u.username);}},avatarEl(u,'sm'),h('span',{class:'grow'},h('b',null,'@'+(u.username||u.display_name)),h('div',{class:'f-hint'},'@'+u.username))))):empty(kind==='followers'?'No followers yet':'Not following anyone yet',''));}).catch(e=>body.replaceChildren(empty('Could not load',friendlyError(e))));
   });
 }
 function activeSpaces(uid,close){
@@ -258,7 +258,7 @@ function photoSheet(R,name,hasMe){
 }
 function ownerSheet(o,cn){
   sheet('@'+o.username,(body,close)=>{
-    body.append(h('div',{style:{textAlign:'center'}},h('div',{style:{display:'flex',justifyContent:'center'}},avatarEl(o,'lg')),h('h3',{style:{margin:'10px 0 2px',font:'800 22px var(--disp)'}},o.display_name||'@'+o.username),o.bio?h('p',null,o.bio):null,
+    body.append(h('div',{style:{textAlign:'center'}},h('div',{style:{display:'flex',justifyContent:'center'}},avatarEl(o,'lg')),h('h3',{style:{margin:'10px 0 2px',font:'800 22px var(--disp)'}},'@'+(o.username||o.display_name)),o.bio?h('p',null,o.bio):null,
       h('div',{class:'counts'},h('button',{onclick:()=>{close();followSheet(o.id,'followers');}},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>{close();followSheet(o.id,'following');}},h('b',null,cn.following),h('span',null,'following')))),activeSpaces(o.id,close));
   });
 }
@@ -504,7 +504,7 @@ async function visitView(hs0){
     R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk(true)},icon('walk')):null);
   v.querySelector('.rtop').replaceWith(top);
   const walkBtn=()=>v.querySelector('.walkbtn');
-  async function enterWalk(manual){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){if(manual){App.avBack='#/@'+username;chooseAvatar();}return;}R.startWalk(cfg);hud=walkHud(host,R);if(Auth.user){const pf=Auth.profile||{};R.liveTrack({uid:Auth.user.id,name:pf.display_name||pf.username||'Guest',username:pf.username||'',cfg});}const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
+  async function enterWalk(manual){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){if(manual){App.avBack='#/@'+username;chooseAvatar();}return;}R.startWalk(cfg);hud=walkHud(host,R);if(Auth.user){const pf=Auth.profile||{};R.liveTrack({uid:Auth.user.id,name:pf.username||pf.display_name||'Guest',username:pf.username||'',cfg});}const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
     const hn=host.querySelector('.hint');hn&&hn.remove();host.append(h('div',{class:'hint'},'Joystick to walk · tap the floor to go there · drag to look'));setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);}
   function leaveWalk(){if(!hud)return;hud.destroy();hud=null;R.liveUntrack();R.stopWalk();const b=walkBtn();b&&b.classList.remove('on');host.classList.remove('walking');}
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
@@ -578,7 +578,7 @@ async function chatView(username){
   let d;try{d=await Store.byUsername(username);}catch(e){wrap.replaceChildren(empty('Could not open chat',friendlyError(e)));return;}
   if(!d||!d.owner){wrap.replaceChildren(empty('Person not found','',h('button',{class:'btn',onclick:()=>go('#/inbox')},'Back')));return;}
   const o=d.owner;const list=h('div',{class:'cl'}),inp=h('input',{type:'text',maxlength:'1000',placeholder:'Message @'+o.username}),send=h('button',{class:'btn coral small'},'Send');
-    wrap.replaceChildren(h('div',{class:'rtop',style:{position:'relative',background:'var(--paper)',borderBottom:'1px solid var(--line)'}},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go('#/inbox')},icon('back')),h('button',{class:'owner',onclick:()=>go('#/@'+o.username)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,o.display_name||'@'+o.username),h('span',{class:'s'},'@'+o.username)))),list,
+    wrap.replaceChildren(h('div',{class:'rtop',style:{position:'relative',background:'var(--paper)',borderBottom:'1px solid var(--line)'}},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go('#/inbox')},icon('back')),h('button',{class:'owner',onclick:()=>go('#/@'+o.username)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,'@'+(o.username||o.display_name)),h('span',{class:'s'},'@'+o.username)))),list,
     h('div',{class:'cin'},inp,send));
   let last='';const load=async()=>{try{const ms=await Store.thread(o.id);const key=ms.length+':'+(ms[ms.length-1]||{}).id;if(key===last)return;last=key;const nearEnd=list.scrollHeight-list.scrollTop-list.clientHeight<80||!list.childNodes.length;
     list.replaceChildren(...(ms.length?ms.map(m=>h('div',{class:'bub '+(m.sender_id===Auth.user.id?'me':'them')},m.body)):[h('p',{class:'tag',style:{textAlign:'center',padding:'20px'}},'Say hello to @'+o.username)]));if(nearEnd)list.scrollTop=list.scrollHeight;Store.markRead(o.id).then(refreshUnread);}catch(e){}};
