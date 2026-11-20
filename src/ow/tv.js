@@ -72,7 +72,7 @@ const OWTv=(()=>{
     p=new YT.Player(el.id,{host:'https://www.youtube-nocookie.com',width:'100%',height:'100%',playerVars:{controls:0,disablekb:1,fs:0,playsinline:1,rel:0,modestbranding:1,iv_load_policy:3,autoplay:1},events:{
       onReady:()=>rd(),onStateChange:e=>{if(e.data===1)evt.state(true);else if(e.data===2)evt.state(false);else if(e.data===0){if(isPl){try{const l=p.getPlaylist(),i=p.getPlaylistIndex();if(l&&i<l.length-1)return;}catch(x){}}evt.end();}},onError:()=>evt.err()}});
     await ready;
-    return{ctl:true,lowq(){try{p.setPlaybackQuality('medium');}catch(e){}},vol(x){try{p.setVolume(Math.round(x*100));}catch(e){}},load(v,pos,play){if(isPl)p.loadPlaylist({list:v.u,listType:'playlist',index:0,startSeconds:pos||0});else p.loadVideoById(v.u,pos||0);if(!play)setTimeout(()=>{evt.busy();try{p.pauseVideo();}catch(e){}},700);},play(){p.playVideo();},pause(){p.pauseVideo();},seek(t){p.seekTo(t,true);},time(){return p.getCurrentTime()||0;},dur(){return p.getDuration()||0;},destroy(){try{p.destroy();}catch(e){}d.remove();}};
+    return{ctl:true,lowq(){try{p.setPlaybackQuality('tiny');}catch(e){}},vol(x){try{p.setVolume(Math.round(x*100));}catch(e){}},load(v,pos,play){if(isPl)p.loadPlaylist({list:v.u,listType:'playlist',index:0,startSeconds:pos||0});else p.loadVideoById(v.u,pos||0);if(!play)setTimeout(()=>{evt.busy();try{p.pauseVideo();}catch(e){}},700);},play(){p.playVideo();},pause(){p.pauseVideo();},seek(t){p.seekTo(t,true);},time(){return p.getCurrentTime()||0;},dur(){return p.getDuration()||0;},destroy(){try{p.destroy();}catch(e){}d.remove();}};
   }
   async function A_vm(slot,evt){
     await loadScript('https://player.vimeo.com/api/player.js',()=>window.Vimeo&&Vimeo.Player);const d=mount(slot);let p=null,t=0,du=0;
