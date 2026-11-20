@@ -620,3 +620,7 @@ button.fm-int{border:0}
 .sc-btn.on{background:#d9f5e6;color:#12683d}
 
 .sp-vv{padding:10px 4px 14px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+
+.sp-left{font:700 11px var(--ui);color:var(--ink-2,#6b6478);background:rgba(0,0,0,.06);padding:3px 8px;border-radius:99px}
+.sp-tip{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 64px);z-index:60;display:flex;gap:10px;align-items:center;background:#fff7d6;color:#3b2f05;border:1px solid #f0d878;border-radius:14px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.25);font:600 14px/1.35 var(--ui)}
+.sp-tip button{flex:none;border:0;border-radius:10px;padding:8px 12px;background:#3b2f05;color:#fff;font-weight:700}
