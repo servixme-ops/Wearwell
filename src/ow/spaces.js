@@ -5,6 +5,12 @@ const LCATS=CATS.filter(c=>c[0]!=='sipandpaint'); /* Gist & Paint is its own thi
 const catLabel=id=>(CATS.find(c=>c[0]===id)||[0,'Talk'])[1];
 const REACTS=['👏','❤️','🔥','😂','😮','🎉'];
 const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};
+const tipShown=new Set();
+function hostTip(){
+  const k=location.hash;if(tipShown.has(k))return;tipShown.add(k);
+  const d=h('div',{class:'sp-tip',role:'status'},h('span',null,'Tip: lower or pause the music before you speak, so everyone can hear you.'),h('button',{onclick:()=>d.remove()},'Got it'));
+  document.body.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},30000);
+}
 async function fn(name,body){
   const r=await sb.functions.invoke(name,{body});
   if(r.error){let m=r.error.message;try{const j=await r.error.context.json();m=j.error||m;}catch(e){}const e=new Error(m);throw e;}
@@ -97,6 +103,7 @@ function createSheet(onDone,preset){
     goB.onclick=()=>guard(goB,async()=>{
       if(title.value.trim().length<3){toast('Give your space a title.','err');return;}
       if(!live&&!st.value){toast('Pick a start time.','err');return;}
+      if(navigator.onLine===false){toast('No network. Connect to the internet and try again.','err');return;}
       const id=await rpc('space_create',{p_title:title.value,p_desc:desc.value,p_category:cat.value,p_visibility:vis,p_start:live?null:new Date(st.value).toISOString(),p_end:!live&&en.value?new Date(en.value).toISOString():null,p_go_live:live,p_chat:chat});
       if(cat.value==='sipandpaint'||preset==='sipandpaint'){if(live)Store.hostLight(true);}
       close();if(live)go('#/space/'+id);else{toast('Space scheduled');try{pushReady().then(ok=>{if(ok)toast('We will remind you 10 minutes before it starts','ok');});}catch(e){}onDone&&onDone('upcoming');}
@@ -125,12 +132,13 @@ async function discover(){
   const bk=h('button',{class:'fm-back','aria-label':'Back',onclick:()=>{if(history.length>1&&App.hadRoute)history.back();else go('#/discover');}},'\u2039');
   v.append(h('div',{class:'pg-head sp-head'},h('div',{class:'row-flex'},bk,h('div',null,h('div',{class:'brand'},h('b',null,'Live Spaces')),h('p',{class:'tag'},'Drop in on conversations happening now.'))),startBtn),inv,tabs,chips,list);
   const T=[['live','Live now'],['popular','Popular'],['following','Following'],['upcoming','Upcoming']];
+  const leftTxt=t=>{const ms=new Date(t).getTime()+30*60000-Date.now();if(ms<=0)return 'Ending';const m=Math.ceil(ms/60000);return m+' min left';};
   const card=s=>{
     const live=s.status==='live',mine=Auth.user&&s.host.id===Auth.user.id;
     const act=live?h('span',{class:'sp-live'},h('i'),'LIVE'):h('span',{class:'sp-when'},s.scheduled_start?when(s.scheduled_start):'Not scheduled');
     const right=!live&&mine?h('button',{class:'btn small coral',onclick:e=>{e.stopPropagation();guard(e.currentTarget,async()=>{await rpc('space_start',{p_space:s.id});go('#/space/'+s.id);});}},'Start now'):null;
     return h('div',{class:'sp-card',role:'button',tabindex:'0',onclick:()=>live||mine?go('#/space/'+s.id):toast('This space starts '+(s.scheduled_start?when(s.scheduled_start):'soon')+'.'),onkeydown:e=>{if(e.key==='Enter')e.currentTarget.click();}},
-      h('div',{class:'sp-top'},act,h('span',{class:'sp-cat'},catLabel(s.category)),s.visibility==='private'&&h('span',{class:'sp-lock','aria-label':'Private'},icon('lock')),s.followed&&h('span',{class:'sp-fol'},'Following')),
+      h('div',{class:'sp-top'},act,live&&s.started_at?h('span',{class:'sp-left'},leftTxt(s.started_at)):null,h('span',{class:'sp-cat'},catLabel(s.category)),s.visibility==='private'&&h('span',{class:'sp-lock','aria-label':'Private'},icon('lock')),s.followed&&h('span',{class:'sp-fol'},'Following')),
       h('h3',null,s.title),s.description&&h('p',{class:'sp-desc'},s.description),
       h('div',{class:'sp-foot'},h('button',{class:'sp-host',onclick:e=>{e.stopPropagation();go('#/@'+s.host.username);}},sp_av(s.host,'xs'),h('span',null,'Hosted by ',h('b',null,person(s.host)))),
         h('span',{class:'sp-count'},icon('mic'),String(s.speakers),' · ',icon('people'),String(s.listeners)),right));
@@ -242,7 +250,7 @@ async function room(id){
       let d=null;try{d=await Store.byUsername(D.host.username);}catch(e){}
       const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
       const r=new OWRoom(box,{edit:false});const rm=d&&d.room?Object.assign({},d.room):{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}};if(paintMode()){const th=Object.assign({},rm.theme),hd=Object.assign({},th.hide);hd.light=1;delete hd.until;th.hide=hd;rm.theme=th;}r.load(rm,d&&d.room?d.items:[]);
-      if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;startMusic=()=>{try{if(isHost()){let seen=0;try{seen=localStorage.getItem('ow_host_music_tip');}catch(e){}if(!seen){try{localStorage.setItem('ow_host_music_tip','1');}catch(e){}dialog({title:'Quick tip for hosts',body:'Keep the music low so people can hear each other. To speak clearly, lower the music volume or pause it first. Only you control the music for everyone.',actions:[{label:'Got it',value:true,primary:true}]});}}}catch(e){}try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.2,vid:null,autoplay:true,seed:null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}};const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
+      if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;startMusic=()=>{try{if(isHost())hostTip();}catch(e){}try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.2,vid:null,autoplay:true,seed:null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}};const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
       r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');v.classList.toggle('sp-paintroom',!!paintMode());
       if(paintMode()&&typeof OWPaint!=='undefined'){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
