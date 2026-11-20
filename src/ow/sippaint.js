@@ -6,6 +6,22 @@ const OWPaint=(()=>{
 const T=THREE,PAPER='#fffdf8',CW=512,CH=640;
 const COLS=[['Red','#e63946'],['Blue','#2d6cdf'],['Yellow','#ffd23f'],['Green','#2bb673'],['Purple','#7b4dff'],['Orange','#ff8a1f'],['Black','#1a1a1f'],['White','#ffffff'],['Brown','#8b5a3c'],['Pink','#ff6fae']];
 const STATES=['Painting','Almost done','Completed'];
+
+/* colours that are really in the reference picture, most used first, so the swatches match what you are painting */
+const palCache=new Map();
+function refPalette(id){
+  if(!id)return COLS;if(palCache.has(id))return palCache.get(id);
+  try{
+    const c=refCanvas(id),w=72,hh=90,t=document.createElement('canvas');t.width=w;t.height=hh;const g=t.getContext('2d');g.drawImage(c,0,0,w,hh);const d=g.getImageData(0,0,w,hh).data;
+    const B=new Map();for(let i=0;i<d.length;i+=4){if(d[i+3]<200)continue;const k=(d[i]>>4)<<8|(d[i+1]>>4)<<4|(d[i+2]>>4);let b=B.get(k);if(!b){b=[0,0,0,0];B.set(k,b);}b[0]+=d[i];b[1]+=d[i+1];b[2]+=d[i+2];b[3]++;}
+    const arr=[...B.values()].map(b=>[b[0]/b[3],b[1]/b[3],b[2]/b[3],b[3]]).sort((a,b)=>b[3]-a[3]),total=w*hh,out=[];
+    for(const a of arr){if(a[3]<total*.0025)break;if(out.every(o=>Math.hypot(o[0]-a[0],o[1]-a[1],o[2]-a[2])>44))out.push(a);if(out.length>=14)break;}
+    const hex=a=>'#'+[a[0],a[1],a[2]].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+    const res=out.length>=3?out.map((a,i)=>['Colour '+(i+1),hex(a)]):COLS;
+    /* only cache once the picture has really loaded (an uploaded image starts out blank) */
+    if(!/^img:/.test(id)||out.length>=3)palCache.set(id,res);return res;
+  }catch(e){return COLS;}
+}
 const REFS=[['sunset','Palm sunset'],['flowers','Flower vase'],['mountains','Mountain lake'],['city','City at night'],['abstract','Colour circles'],['cat','Sleepy cat'],['sunflower','Sunflower'],['fish','Goldfish bowl'],['house','Cosy house'],['rocket','Rocket in space'],['moonsea','Moonlit sea'],['dunes','Desert dunes'],['fluid','Fluid colour'],['monstera','Monstera leaves'],['deco','Art-deco sunrise'],['vinyl','Vinyl night'],['pines','Misty pines'],['neonrain','Neon rain street'],['bridge','Lagoon bridge dusk'],['aelephant','Elephant at sunset'],['afox','Fox under the moon'],['astag','Stag and moon'],['alion','Lion mane'],['aflamingo','Flamingo'],['awhale','Whale tail'],['asun','Boho sun and mountains'],['acat','Cat and moon'],['aowl','Night owl'],['abutterfly','Butterfly'],['bcamera','Vintage camera'],['bguitar','Acoustic guitar'],['bheadphones','Headphones and notes'],['btoast','Cheers'],['bperfume','Perfume bottle'],['hafro','Afro portrait'],['hdance','Dancing couple'],['hpop','Cap and shades'],['hflower','Flower crown'],['hsax','Saxophone player'],['balloon','Hot-air balloon']];
 
 /* ---------------- reference pictures (drawn in code, 400 x 500) ---------------- */
@@ -485,7 +501,7 @@ function attach(R,ctx){
     const sw=h('div',{class:'pt-sw'}),tools=h('div',{class:'pt-tools'}),stch=h('div',{class:'pt-st'}),size_=h('input',{type:'range',min:'3',max:'44',value:String(size),'aria-label':'Brush size'});
     const mini=h('button',{class:'pt-mini','aria-label':'Show the reference larger',onclick:showRef});const mc=refCanvas(sp.ref||'',()=>drawMini());const mg=h('canvas',{width:120,height:150});mini.append(mg);
     function drawMini(){const g=mg.getContext('2d');g.fillStyle='#eee';g.fillRect(0,0,120,150);if(sp.ref)g.drawImage(refCanvas(sp.ref,drawMini),0,0,120,150);}
-    const paintSw=()=>sw.replaceChildren(...COLS.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:n,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));
+    let palRef='__';const paintSw=()=>{palRef=sp.ref||'';const PL=refPalette(sp.ref);if(!PL.some(([n,c])=>c===color))color=PL[0][1];sw.replaceChildren(...PL.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:c,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));};
     const T3=[['b','Brush'],['p','Pencil'],['e','Eraser']];
     const act=(l,fn,cls)=>h('button',{class:'pt-b '+(cls||''),onclick:fn},l);
     function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),h('button',{class:'pt-b'+(guideOn?' on':''),onclick:()=>{guideOn=!guideOn;drawGuide();paintTools();}},'Guide'),act('Sign',()=>signPad(false)),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
@@ -537,7 +553,7 @@ function attach(R,ctx){
       banner,frame,mini,
       h('div',{class:'pt-dock'},tools,h('div',{class:'pt-sz'},h('span',null,'Size'),size_),sw,stch));
     document.body.appendChild(ov);R.setPaused&&R.setPaused(true);ro&&ro.observe(frame);fit();paintTools();paintSw();paintState();paintBan();drawMini();drawGuide();
-    ov._upd=()=>{paintBan();drawMini();drawGuide();};
+    ov._upd=()=>{paintBan();drawMini();drawGuide();if((sp.ref||'')!==palRef)paintSw();};
   }
 
   /* ---- host studio panel ---- */
@@ -579,5 +595,5 @@ function attach(R,ctx){
     async finalSave(){ctx.final=true;await saveNow();},
     destroy(){dead=true;clearTimeout(saveT);try{if(ov){mine.cv.remove();ov.remove();ov=null;}}catch(e){}try{R.host.removeEventListener('click',onClick);}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}badges.forEach(b=>b.remove());hud.remove();}};
 }
-return{attach,galleryView,myArtworks,PC,REFS,guideCanvas,refCanvas};
+return{attach,galleryView,myArtworks,PC,REFS,guideCanvas,refCanvas,refPalette};
 })();
