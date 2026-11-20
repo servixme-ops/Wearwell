@@ -176,7 +176,7 @@ function updRow(){
   const hint=h('span',{class:'f-hint'},'Checking\u2026'),lab=h('span',{class:'grow'},'App version');let st='unknown';
   const b=h('button',{onclick:()=>{if(st==='current'){toast('You already have the latest version','ok');return;}PWA.refreshNow();}},icon('refresh'),lab,hint);
   PWA.versionInfo().then(i=>{st=i.state;
-    if(st==='current'){lab.textContent='You have the latest version';hint.textContent=i.offline?'\u2713 Up to date \u00b7 opens offline':'\u2713 Up to date';b.classList.add('upd-ok');}
+    if(st==='current'){const vn=i.now?' \u00b7 '+i.now.replace('openwalls-',''):'';lab.textContent='You have the latest version'+vn;hint.textContent=i.offline?'\u2713 Up to date \u00b7 opens offline':'\u2713 Up to date';b.classList.add('upd-ok');}
     else if(st==='old'){lab.textContent='A new version is available';hint.textContent='Tap to update';}
     else{lab.textContent='Get the latest version';hint.textContent='Reloads the app';}});
   return b;}
