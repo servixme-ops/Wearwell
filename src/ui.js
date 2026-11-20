@@ -70,6 +70,10 @@ function toast(msg,kind){
   const host=document.getElementById('toasts')||document.body;
   /* toasts live on the page itself so they always sit in front of sheets and dialogs */
   if(host!==document.body&&host.parentNode!==document.body)document.body.appendChild(host);
+  /* one message at a time: a new one replaces the one on screen, and the same text is not repeated */
+  if(toast._m===msg&&Date.now()-(toast._t||0)<3000)return;
+  toast._m=msg;toast._t=Date.now();
+  host.querySelectorAll('.toast').forEach(x=>x.remove());
   const t=h('div',{class:'toast '+(kind||''),role:'status'},msg);host.appendChild(t);
   setTimeout(()=>t.classList.add('out'),2600);setTimeout(()=>t.remove(),3000);
 }

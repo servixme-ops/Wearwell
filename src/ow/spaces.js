@@ -389,7 +389,7 @@ async function room(id){
   }catch(e){
     connecting=false;dead=true;try{await audio.close();}catch(er){}
     const m=friendlyError(e);
-    v.replaceChildren(h('div',{class:'sp-ended'},h('h2',null,/not configured/i.test(m)?'Live audio is not set up yet':'Could not join'),h('p',{class:'tag'},m),h('button',{class:'btn coral',onclick:()=>go('#/spaces')},'Back to Spaces')));
+    v.replaceChildren(h('div',{class:'sp-ended'},h('h2',null,/not configured/i.test(m)?'Live audio is not set up yet':'Could not join'),h('p',{class:'tag'},/not configured/i.test(m)?m:friendlyError({message:m})),h('button',{class:'btn coral',onclick:()=>go('#/discover')},'Back to Discover')));
     return;
   }
   App.teardown=()=>{try{OWTv.stopMusic();}catch(e){}if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
