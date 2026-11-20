@@ -8,7 +8,7 @@ const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;re
 const tipShown=new Set();
 function hostTip(){
   const k=location.hash;if(tipShown.has(k))return;tipShown.add(k);
-  const d=h('div',{class:'sp-tip',role:'status'},h('span',null,'Tip: lower or pause the music before you speak, so everyone can hear you.'),h('button',{onclick:()=>d.remove()},'Got it'));
+  const d=h('div',{class:'sp-tip',role:'status'},h('span',null,'Tip: you control the music. Lower or pause it whenever anyone in the room is speaking, so they can be heard.'),h('button',{onclick:()=>d.remove()},'Got it'));
   document.body.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},30000);
 }
 async function fn(name,body){
