@@ -237,6 +237,12 @@ const REFDRAW={
   pt(g,g=>{g.moveTo(w*.66,h*.08);g.bezierCurveTo(w*.74,h*.02,w*.9,h*.08,w*.86,h*.2);g.bezierCurveTo(w*.84,h*.14,w*.76,h*.12,w*.66,h*.08);},'#0f4a52',{n:8,seed:9,b:[w*.64,h*.02,w*.26,h*.2],line:K,lw:3.5});
   /* choker with stones */
   g.strokeStyle=K;g.lineWidth=11;g.lineCap='round';g.beginPath();g.ellipse(w*.57,h*.665,w*.11,h*.032,0.14,0,Math.PI);g.stroke();g.fillStyle='#f6d878';for(let k=0;k<6;k++){g.beginPath();g.arc(w*(.47+k*.038),h*(.695-Math.abs(k-2.5)*.004),3.5,0,7);g.fill();}
+  /* finishing: ear, jaw and neck lines, nostril, lip line, forehead shadow, cheek warmth */
+  pt(g,EL(w*.605,h*.46,w*.022,h*.04,.2),'#84431f',{b:[w*.58,h*.42,w*.05,h*.08],n:6,seed:12,line:K,lw:2.5});
+  g.strokeStyle=K;g.lineWidth=3;g.lineCap='round';g.beginPath();g.moveTo(w*.47,h*.59);g.quadraticCurveTo(w*.47,h*.66,w*.4,h*.76);g.stroke();
+  g.fillStyle='rgba(40,16,8,.7)';g.beginPath();g.ellipse(w*.428,h*.461,3,2,0,0,7);g.fill();
+  g.strokeStyle='#5a0f20';g.lineWidth=2;g.beginPath();g.moveTo(w*.424,h*.507);g.quadraticCurveTo(w*.45,h*.512,w*.472,h*.5);g.stroke();
+  g.save();g.globalAlpha=.3;g.fillStyle='#2a1208';g.beginPath();g.ellipse(w*.58,h*.34,w*.13,h*.03,-.1,0,7);g.fill();g.globalAlpha=.22;g.fillStyle='#e0483a';g.beginPath();g.ellipse(w*.52,h*.47,w*.04,h*.025,0,0,7);g.fill();g.restore();
   tex(g,w,h);},
  pwine(g,w,h){wash(g,w,h,[[0,'#4a2410'],[.5,'#c9781a'],[1,'#f2b84a']],8,1);
   const B=(shape,c,o)=>pt(g,shape,c,o);
