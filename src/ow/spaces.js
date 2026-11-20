@@ -266,11 +266,11 @@ async function room(id){
     else{const pend=D.my_request==='pending';btns.push(h('button',{class:'sp-hand-btn'+(pend?' on':''),disabled:reqBusy,onclick:async e=>{reqBusy=true;try{if(pend){await rpc('space_cancel_request',{p_space:id});toast('Request cancelled');}else{await rpc('space_request_speak',{p_space:id});toast('The host has been asked. Hang tight.');}await tick();}catch(er){toast(friendlyError(er),'err');}finally{reqBusy=false;paintBar();}}},'✋',h('span',null,pend?'Cancel':'Raise hand')));}
     btns.push(h('button',{class:'sp-round','aria-label':'React',onclick:reactSheet},'😊'));
     if(D.space.chat_enabled)btns.push(h('button',{class:'sp-round'+(chatOpen?' on':''),'aria-label':'Chat',onclick:()=>{chatOpen=!chatOpen;chatBox.classList.toggle('open',chatOpen);if(chatOpen){chatSeen=lastMsg;msgs.scrollTop=msgs.scrollHeight;}paintBar();}},icon('chat'),(!chatOpen&&unread>0)?h('i',{class:'sp-dot'},unread>99?'99+':String(unread)):null));
-    btns.push(h('button',{class:'sp-leave',onclick:leave},isHost()?'Leave':'Leave quietly'));
+    btns.push(h('button',{class:'sp-leave',onclick:askLeave},isHost()?'Leave':'Leave quietly'));
     bar.replaceChildren(...btns);
   }
   function paintTop(){
-    top.replaceChildren(h('button',{class:'rbtn','aria-label':'Back',onclick:leave},icon('back')),
+    top.replaceChildren(
       h('button',{class:'sp-hostline',onclick:()=>go('#/@'+D.host.username)},sp_av(D.host,'xs'),h('span',null,'Hosted by ',h('b',null,person(D.host)))),
       h('button',{class:'rbtn','aria-label':'More',onclick:menu},icon('more')));
     titleEl.textContent=D.space.title;
@@ -312,6 +312,10 @@ async function room(id){
   async function endSpace(){
     if(!await confirmBox('End this space?','Everyone will be disconnected.','End space',true))return;
     await guard(null,async()=>{await adm('end',id);await finish('You ended the space.');});
+  }
+  async function askLeave(){
+    const ok=await confirmBox(isHost()?'Heading out?':'Leave this room?',isHost()?'Your painting stays saved. Make sure everyone has finished before you go.':'You can hop back in from Discover while the room is still live.','Yes, leave',false);
+    if(ok)leave();
   }
   async function leave(){
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);
