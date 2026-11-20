@@ -61,7 +61,6 @@ h2.sec{margin:22px 18px 10px;font:800 21px var(--disp);letter-spacing:-.01em}
 .pframe{display:block;width:100%;padding:8px;background:#2a2230;border-radius:4px;box-shadow:0 14px 22px -8px rgba(60,35,10,.55),0 2px 0 rgba(255,255,255,.2) inset;text-align:left}
 .piece:nth-child(4n+2) .pframe{background:#f8f4ec}.piece:nth-child(4n+3) .pframe{background:#a56b3c}.piece:nth-child(4n+4) .pframe{background:#c9a43a}
 .pshot{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:linear-gradient(135deg,#ffd9b8,#cbbcff);border-radius:2px}
-.piece:nth-child(5n+2) .pshot{aspect-ratio:1/1}.piece:nth-child(5n+4) .pshot{aspect-ratio:3/4}
 .pshot.ph{display:grid;place-items:center;font:800 18px var(--disp);color:rgba(29,26,43,.6);padding:10px;text-align:center}
 .plaque{display:flex;align-items:center;gap:8px;margin:-16px 6px 0;padding:6px 8px;background:#fff;border-radius:10px;position:relative;z-index:2;box-shadow:0 6px 12px rgba(60,35,10,.25)}
 .plaque .who{flex:1;min-width:0;line-height:1.15}.plaque b{display:block;font:800 13.5px var(--disp);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.plaque span.s{display:block;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
