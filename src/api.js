@@ -115,6 +115,11 @@ const friendlyError=e=>{
   if(/Failed to fetch|NetworkError|network/i.test(m))return 'No connection. Check your internet and try again.';
   if(/Payload too large|exceeded the maximum/i.test(m))return 'That file is too large.';
   if(/mime type|not supported/i.test(m))return 'That file type is not allowed.';
+  if(/Edge Function|functions\/v1|FunctionsFetchError|FunctionsHttpError|FunctionsRelayError/i.test(m))return 'Could not connect right now. Check your internet and try again.';
+  if(/JWT|jwt|token.*expired|not authenticated/i.test(m))return 'Please sign in again.';
+  if(/timeout|timed out|AbortError/i.test(m))return 'That took too long. Please try again.';
+  if(/non-2xx|status code|500|502|503|504/i.test(m))return 'Something went wrong on our side. Please try again in a moment.';
+  if(/TypeError|undefined|null|is not a function|cannot read/i.test(m))return 'Something went wrong. Please try again.';
   return m.replace(/^P0001:\s*/,'');
 };
 
