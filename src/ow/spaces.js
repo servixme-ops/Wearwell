@@ -250,7 +250,7 @@ async function room(id){
       let d=null;try{d=await Store.byUsername(D.host.username);}catch(e){}
       const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
       const r=new OWRoom(box,{edit:false});const rm=d&&d.room?Object.assign({},d.room):{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}};if(paintMode()){const th=Object.assign({},rm.theme),hd=Object.assign({},th.hide);hd.light=1;delete hd.until;th.hide=hd;rm.theme=th;}r.load(rm,d&&d.room?d.items:[]);
-      if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;startMusic=()=>{try{if(isHost())hostTip();}catch(e){}try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.2,vid:null,autoplay:true,seed:null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}};const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
+      if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;try{if(isHost())hostTip();}catch(e){}startMusic=()=>{try{if(isHost())hostTip();}catch(e){}try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.2,vid:null,autoplay:true,seed:null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}};const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
       r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');v.classList.toggle('sp-paintroom',!!paintMode());
       if(paintMode()&&typeof OWPaint!=='undefined'){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
@@ -452,6 +452,7 @@ function scheduledPage(){
     list.replaceChildren(...(out.length?out:[empty('Nothing scheduled','Tap Schedule to plan a painting session with friends.')]));}).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));}
   rpc('space_my_reminders').then(a=>{(a||[]).forEach(x=>REM.add(x));}).catch(()=>{}).then(load);
 }
+const leftTxt=t=>{const ms=new Date(t).getTime()+30*60000-Date.now();if(ms<=0)return 'Ending';return Math.ceil(ms/60000)+' min left';};
 function paintSection(){
   const list=h('div',{class:'sp-list'},spinner());
   const liveH=h('h3',{class:'gp-h'},'Live now'),schCnt=h('span',{class:'gp-cnt calm'},'0'),schLink=h('button',{class:'sc-link',onclick:()=>go('#/scheduled')},icon('bell'),h('span',null,'Scheduled sessions'),schCnt,h('i',{class:'sc-arr'},'\u203a'));
@@ -461,7 +462,7 @@ function paintSection(){
     liveH,list,schLink);
   const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
     return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
-      h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room')),
+      h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room'),r.started_at?h('span',{class:'pn-left'},'\u23f1 '+leftTxt(r.started_at)):null),
       h('div',{class:'pn-body'},h('b',{class:'pn-t'},r.title),
         h('div',{class:'pn-host'},hs?sp_av(hs,'xs'):null,h('span',null,'Hosted by ',h('b',null,hs?person(hs):(r.host||'a creator')))),
         h('span',{class:'pn-join'},'Join and paint')));};
