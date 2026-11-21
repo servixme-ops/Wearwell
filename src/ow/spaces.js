@@ -167,12 +167,12 @@ async function room(id){
   const v=setView(true);v.classList.add('sp-view');
   let musicOn=false,startMusic=null,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
-  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl);let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
+  const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),nowEl=h('div',{class:'sp-now'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl,nowEl),voice=h('div',{class:'sp-crowd sp-voice'}),voiceH=h('h4',{class:'sp-h sp-hvoice'},'Speaking');let voiceKey='';let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
   const chatX=h('button',{class:'sp-chat-x','aria-label':'Close comments',onclick:()=>{chatOpen=false;chatBox.classList.remove('open');paintBar();}},icon('close'));
   const chatBox=h('div',{class:'sp-chat'},chatX,msgs,h('div',{class:'cin'},inp,sendB));
   const top=h('div',{class:'sp-topbar'});
-  v.append(top,banner,tbox,h('div',{class:'sp-scroll'},reqBox,h('h4',{class:'sp-h sp-hstage'},'On stage'),stage,h('h4',{class:'sp-h',id:'sp-lh'},'Listening'),crowd),floats,chatBox,bar);
+  v.append(top,banner,tbox,h('div',{class:'sp-scroll'},reqBox,h('h4',{class:'sp-h sp-hstage'},'On stage'),stage,voiceH,voice,h('h4',{class:'sp-h',id:'sp-lh'},'Listening'),crowd),floats,chatBox,bar);
   const me=()=>D&&D.me;const role=()=>(me()&&me().role)||'listener';const isHost=()=>role()==='host';const onStage=()=>role()==='host'||role()==='speaker';
   const user=u=>({id:u.id,username:u.username,display_name:u.display_name,avatar_url:u.avatar_url});
 
@@ -232,7 +232,8 @@ async function room(id){
   function paintStage(){
     if(!D)return;const ps=D.participants.filter(p=>!p.blocked||p.role==='host');
     let on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
-    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));const seat=all.filter(p=>p.role==='host'||p.painter).slice(0,4),sid=new Set(seat.map(p=>p.id));on=seat;ls=all.filter(p=>!sid.has(p.id));}
+    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));const seat=all.filter(p=>p.role==='host'||p.painter).slice(0,4);on=seat;ls=all.filter(p=>p.role!=='host'&&p.role!=='speaker'&&!p.painter).sort((a,b)=>!!b.hand-!!a.hand);}
+    paintVoice();
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},paintMode()?'No viewers yet. Share the link to invite people.':'No listeners yet. Share the link to invite people.')]));const lh=v.querySelector('#sp-lh');if(lh)lh.textContent=paintMode()?'Viewing':'Listening';
     const sc=crowd.parentNode;if(sc&&sc.classList)sc.classList.toggle('nol',!ls.length);
@@ -259,7 +260,18 @@ async function room(id){
     }catch(e){console.error(e);R=null;}
   }
   function killStage(){if(PT){try{PT.destroy();}catch(e){}PT=null;}if(R){try{R.stageStop();R.destroy();}catch(e){}R=null;}}
+  function paintVoice(){
+    const pm=paintMode();voiceH.hidden=!pm;voice.hidden=!pm;if(!pm||!D){nowEl.replaceChildren();return;}
+    const ps=D.participants.filter(p=>!p.blocked||p.role==='host');
+    const all=ps.filter(p=>p.role==='host'||p.role==='speaker'||p.painter),sp1=all.find(p=>speaking.has(p.id));
+    const vs=all.filter(p=>p.role==='speaker'&&!p.painter).sort((a,b)=>speaking.has(b.id)-speaking.has(a.id));
+    const key=(sp1?sp1.id:'')+'|'+vs.map(p=>p.id+(speaking.has(p.id)?'*':'')+(p.muted?'m':'')).join(',');
+    if(key===voiceKey)return;voiceKey=key;
+    nowEl.replaceChildren(...(sp1?[h('span',{class:'sp-ring on'},sp_av(sp1,'xs')),h('span',{class:'sp-now-t'},h('i',null,'Now speaking'),h('b',null,person(sp1)+(sp1.id===Auth.user.id?' (you)':'')))]:[]));
+    voiceH.hidden=voice.hidden=!vs.length;voice.replaceChildren(...vs.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm'),p.muted?h('i',{class:'sp-vm'},icon('micoff')):null),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.role==='host'?h('span',{class:'sp-role'},'Host'):null)));
+  }
   function paintSpeaking(){
+    paintVoice();
     document.querySelectorAll('.sp-view [data-uid]').forEach(el=>{const r=el.querySelector('.sp-ring');if(r)r.classList.toggle('on',speaking.has(el.dataset.uid));});
   }
   function paintReq(){
