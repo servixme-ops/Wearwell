@@ -494,7 +494,7 @@ function attach(R,ctx){
   function openPaint(){
     if(ov)return;
     if(!st.map.has(me)){toast('Only the host and people invited to paint have an easel. You are watching. Ask the host to invite you to paint.');return;}
-    let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true;
+    let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true,Z=1,PX=0,PY=0,hand=false,pan=null;
     const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';let guideOn=true;const gcv=h('canvas',{class:'pt-guide',width:CW,height:CH});const stack=h('div',{class:'pt-stack'},cv,gcv);frame.append(stack);
     function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&sp.ref?'':'none';if(guideOn&&sp.ref)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);}
     const banner=h('div',{class:'pt-ban'});
@@ -535,9 +535,9 @@ function attach(R,ctx){
     function paintBan(){banner.textContent=sp.state==='painting'?'':(sp.state==='paused'?'Painting is paused by the host':'Waiting for the host to start the session');banner.style.display=sp.state==='painting'?'none':'';}
     const pos=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*CW,(e.clientY-r.top)/r.height*CH];};
     let lastMoveT=0;const endStroke=()=>{if(drawing===null)return;drawing=null;try{flush();}catch(x){}cur=null;saveSoon();};
-    const down=e=>{if(!allowed())return;if(drawing!==null){if(Date.now()-lastMoveT>2000)endStroke();else return;}lastMoveT=Date.now();e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
-    const move=e=>{if(drawing!==e.pointerId||!cur)return;lastMoveT=Date.now();e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];(ev.length?ev:[e]).forEach(q=>{const[x,y]=pos(q);if(mine.extend(cur,x,y))sendBuf.push(Math.round(x),Math.round(y));});const n=Date.now();if(n-lastSend>110)flush();if(n-lastPaintPing>600){lastPaintPing=n;R.stagePaint(me);}};
-    const up=e=>{if(drawing!==e.pointerId)return;drawing=null;flush();cur=null;saveSoon();};
+    const down=e=>{if(hand&&Z>1){e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}pan={id:e.pointerId,x:e.clientX,y:e.clientY};return;}if(!allowed())return;if(drawing!==null){if(Date.now()-lastMoveT>2000)endStroke();else return;}lastMoveT=Date.now();e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
+    const move=e=>{if(pan&&pan.id===e.pointerId){e.preventDefault();PX+=e.clientX-pan.x;PY+=e.clientY-pan.y;pan.x=e.clientX;pan.y=e.clientY;applyZ();return;}if(drawing!==e.pointerId||!cur)return;lastMoveT=Date.now();e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];(ev.length?ev:[e]).forEach(q=>{const[x,y]=pos(q);if(mine.extend(cur,x,y))sendBuf.push(Math.round(x),Math.round(y));});const n=Date.now();if(n-lastSend>110)flush();if(n-lastPaintPing>600){lastPaintPing=n;R.stagePaint(me);}};
+    const up=e=>{if(pan&&pan.id===e.pointerId){pan=null;return;}if(drawing!==e.pointerId)return;drawing=null;flush();cur=null;saveSoon();};
     function flush(){lastSend=Date.now();if(!cur||!sendBuf.length)return;const p={u:me,id:cur.id,p:sendBuf};if(cur.first){p.t=cur.t;p.c=cur.c;p.z=cur.z;cur.first=false;}send('seg',p);sendBuf=[];}
     cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.style.touchAction='none';
     /* leaving the page or switching apps mid-stroke can swallow the pointer-up; finish the stroke so the brush never gets stuck */
@@ -550,7 +550,13 @@ function attach(R,ctx){
       else if(k==='b'){tool='b';paintTools();}else if(k==='p'){tool='p';paintTools();}else if(k==='e'){tool='e';paintTools();}
       else if(k==='['){size=Math.max(3,size-3);size_.value=size;}else if(k===']'){size=Math.min(44,size+3);size_.value=size;}else if(k==='escape')close();};
     document.addEventListener('keydown',key);
-    function fit(){const w=frame.clientWidth,hh=frame.clientHeight;if(!w||!hh)return;const s=Math.min(w/CW,hh/CH);cv.style.width=Math.floor(CW*s)+'px';cv.style.height=Math.floor(CH*s)+'px';}
+    /* zoom with + / - buttons (no pinch, so a stray two-finger touch can never leave a mark); the hand button lets one finger move the canvas while zoomed */
+    const ZS=[1,1.5,2,3,4],zb=h('div',{class:'pt-zoom'});
+    function applyZ(){const w=cv.offsetWidth,hh=cv.offsetHeight,mx=(Z-1)*w/2,my=(Z-1)*hh/2;PX=Math.max(-mx,Math.min(mx,PX));PY=Math.max(-my,Math.min(my,PY));stack.style.transform=Z===1?'':'translate('+PX+'px,'+PY+'px) scale('+Z+')';}
+    function paintZ(){cv.style.cursor=hand?'grab':'crosshair';zb.replaceChildren(h('button',{'aria-label':'Zoom out',disabled:Z<=1,onclick:()=>stepZ(-1)},'\u2212'),h('button',{class:'pt-z1','aria-label':'Back to full picture',onclick:()=>{Z=1;PX=PY=0;hand=false;applyZ();paintZ();}},Z===1?'1x':Z+'x'),h('button',{'aria-label':'Zoom in',disabled:Z>=4,onclick:()=>stepZ(1)},'+'),h('button',{class:hand?'on':'','aria-label':'Move the canvas with one finger',disabled:Z<=1,onclick:()=>{hand=!hand;paintZ();}},'\u270b'));}
+    function stepZ(d){const nz=ZS[Math.max(0,Math.min(ZS.length-1,ZS.indexOf(Z)+d))];PX=PX*nz/Z;PY=PY*nz/Z;Z=nz;if(Z===1){PX=PY=0;hand=false;}applyZ();paintZ();}
+    frame.append(zb);paintZ();
+    function fit(){const w=frame.clientWidth,hh=frame.clientHeight;if(!w||!hh)return;const s=Math.min(w/CW,hh/CH);cv.style.width=Math.floor(CW*s)+'px';cv.style.height=Math.floor(CH*s)+'px';applyZ();}
     const ro=window.ResizeObserver?new ResizeObserver(fit):null;
     function close(){if(!ov)return;flush();document.removeEventListener('keydown',key);ro&&ro.disconnect();stack.remove();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;R.setPaused&&R.setPaused(false);redraw();saveNow();sendSync();}
     ov=h('div',{class:'pt-ov'},
