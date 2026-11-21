@@ -116,11 +116,12 @@ function createSheet(onDone,preset){
 }
 function inviteSheet(space){
   sheet('Invite people',(b)=>{
-    let role='listener';const q=h('input',{type:'search',placeholder:'Search by name or @username'}),res=h('div',{class:'sp-list'});
+    let role='listener',paint=false;const q=h('input',{type:'search',placeholder:'Search by name or @username'}),res=h('div',{class:'sp-list'});
     const seg=h('div',{class:'sp-seg'});const paintSeg=()=>seg.replaceChildren(...[['listener','As listener'],['speaker','As speaker']].map(([k,l])=>h('button',{class:role===k?'on':'',onclick:()=>{role=k;paintSeg();}},l)));paintSeg();
+    const pnt=h('button',{class:'sp-seg-one'+(paint?' on':''),onclick:()=>{paint=!paint;pnt.classList.toggle('on',paint);pnt.textContent=(paint?'\u2713 ':'')+'Seat at an easel to paint';}},'Seat at an easel to paint');
     let t;q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(async()=>{const s=q.value.trim().replace(/^@/,'');if(s.length<2){res.replaceChildren();return;}
-      try{const rows=(await rpc('space_find_people',{p_q:s}))||[];res.replaceChildren(...(rows.length?rows.map(p=>{const bt=h('button',{class:'btn small'},'Invite');bt.onclick=()=>guard(bt,async()=>{await rpc('space_invite',{p_space:space.id,p_user:p.id,p_role:role});bt.textContent='Invited';bt.disabled=true;});return h('div',{class:'sp-person'},sp_av(p,'sm'),h('div',{class:'who'},h('b',null,person(p)),h('span',null,'@'+p.username)),bt);}):[h('p',{class:'tag'},'No one found.')]));}catch(e){toast(friendlyError(e),'err');}},250);});
-    b.append(seg,field('Find people',q),res);
+      try{const rows=(await rpc('space_find_people',{p_q:s}))||[];res.replaceChildren(...(rows.length?rows.map(p=>{const bt=h('button',{class:'btn small'},'Invite');bt.onclick=()=>guard(bt,async()=>{await rpc('space_invite',{p_space:space.id,p_user:p.id,p_role:role,p_paint:paint});bt.textContent='Invited';bt.disabled=true;});return h('div',{class:'sp-person'},sp_av(p,'sm'),h('div',{class:'who'},h('b',null,person(p)),h('span',null,'@'+p.username)),bt);}):[h('p',{class:'tag'},'No one found.')]));}catch(e){toast(friendlyError(e),'err');}},250);});
+    b.append(seg,...(space.category==='sipandpaint'?[pnt]:[]),field('Find people',q),res);
   });
 }
 
@@ -151,7 +152,7 @@ async function discover(){
     try{
       const [rows0,invs0]=await Promise.all([rpc('space_discover',{p_filter:tab,p_category:cat||null}),tab==='live'?rpc('space_my_invites'):Promise.resolve([])]);
       const rows=(rows0||[]).filter(r=>r.category!=='sipandpaint'),invs=invs0||[];
-      inv.replaceChildren(...invs.map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,(i.host||('@'+(i.host_username||'someone')))+' invited you '),h('span',null,(i.role==='speaker'?'to speak in ':'to join ')+i.title)),
+      inv.replaceChildren(...invs.map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,(i.host||('@'+(i.host_username||'someone')))+' invited you '),h('span',null,(i.paint?'to paint in ':i.role==='speaker'?'to speak in ':'to join ')+i.title)),
         h('div',{class:'sp-iacts'},h('button',{class:'btn small',onclick:async()=>{await rpc('space_respond_invite',{p_invite:i.id,p_accept:false});load();}},'Decline'),h('button',{class:'btn small coral',onclick:()=>guard(null,async()=>{const sid=await rpc('space_respond_invite',{p_invite:i.id,p_accept:true});go('#/space/'+sid);})},'Join')))));
       list.replaceChildren(...(rows.length?rows.map(card):[empty(tab==='upcoming'?'Nothing scheduled':tab==='following'?'No one you follow is live':'No live spaces yet',tab==='following'?'Follow people to see their spaces here.':'Be the first. Start a space and invite people in.',h('button',{class:'btn coral',onclick:()=>createSheet(t=>{tab=t;load();})},'Start a space'))]));
     }catch(e){list.replaceChildren(empty('Could not load spaces',friendlyError(e),h('button',{class:'btn',onclick:load},'Try again')));}
@@ -231,7 +232,7 @@ async function room(id){
   function paintStage(){
     if(!D)return;const ps=D.participants.filter(p=>!p.blocked||p.role==='host');
     let on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
-    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));const seat=all.filter(p=>p.role==='host'||p.role==='speaker').slice(0,4),sid=new Set(seat.map(p=>p.id));on=seat;ls=all.filter(p=>!sid.has(p.id));}
+    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));const seat=all.filter(p=>p.role==='host'||p.painter).slice(0,4),sid=new Set(seat.map(p=>p.id));on=seat;ls=all.filter(p=>!sid.has(p.id));}
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},paintMode()?'No viewers yet. Share the link to invite people.':'No listeners yet. Share the link to invite people.')]));const lh=v.querySelector('#sp-lh');if(lh)lh.textContent=paintMode()?'Viewing':'Listening';
     const sc=crowd.parentNode;if(sc&&sc.classList)sc.classList.toggle('nol',!ls.length);
@@ -301,11 +302,12 @@ async function room(id){
     sheet(person(p),(b,close)=>{
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:async()=>{close();try{await cb();}catch(e){toast(friendlyError(e),'err');}}},icon(ic),l);
       const act=(a,extra)=>async()=>{await adm(a,id,Object.assign({user_id:p.id},extra||{}));await tick();};
-      b.append(...[h('div',{class:'sp-pcard'},sp_av(p,'lg'),h('b',null,person(p)),h('span',null,'@'+p.username+' · '+(p.role==='host'?'Host':p.role==='speaker'?'Speaker':(paintMode()?'Viewer':'Listener')))),
+      b.append(...[h('div',{class:'sp-pcard'},sp_av(p,'lg'),h('b',null,person(p)),h('span',null,'@'+p.username+' · '+(p.role==='host'?'Host':paintMode()?[p.painter?'Painter':'Viewer',p.role==='speaker'?'can speak':null].filter(Boolean).join(' · '):p.role==='speaker'?'Speaker':'Listener'))),
         row('View profile','user',()=>go('#/@'+p.username)),
         isHost()&&!mine&&p.role==='listener'?row('Invite to speak','mic',act('promote')):null,
+        isHost()&&!mine&&paintMode()?row(p.painter?'Take off easel':'Invite to paint','palette',async()=>{await rpc('space_set_painter',{p_space:id,p_user:p.id,p_on:!p.painter});toast(p.painter?'Back to viewing':'Invited to paint');await tick();}):null,
         isHost()&&!mine&&p.role==='speaker'?row(p.muted?'Allow to unmute':'Mute','micoff',act(p.muted?'unmute':'mute')):null,
-        isHost()&&!mine&&p.role==='speaker'?row(paintMode()?'Move to viewers':'Move to listeners','people',act('demote')):null,
+        isHost()&&!mine&&p.role==='speaker'?row(paintMode()?'Stop speaking':'Move to listeners','people',act('demote')):null,
         isHost()&&!mine?row('Remove from space','close',async()=>{if(await confirmBox('Remove '+person(p)+'?','They will not be able to rejoin this space.','Remove',true))await act('remove')();},true):null,
         !mine?row(p.blocked?'Unblock':'Block','lock',async()=>{if(await blockUser(user(p),!p.blocked)){await tick();}},true):null,
         !mine?row('Report','flag',()=>reportSheet(id,user(p)),true):null].filter(Boolean));
@@ -467,7 +469,7 @@ function paintSection(){
         h('div',{class:'pn-host'},hs?sp_av(hs,'xs'):null,h('span',null,'Hosted by ',h('b',null,hs?person(hs):(r.host||'a creator')))),
         h('span',{class:'pn-join'},'Join and paint')));};
   function loadInv(){
-    return rpc('space_my_invites').then(invs=>{inviteBox.replaceChildren(...(invs||[]).map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,(i.host||('@'+(i.host_username||'someone')))+' invited you '),h('span',null,(i.role==='speaker'?'to speak in ':'to join ')+i.title)),
+    return rpc('space_my_invites').then(invs=>{inviteBox.replaceChildren(...(invs||[]).map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,(i.host||('@'+(i.host_username||'someone')))+' invited you '),h('span',null,(i.paint?'to paint in ':i.role==='speaker'?'to speak in ':'to join ')+i.title)),
       h('div',{class:'sp-iacts'},h('button',{class:'btn small',onclick:async()=>{try{await rpc('space_respond_invite',{p_invite:i.id,p_accept:false});}catch(e){}loadInv();}},'Decline'),h('button',{class:'btn small coral',onclick:()=>guard(null,async()=>{const sid=await rpc('space_respond_invite',{p_invite:i.id,p_accept:true});go('#/space/'+sid);})},'Join')))));}).catch(()=>{});
   }
   function load(){
