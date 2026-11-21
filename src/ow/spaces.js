@@ -454,19 +454,24 @@ function scheduledPage(){
 }
 const leftTxt=t=>{const ms=new Date(t).getTime()+30*60000-Date.now();if(ms<=0)return 'Ending';return Math.ceil(ms/60000)+' min left';};
 function paintSection(){
-  const list=h('div',{class:'sp-list'},spinner());
+  const list=h('div',{class:'sp-list'},spinner()),inviteBox=h('div',{class:'gp-inv'});
   const liveH=h('h3',{class:'gp-h'},'Live now'),schCnt=h('span',{class:'gp-cnt calm'},'0'),schLink=h('button',{class:'sc-link',onclick:()=>go('#/scheduled')},icon('bell'),h('span',null,'Scheduled sessions'),schCnt,h('i',{class:'sc-arr'},'\u203a'));
   const el=h('div',{class:'gp-sec'},
     h('div',{class:'ent2 paint gp-banner'},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Gist & Paint'),h('span',null,'Paint the same picture with friends, then hang it on your wall')),
       h('button',{class:'ent2-go',onclick:()=>{if(!needAuth('Sign in to host a Gist & Paint'))return;createSheet(()=>{load();loadSched();},'sipandpaint');}},'Host')),
-    liveH,list,schLink);
+    inviteBox,liveH,list,schLink);
   const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
     return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
       h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room'),r.started_at?h('span',{class:'pn-left'},'\u23f1 '+leftTxt(r.started_at)):null),
       h('div',{class:'pn-body'},h('b',{class:'pn-t'},r.title),
         h('div',{class:'pn-host'},hs?sp_av(hs,'xs'):null,h('span',null,'Hosted by ',h('b',null,hs?person(hs):(r.host||'a creator')))),
         h('span',{class:'pn-join'},'Join and paint')));};
+  function loadInv(){
+    return rpc('space_my_invites').then(invs=>{inviteBox.replaceChildren(...(invs||[]).map(i=>h('div',{class:'sp-invite'},h('div',null,h('b',null,(i.host||('@'+(i.host_username||'someone')))+' invited you '),h('span',null,(i.role==='speaker'?'to speak in ':'to join ')+i.title)),
+      h('div',{class:'sp-iacts'},h('button',{class:'btn small',onclick:async()=>{try{await rpc('space_respond_invite',{p_invite:i.id,p_accept:false});}catch(e){}loadInv();}},'Decline'),h('button',{class:'btn small coral',onclick:()=>guard(null,async()=>{const sid=await rpc('space_respond_invite',{p_invite:i.id,p_accept:true});go('#/space/'+sid);})},'Join')))));}).catch(()=>{});
+  }
   function load(){
+    loadInv();
     return rpc('space_discover',{p_filter:'live',p_category:'sipandpaint'}).then(rows0=>{const rows=rows0||[];
       liveH.replaceChildren('Live now',h('span',{class:'gp-cnt'},String(rows.length)));
       list.replaceChildren(...(rows.length?rows.map(pc):[h('div',{class:'pn-none'},h('span',{class:'pn-ic'},icon('palette')),h('b',null,'No sessions live right now'),h('span',null,'Tap Host and invite friends to paint with you.'))]));
