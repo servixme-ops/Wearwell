@@ -493,7 +493,7 @@ function attach(R,ctx){
   /* ---- the painting overlay ---- */
   function openPaint(){
     if(ov)return;
-    if(!st.map.has(me)){toast('All four painting seats are taken. You can watch until one frees up.');return;}
+    if(!st.map.has(me)){toast('Only the host and invited speakers paint. You are watching. Ask the host to invite you to paint.');return;}
     let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true;
     const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';let guideOn=true;const gcv=h('canvas',{class:'pt-guide',width:CW,height:CH});const stack=h('div',{class:'pt-stack'},cv,gcv);frame.append(stack);
     function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&sp.ref?'':'none';if(guideOn&&sp.ref)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);}
