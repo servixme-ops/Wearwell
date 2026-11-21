@@ -631,3 +631,4 @@ button.fm-int{border:0}
 .sp-paintroom .sp-scroll{bottom:146px}
 .sp-paintroom .sp-scroll{padding-top:6px}.sp-paintroom .sp-scroll .sp-h{margin:0 0 8px}
 .gp-inv .sp-invite{margin:6px 0}
+.sp-seg-one{margin:8px 0 2px;padding:10px 14px;border-radius:12px;border:1.5px solid var(--line,#ddd);background:transparent;font:600 14px var(--body);text-align:left}.sp-seg-one.on{border-color:#6c4bff;background:rgba(108,75,255,.1)}
