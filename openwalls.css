@@ -634,5 +634,5 @@ button.fm-int{border:0}
 .sp-seg-one{margin:8px 0 2px;padding:10px 14px;border-radius:12px;border:1.5px solid var(--line,#ddd);background:transparent;font:600 14px var(--body);text-align:left}.sp-seg-one.on{border-color:#6c4bff;background:rgba(108,75,255,.1)}
 .sp-now{display:none;align-items:center;gap:10px;margin-top:8px}.sp-paintroom .sp-now:not(:empty){display:flex}.sp-now .sp-ring{flex:0 0 auto}.sp-now-t{display:flex;flex-direction:column;line-height:1.15;min-width:0}.sp-now-t i{font:700 10.5px var(--body);font-style:normal;letter-spacing:.12em;text-transform:uppercase;color:#d9c9ff}.sp-now-t b{font:700 15px var(--body);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-voice .sp-lis{flex:0 0 64px}.sp-voice .sp-role{font-size:10.5px;color:#d9c9ff;font-weight:700}.sp-vm{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:50%;background:#444;display:flex;align-items:center;justify-content:center}.sp-vm svg{width:11px;height:11px}.sp-voice .sp-ring{position:relative}.sp-hvoice[hidden],.sp-voice[hidden]{display:none}
-.sp-paintroom .sp-scroll{max-height:34%}
 .sp-hand{font-size:20px}
+.sp-crowd .sp-ring{position:relative}.sp-vm.off{background:#6b4a4a}
