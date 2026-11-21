@@ -231,7 +231,7 @@ async function room(id){
   function paintStage(){
     if(!D)return;const ps=D.participants.filter(p=>!p.blocked||p.role==='host');
     let on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
-    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));on=all.slice(0,4);ls=all.slice(4);}
+    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));const seat=all.filter(p=>p.role==='host'||p.role==='speaker').slice(0,4),sid=new Set(seat.map(p=>p.id));on=seat;ls=all.filter(p=>!sid.has(p.id));}
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm')),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},paintMode()?'No viewers yet. Share the link to invite people.':'No listeners yet. Share the link to invite people.')]));const lh=v.querySelector('#sp-lh');if(lh)lh.textContent=paintMode()?'Viewing':'Listening';
     const sc=crowd.parentNode;if(sc&&sc.classList)sc.classList.toggle('nol',!ls.length);
