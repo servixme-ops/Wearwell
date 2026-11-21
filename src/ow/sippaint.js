@@ -12,10 +12,12 @@ const palCache=new Map();
 function refPalette(id){
   if(!id)return COLS;if(palCache.has(id))return palCache.get(id);
   try{
-    const c=refCanvas(id),w=72,hh=90,t=document.createElement('canvas');t.width=w;t.height=hh;const g=t.getContext('2d');g.drawImage(c,0,0,w,hh);const d=g.getImageData(0,0,w,hh).data;
-    const B=new Map();for(let i=0;i<d.length;i+=4){if(d[i+3]<200)continue;const k=(d[i]>>4)<<8|(d[i+1]>>4)<<4|(d[i+2]>>4);let b=B.get(k);if(!b){b=[0,0,0,0];B.set(k,b);}b[0]+=d[i];b[1]+=d[i+1];b[2]+=d[i+2];b[3]++;}
-    const arr=[...B.values()].map(b=>[b[0]/b[3],b[1]/b[3],b[2]/b[3],b[3]]).sort((a,b)=>b[3]-a[3]),total=w*hh,out=[];
-    for(const a of arr){if(a[3]<total*.0025)break;if(out.every(o=>Math.hypot(o[0]-a[0],o[1]-a[1],o[2]-a[2])>44))out.push(a);if(out.length>=14)break;}
+    /* count only flat pixels (same colour as the pixel to the right and below) at full size, so thin white lines and tiny details are kept and edge blends are not */
+    const c=refCanvas(id),w=c.width,hh=c.height,g=c.getContext('2d'),d=g.getImageData(0,0,w,hh).data;
+    const B=new Map(),same=(i,j)=>Math.abs(d[i]-d[j])+Math.abs(d[i+1]-d[j+1])+Math.abs(d[i+2]-d[j+2])<14;
+    for(let y=0;y<hh-1;y++)for(let x=0;x<w-1;x++){const i=(y*w+x)*4;if(d[i+3]<200)continue;if(!same(i,i+4)||!same(i,i+w*4))continue;const k=(d[i]>>4)<<8|(d[i+1]>>4)<<4|(d[i+2]>>4);let b=B.get(k);if(!b){b=[0,0,0,0];B.set(k,b);}b[0]+=d[i];b[1]+=d[i+1];b[2]+=d[i+2];b[3]++;}
+    const arr=[...B.values()].map(b=>[b[0]/b[3],b[1]/b[3],b[2]/b[3],b[3]]).sort((a,b)=>b[3]-a[3]),out=[];
+    for(const a of arr){if(a[3]<30)break;if(out.every(o=>Math.hypot(o[0]-a[0],o[1]-a[1],o[2]-a[2])>40))out.push(a);if(out.length>=18)break;}
     const hex=a=>'#'+[a[0],a[1],a[2]].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
     const res=out.length>=3?out.map((a,i)=>['Colour '+(i+1),hex(a)]):COLS;
     /* only cache once the picture has really loaded (an uploaded image starts out blank) */
