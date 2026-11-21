@@ -494,7 +494,7 @@ function attach(R,ctx){
   function openPaint(){
     if(ov)return;
     if(!st.map.has(me)){toast('Only the host and people invited to paint have an easel. You are watching. Ask the host to invite you to paint.');return;}
-    let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true,Z=1,PX=0,PY=0,hand=false,pan=null;
+    let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true,Z=1,PX=0,PY=0,gA=false,gLock=false,g0=null,strokeT=0;const ptrs=new Map();
     const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';let guideOn=true;const gcv=h('canvas',{class:'pt-guide',width:CW,height:CH});const stack=h('div',{class:'pt-stack'},cv,gcv);frame.append(stack);
     function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&sp.ref?'':'none';if(guideOn&&sp.ref)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);}
     const banner=h('div',{class:'pt-ban'});
@@ -535,14 +535,25 @@ function attach(R,ctx){
     function paintBan(){banner.textContent=sp.state==='painting'?'':(sp.state==='paused'?'Painting is paused by the host':'Waiting for the host to start the session');banner.style.display=sp.state==='painting'?'none':'';}
     const pos=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*CW,(e.clientY-r.top)/r.height*CH];};
     let lastMoveT=0;const endStroke=()=>{if(drawing===null)return;drawing=null;try{flush();}catch(x){}cur=null;saveSoon();};
-    const down=e=>{if(hand&&Z>1){e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}pan={id:e.pointerId,x:e.clientX,y:e.clientY};return;}if(!allowed())return;if(drawing!==null){if(Date.now()-lastMoveT>2000)endStroke();else return;}lastMoveT=Date.now();e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
-    const move=e=>{if(pan&&pan.id===e.pointerId){e.preventDefault();PX+=e.clientX-pan.x;PY+=e.clientY-pan.y;pan.x=e.clientX;pan.y=e.clientY;applyZ();return;}if(drawing!==e.pointerId||!cur)return;lastMoveT=Date.now();e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];(ev.length?ev:[e]).forEach(q=>{const[x,y]=pos(q);if(mine.extend(cur,x,y))sendBuf.push(Math.round(x),Math.round(y));});const n=Date.now();if(n-lastSend>110)flush();if(n-lastPaintPing>600){lastPaintPing=n;R.stagePaint(me);}};
-    const up=e=>{if(pan&&pan.id===e.pointerId){pan=null;return;}if(drawing!==e.pointerId)return;drawing=null;flush();cur=null;saveSoon();};
+    /* two fingers = pinch to zoom and drag to move; one finger always paints. A second finger landing right after a stroke began cancels that tiny stroke so no stray mark is left */
+    const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)||1;
+    function startG(){
+      if(drawing!==null){if(cur&&Date.now()-strokeT<350){drawing=null;cur=null;sendBuf=[];if(mine.undo())changed(true);}else endStroke();}
+      const ps=[...ptrs.values()],a=ps[0],b=ps[1],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,r=cv.getBoundingClientRect(),cx=r.left+r.width/2-PX,cy=r.top+r.height/2-PY;
+      g0={d:dist(a,b),Z,cx,cy,ux:(mx-cx-PX)/Z,uy:(my-cy-PY)/Z};gA=true;gLock=true;
+    }
+    function moveG(){
+      const ps=[...ptrs.values()];if(ps.length<2||!g0)return;const a=ps[0],b=ps[1],mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+      Z=Math.max(1,Math.min(4,g0.Z*dist(a,b)/g0.d));PX=mx-g0.cx-Z*g0.ux;PY=my-g0.cy-Z*g0.uy;if(Z<1.03){Z=1;}applyZ();
+    }
+    const down=e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});try{cv.setPointerCapture(e.pointerId);}catch(x){}if(ptrs.size>=2){e.preventDefault();if(ptrs.size===2)startG();return;}if(gLock)return;if(!allowed())return;if(drawing!==null){if(Date.now()-lastMoveT>2000)endStroke();else return;}lastMoveT=Date.now();e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=e.pointerId;strokeT=Date.now();const[x,y]=pos(e);const id=Math.random().toString(36).slice(2,8);cur=mine.start(tool,color,size,x,y,id);if(!cur){drawing=null;return;}sendBuf=[cur.p[0],cur.p[1]];cur.first=true;flush();};
+    const move=e=>{if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(gA){e.preventDefault();moveG();return;}if(gLock)return;if(drawing!==e.pointerId||!cur)return;lastMoveT=Date.now();e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];(ev.length?ev:[e]).forEach(q=>{const[x,y]=pos(q);if(mine.extend(cur,x,y))sendBuf.push(Math.round(x),Math.round(y));});const n=Date.now();if(n-lastSend>110)flush();if(n-lastPaintPing>600){lastPaintPing=n;R.stagePaint(me);}};
+    const up=e=>{ptrs.delete(e.pointerId);if(gLock){if(ptrs.size<2)gA=false;if(ptrs.size===0)gLock=false;return;}if(drawing!==e.pointerId)return;drawing=null;flush();cur=null;saveSoon();};
     function flush(){lastSend=Date.now();if(!cur||!sendBuf.length)return;const p={u:me,id:cur.id,p:sendBuf};if(cur.first){p.t=cur.t;p.c=cur.c;p.z=cur.z;cur.first=false;}send('seg',p);sendBuf=[];}
     cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.style.touchAction='none';
     /* leaving the page or switching apps mid-stroke can swallow the pointer-up; finish the stroke so the brush never gets stuck */
     cv.addEventListener('lostpointercapture',up);
-    const stuckFix=()=>{if(!ov||!ov.isConnected){document.removeEventListener('visibilitychange',stuckFix);window.removeEventListener('blur',stuckFix);window.removeEventListener('pageshow',stuckFix);return;}endStroke();};
+    const stuckFix=()=>{ptrs.clear();gA=false;gLock=false;if(!ov||!ov.isConnected){document.removeEventListener('visibilitychange',stuckFix);window.removeEventListener('blur',stuckFix);window.removeEventListener('pageshow',stuckFix);return;}endStroke();};
     document.addEventListener('visibilitychange',stuckFix);window.addEventListener('blur',stuckFix);window.addEventListener('pageshow',stuckFix);
     size_.oninput=()=>{size=+size_.value;};
     const key=e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName)&&e.target.type!=='range')return;const k=e.key.toLowerCase();
@@ -550,17 +561,17 @@ function attach(R,ctx){
       else if(k==='b'){tool='b';paintTools();}else if(k==='p'){tool='p';paintTools();}else if(k==='e'){tool='e';paintTools();}
       else if(k==='['){size=Math.max(3,size-3);size_.value=size;}else if(k===']'){size=Math.min(44,size+3);size_.value=size;}else if(k==='escape')close();};
     document.addEventListener('keydown',key);
-    /* zoom with + / - buttons (no pinch, so a stray two-finger touch can never leave a mark); the hand button lets one finger move the canvas while zoomed */
-    const ZS=[1,1.5,2,3,4],zb=h('div',{class:'pt-zoom'});
-    function applyZ(){const w=cv.offsetWidth,hh=cv.offsetHeight,mx=(Z-1)*w/2,my=(Z-1)*hh/2;PX=Math.max(-mx,Math.min(mx,PX));PY=Math.max(-my,Math.min(my,PY));stack.style.transform=Z===1?'':'translate('+PX+'px,'+PY+'px) scale('+Z+')';}
-    function paintZ(){cv.style.cursor=hand?'grab':'crosshair';zb.replaceChildren(h('button',{'aria-label':'Zoom out',disabled:Z<=1,onclick:()=>stepZ(-1)},'\u2212'),h('button',{class:'pt-z1','aria-label':'Back to full picture',onclick:()=>{Z=1;PX=PY=0;hand=false;applyZ();paintZ();}},Z===1?'1x':Z+'x'),h('button',{'aria-label':'Zoom in',disabled:Z>=4,onclick:()=>stepZ(1)},'+'),h('button',{class:hand?'on':'','aria-label':'Move the canvas with one finger',disabled:Z<=1,onclick:()=>{hand=!hand;paintZ();}},'\u270b'));}
-    function stepZ(d){const nz=ZS[Math.max(0,Math.min(ZS.length-1,ZS.indexOf(Z)+d))];PX=PX*nz/Z;PY=PY*nz/Z;Z=nz;if(Z===1){PX=PY=0;hand=false;}applyZ();paintZ();}
-    frame.append(zb);paintZ();
+    /* zoom setting: one Zoom button in the top bar opens a small panel; pinching on the canvas also works */
+    const ZS=[1,1.5,2,3,4],zl=h('b',{class:'pt-zl'},'1x'),zp=h('div',{class:'pt-zp',hidden:true},
+      h('button',{'aria-label':'Zoom out',onclick:()=>stepZ(-1)},'\u2212'),h('button',{class:'pt-z1','aria-label':'Back to full picture',onclick:()=>{Z=1;PX=PY=0;applyZ();}},zl),h('button',{'aria-label':'Zoom in',onclick:()=>stepZ(1)},'+'),
+      h('span',{class:'pt-zh'},'Pinch with two fingers to zoom and move. One finger paints.'));
+    function applyZ(){const w=cv.offsetWidth,hh=cv.offsetHeight,mx=(Z-1)*w/2,my=(Z-1)*hh/2;PX=Math.max(-mx,Math.min(mx,PX));PY=Math.max(-my,Math.min(my,PY));stack.style.transform=Z===1?'':'translate('+PX+'px,'+PY+'px) scale('+Z+')';zl.textContent=(Math.round(Z*10)/10)+'x';}
+    function stepZ(d){const nz=d>0?(ZS.find(q=>q>Z+.01)||4):([...ZS].reverse().find(q=>q<Z-.01)||1);PX=PX*nz/Z;PY=PY*nz/Z;Z=nz;if(Z===1){PX=PY=0;}applyZ();}
     function fit(){const w=frame.clientWidth,hh=frame.clientHeight;if(!w||!hh)return;const s=Math.min(w/CW,hh/CH);cv.style.width=Math.floor(CW*s)+'px';cv.style.height=Math.floor(CH*s)+'px';applyZ();}
     const ro=window.ResizeObserver?new ResizeObserver(fit):null;
     function close(){if(!ov)return;flush();document.removeEventListener('keydown',key);ro&&ro.disconnect();stack.remove();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;R.setPaused&&R.setPaused(false);redraw();saveNow();sendSync();}
     ov=h('div',{class:'pt-ov'},
-      h('div',{class:'pt-top'},h('button',{class:'pt-done',onclick:close},'Done'),h('b',null,'My canvas'),h('button',{class:'pt-ref',onclick:showRef},'Reference')),
+      h('div',{class:'pt-top'},h('button',{class:'pt-done',onclick:close},'Done'),h('b',null,'My canvas'),h('span',{class:'pt-topr'},h('button',{class:'pt-ref',onclick:()=>{zp.hidden=!zp.hidden;}},'Zoom'),h('button',{class:'pt-ref',onclick:showRef},'Reference'))),zp,
       banner,frame,mini,
       h('div',{class:'pt-dock'},tools,h('div',{class:'pt-sz'},h('span',null,'Size'),size_),sw,stch));
     document.body.appendChild(ov);R.setPaused&&R.setPaused(true);ro&&ro.observe(frame);fit();paintTools();paintSw();paintState();paintBan();drawMini();drawGuide();
