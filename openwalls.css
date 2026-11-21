@@ -629,3 +629,4 @@ button.fm-int{border:0}
 .pn-left svg{width:12px;height:12px}
 .sp-paintroom .sp-crowd{display:flex;flex-direction:row;flex-wrap:nowrap;gap:12px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 2px 4px}.sp-paintroom .sp-crowd::-webkit-scrollbar{display:none}.sp-paintroom .sp-crowd>.sp-lis{flex:0 0 64px}.sp-paintroom .sp-crowd>.tag{flex:1}
 .sp-paintroom .sp-scroll{bottom:146px}
+.sp-paintroom .sp-scroll{padding-top:6px}.sp-paintroom .sp-scroll .sp-h{margin:0 0 8px}
