@@ -636,3 +636,4 @@ button.fm-int{border:0}
 .sp-voice .sp-lis{flex:0 0 64px}.sp-voice .sp-role{font-size:10.5px;color:#d9c9ff;font-weight:700}.sp-vm{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:50%;background:#444;display:flex;align-items:center;justify-content:center}.sp-vm svg{width:11px;height:11px}.sp-voice .sp-ring{position:relative}.sp-hvoice[hidden],.sp-voice[hidden]{display:none}
 .sp-hand{font-size:20px}
 .sp-crowd .sp-ring{position:relative}.sp-vm.off{background:#6b4a4a}
+.pt-frame{position:relative;overflow:hidden}.pt-zoom{position:absolute;left:10px;bottom:8px;display:flex;gap:6px;z-index:3}.pt-zoom button{min-width:40px;height:40px;padding:0 10px;border-radius:12px;border:0;background:rgba(20,16,36,.78);color:#fff;font:800 18px var(--disp);box-shadow:0 2px 8px rgba(0,0,0,.35)}.pt-zoom button:disabled{opacity:.35}.pt-zoom button.on{background:#fff;color:#1d1a2b}.pt-zoom .pt-z1{font-size:13px}
