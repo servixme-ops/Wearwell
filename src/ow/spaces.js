@@ -277,7 +277,7 @@ async function room(id){
   const SCC=[['','Violet'],['#e8503a','Coral'],['#1f9d6b','Green'],['#2d6cdf','Blue'],['#d98a00','Amber'],['#d94f9a','Pink'],['#2b2f45','Slate'],['#0e8f8f','Teal']];
   function applyLook(force){
     if(!D||!D.space)return;const l=D.space.look||{};const k=JSON.stringify(l);if(!force&&k===lastLook)return;lastLook=k;
-    try{PT&&PT.setBackdrop&&PT.setBackdrop(l.bg||null);}catch(e){}
+    try{PT&&PT.setBackdrop&&PT.setBackdrop(l.bg||null);PT&&PT.setSignText&&PT.setSignText(l.sign,l.tag);}catch(e){}
     try{R&&R.stageChairColor&&R.stageChairColor(l.chair||null);}catch(e){}
     try{PT&&PT.setScreen&&PT.setScreen(l.screen||null);}catch(e){}
   }
@@ -287,17 +287,20 @@ async function room(id){
       const sw=(list,get,set,lab)=>{const w=h('div',{class:'chips'});const draw=()=>w.replaceChildren(...list.map(([c,n])=>h('button',{class:'sp-sw'+(get()===c?' on':''),style:{background:c||'linear-gradient(135deg,#ddd,#999)'},'aria-label':lab+' '+n,title:n,onclick:()=>{set(c);draw();}})));draw();return w;};
       const tt=h('input',{type:'text',maxlength:'80',value:D.space.title||'','aria-label':'Space title'});
       const dd=h('textarea',{rows:'3',maxlength:'400','aria-label':'Space description'});dd.value=D.space.description||'';
+      const sg=h('input',{type:'text',maxlength:'18',value:cur.sign||'',placeholder:'Gist & Paint','aria-label':'Neon sign text'});
+      const tg=h('input',{type:'text',maxlength:'32',value:cur.tag||'',placeholder:'Create \u00b7 Gist \u00b7 Connect','aria-label':'Neon sign description'});
       b.append(h('p',{class:'tag',style:{marginBottom:'10px'}},'Premium look for this Gist & Paint space. Everyone in the space sees it.'),
+        h('div',{class:'f-label'},'Neon sign text'),sg,h('div',{class:'f-label',style:{marginTop:'10px'}},'Neon sign description'),tg,h('div',{class:'f-hint',style:{margin:'4px 0 10px'}},'Leave blank to keep the default words.'),
         h('div',{class:'f-label'},'Space title'),tt,h('div',{class:'f-label',style:{marginTop:'10px'}},'Description'),dd,
         h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Background colour'),sw(BGC,()=>bg,v=>bg=v,'Background'),
         h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Chair colour'),sw(CHC,()=>chair,v=>chair=v,'Chair'),
         h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'"What to Paint" screen colour'),sw(SCC,()=>screen,v=>screen=v,'Screen'),
         h('button',{class:'btn coral block',style:{marginTop:'14px'},onclick:e=>guard(e.currentTarget,async()=>{
           if(!tt.value.trim()){toast('Add a title','err');return;}
-          const look={};if(bg)look.bg=bg;if(chair)look.chair=chair;if(screen)look.screen=screen;
+          const look={};if(sg.value.trim())look.sign=sg.value.trim();if(tg.value.trim())look.tag=tg.value.trim();if(bg)look.bg=bg;if(chair)look.chair=chair;if(screen)look.screen=screen;
           try{await rpc('space_set_look',{p_space:id,p_look:look,p_title:tt.value.trim(),p_desc:dd.value.trim()});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}
           close();toast('Look updated');await tick();})},'Apply'),
-        h('button',{class:'btn light block',style:{marginTop:'8px'},onclick:e=>guard(e.currentTarget,async()=>{try{await rpc('space_set_look',{p_space:id,p_look:{},p_title:D.space.title,p_desc:D.space.description||''});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}close();toast('Colours reset');await tick();})},'Reset colours'));
+        h('button',{class:'btn light block',style:{marginTop:'8px'},onclick:e=>guard(e.currentTarget,async()=>{try{await rpc('space_set_look',{p_space:id,p_look:{},p_title:D.space.title,p_desc:D.space.description||''});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}close();toast('Colours reset');await tick();})},'Reset sign and colours'));
     });
   }
   function paintReq(){
