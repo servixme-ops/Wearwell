@@ -205,6 +205,7 @@ function settingsSheet(){
     body.append(h('div',{class:'list'},
       h('button',{onclick:()=>msg('suggestion','Suggestion','What would make OpenWalls better?')},icon('sliders'),h('span',{class:'grow'},'Suggestions')),
       h('button',{onclick:()=>msg('complaint','Complaint','Tell us what went wrong')},icon('lock'),h('span',{class:'grow'},'Complaint')),
+      h('button',{onclick:()=>{close();OWPlans.mySheet();}},icon('star'),h('span',{class:'grow'},'My Sip & Paint Plan')),
       h('button',{onclick:pw},icon('lock'),h('span',{class:'grow'},'Change password')),
       h('button',{onclick:async()=>{if(!await confirmBox('Log out of all devices?','You will be signed out here and on every other phone or computer.','Log out everywhere',true))return;
         try{await sb.auth.signOut({scope:'global'});}catch(e){}
@@ -666,6 +667,7 @@ function route(){
   if(hs.startsWith('@'))return visitView(hs.slice(1).toLowerCase());
   if(hs.startsWith('chat/'))return chatView(hs.slice(5).toLowerCase());
   if(hs==='scheduled')return Spaces.scheduledPage();
+  if(hs==='plans')return OWPlans.pricingPage();
   if(hs==='paint'){history.replaceState(null,'','#/discover');return discoverView();}
   if(hs.startsWith('space/'))return Spaces.room(hs.slice(6));
   if(hs==='forum'||hs.startsWith('forum/')||hs.startsWith('topic/')){appFlags().then(F=>{if(F.forum!==true){history.replaceState(null,'','#/discover');return discoverView();}return hs==='forum'?OWForum.boardView(null):hs.startsWith('forum/')?OWForum.boardView(hs.slice(6)):OWForum.topicView(hs.slice(6));});return;}
@@ -680,7 +682,7 @@ window.addEventListener('hashchange',route);
   {const sp=new URLSearchParams(location.search),rf=sp.get('reference')||sp.get('trxref');if(rf&&/^OWAD-/.test(rf))history.replaceState(null,'',location.pathname+location.search+'#/ads');}
   const q=new URLSearchParams(location.search).get('room');if(q&&!location.hash)history.replaceState(null,'',location.pathname+'#/@'+q);
   Auth.on(ev=>{if((ev==='signin'||ev==='signout')&&!/^(edit|@|chat|space\/)/.test(App.route))route();});
-  Auth.init().then(()=>{route();try{if(Auth.user)OWTv.restore(Auth.user.id);}catch(e){}
+  Auth.init().then(()=>{route();setTimeout(()=>{try{OWPlans.checkReturn();}catch(e){}},400);try{if(Auth.user)OWTv.restore(Auth.user.id);}catch(e){}
     if(Auth.user&&window.OWA&&OWA.prefetch){let g='f';try{g=(JSON.parse(localStorage.getItem('ow_avatar')||'{}').g)||'f';}catch(e){}OWA.prefetch([g]);setTimeout(()=>OWA.prefetch(['m','f']),5000);}
     refreshUnread();onboard();ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));}).catch(()=>route());
   Auth.on(ev=>{if(ev==='signin'){onboard();}if(ev==='signin')ensureRoom().then(()=>setTimeout(()=>OWPrev.ensureMine(),4000));});

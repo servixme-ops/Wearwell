@@ -111,6 +111,7 @@ const friendlyError=e=>{
   if(/magazine_submissions_hash/i.test(m))return 'This photo has already been submitted.';
   if(/Invalid login/i.test(m))return 'Email or password is not right.';
   if(/already registered/i.test(m))return 'That email already has an account. Try signing in.';
+  if(/PLAN_LIMIT/.test(m))return 'Your plan has reached its painter limit.';
   if(/row-level security|permission denied/i.test(m))return 'You do not have permission to do that.';
   if(/Failed to fetch|NetworkError|network/i.test(m))return 'No connection. Check your internet and try again.';
   if(/Payload too large|exceeded the maximum/i.test(m))return 'That file is too large.';
