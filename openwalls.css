@@ -654,3 +654,4 @@ button.fm-int{border:0}
 .pl-st{font-style:normal;font:700 11px var(--body);text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--paper2)}.pl-st.paid{background:#d9f7e8;color:#12724a}.pl-st.failed{background:#ffe0da;color:#a3321f}
 .pl-feats li{justify-content:flex-start}.pl-feats li svg{margin:1px 0 0;position:static}.pl-wrap{padding-bottom:120px}.pl-head .row-flex{display:flex;flex-direction:row;align-items:center;gap:10px}.pl-head .fm-back{position:static;flex:0 0 auto}
 .pl-feats li>span.ic svg{width:18px;height:18px;margin:0}
+.sp-sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);margin-right:8px;padding:0}.sp-sw.on{outline:3px solid var(--ink);outline-offset:2px}
