@@ -7,7 +7,7 @@ function box(w,h,d,mat,x,y,z){const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat);m
 function chair(x){
   const g=new T.Group(),dark=M(0x2b2f3a,.8),acc=M(0x6c4bff,.6);
   const base=new T.Mesh(new T.CylinderGeometry(.27,.27,.03,20),dark);base.position.y=.02;const ped=new T.Mesh(new T.CylinderGeometry(.035,.035,.4,10),M(0x888e9b,.4,.6));ped.position.y=.22;
-  g.add(base,ped,box(.5,.07,.46,dark,0,.44,0),box(.46,.5,.05,acc,0,.74,-.22));g.position.set(x,0,SZ);g.rotation.y=-x*.15;return g;
+  const seat=box(.5,.07,.46,M(0x2b2f3a,.8),0,.44,0),back=box(.46,.5,.05,acc,0,.74,-.22);seat.userData.cSeat=1;back.userData.cBack=1;g.add(base,ped,seat,back);g.position.set(x,0,SZ);g.rotation.y=-x*.15;return g;
 }
 function mic(x){
   const g=new T.Group(),metal=M(0x3a3f4b,.35,.7);
@@ -27,6 +27,7 @@ function bottle(){
   const lab=new T.Mesh(new T.CylinderGeometry(.0325,.0335,.05,16,1,true),M(0xffffff,.6));lab.position.y=0;
   g.add(body,w,neck,cap,lab);g.position.set(0,0,0);g.visible=false;return g;
 }
+P.stageChairColor=function(c){this.chairCol=c||null;const st=this.stage;if(!st)return;const k=new T.Color(c||0x6c4bff),k2=c?k.clone().multiplyScalar(.55):new T.Color(0x2b2f3a);st.g.traverse(o=>{if(o.userData.cBack)o.material.color.copy(k);else if(o.userData.cSeat)o.material.color.copy(k2);});this.markDirty&&this.markDirty(true);};
 P.stageReact=function(uid,name){
   const st=this.stage;if(!st)return;const e=st.map.get(uid);if(!e||!GDUR[name])return;
   e.gest={n:name,t:0,dur:GDUR[name]};e.nextDrink=25+Math.random()*25;
@@ -40,6 +41,7 @@ P.stageStart=function(cb,opts){
   const rug=new T.Mesh(new T.CylinderGeometry(1.75,1.75,.02,40),M(0x3b3350,.95));rug.position.set(0,.011,SZ+.2);rug.receiveShadow=true;
   st.g.add(rug,box(2.6,.05,.62,wood,0,.74,SZ+.78),box(2.6,.7,.04,M(0x2b2f3a,.8),0,.38,SZ+1.06));
   st.bottles=[];SX.forEach((x,i)=>{st.g.add(chair(x));const m=mic(x);st.mics[i]=m;st.g.add(m);const b=bottle();b.userData.home=new T.Vector3(x+BX,DESKY+.085,BZ);b.position.copy(b.userData.home);st.bottles[i]=b;st.g.add(b);});
+  if(this.chairCol)this.stageChairColor(this.chairCol);
   if(st.paint){st.mics.forEach(m=>m.visible=false);st.bottles.forEach(b=>b.visible=false);}
   this.root.add(st.g);
   /* clear the furniture that would sit inside the studio */

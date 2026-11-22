@@ -250,12 +250,13 @@ async function room(id){
     if(!OWRoom.supported())return;
     try{
       let d=null;try{d=await Store.byUsername(D.host.username);}catch(e){}
-      const box=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
-      const r=new OWRoom(box,{edit:false});const rm=d&&d.room?Object.assign({},d.room):{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}};if(paintMode()){const th=Object.assign({},rm.theme),hd=Object.assign({},th.hide);hd.light=1;delete hd.until;th.hide=hd;baseTh=th;lastLook=JSON.stringify((D&&D.space&&D.space.look)||null);rm.theme=withLook(th,D&&D.space&&D.space.look);}r.load(rm,d&&d.room?d.items:[]);
+      const box=stageBox=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
+      const r=new OWRoom(box,{edit:false});const rm=d&&d.room?Object.assign({},d.room):{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}};if(paintMode()){const th=Object.assign({},rm.theme),hd=Object.assign({},th.hide);hd.light=1;delete hd.until;th.hide=hd;rm.theme=th;}r.load(rm,d&&d.room?d.items:[]);
       if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;try{if(isHost())hostTip();}catch(e){}startMusic=()=>{try{if(isHost())hostTip();}catch(e){}try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.2,vid:null,autoplay:true,seed:null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}};const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
       await r.whenLoaded(3500);if(dead){r.destroy();return;}
       r.stageStart({onTap:u=>{const p=D.participants.find(x=>x.id===u);p&&personSheet(p);}},{paint:paintMode()});R=r;v.classList.add('sp-has3d');v.classList.toggle('sp-paintroom',!!paintMode());
       if(paintMode()&&typeof OWPaint!=='undefined'){PT=OWPaint.attach(r,{id,isHost,participants:()=>D.participants,refresh:()=>tick()});v.appendChild(PT.hud);PT.update(D);}
+      applyLook(true);
       paintStage();R.stageSpeaking(speaking);
     }catch(e){console.error(e);R=null;}
   }
@@ -270,30 +271,33 @@ async function room(id){
     paintVoice();
     document.querySelectorAll('.sp-view [data-uid]').forEach(el=>{const r=el.querySelector('.sp-ring');if(r)r.classList.toggle('on',speaking.has(el.dataset.uid));});
   }
-  let baseTh=null,lastLook='null';
-  function withLook(th,l){const t=Object.assign({},th);delete t.brand;if(!l)return t;if(l.key)t.key=l.key;if(l.wall)t.wall=l.wall;if(l.brand&&l.brand.text)t.brand=l.brand;return t;}
-  function syncLook(){if(!R||!baseTh||!D||!D.space)return;const k=JSON.stringify(D.space.look||null);if(k===lastLook)return;lastLook=k;try{R.room.theme=withLook(baseTh,D.space.look);R.buildShell();}catch(e){}}
+  let lastLook='';let stageBox=null;
+  const BGC=[['','Default'],['#4b3a8f','Plum'],['#1f5f8f','Ocean'],['#1f6b4a','Forest'],['#8f2f4f','Wine'],['#8f6a2f','Bronze'],['#2b2f3a','Charcoal'],['#d8cfc0','Cream']];
+  const CHC=[['','Purple'],['#e8503a','Coral'],['#1f9d6b','Green'],['#2d6cdf','Blue'],['#f0b429','Gold'],['#d94f9a','Pink'],['#1a1a1f','Black'],['#f5f5f5','White']];
+  const SCC=[['','Violet'],['#e8503a','Coral'],['#1f9d6b','Green'],['#2d6cdf','Blue'],['#d98a00','Amber'],['#d94f9a','Pink'],['#2b2f45','Slate'],['#0e8f8f','Teal']];
+  function applyLook(force){
+    if(!D||!D.space)return;const l=D.space.look||{};const k=JSON.stringify(l);if(!force&&k===lastLook)return;lastLook=k;
+    try{PT&&PT.setBackdrop&&PT.setBackdrop(l.bg||null);}catch(e){}
+    try{R&&R.stageChairColor&&R.stageChairColor(l.chair||null);}catch(e){}
+    try{PT&&PT.setScreen&&PT.setScreen(l.screen||null);}catch(e){}
+  }
   function lookSheet(){
-    if(!isHost())return;const cur=(D.space.look)||{};let key=cur.key||'',wall=cur.wall||'',bt=(cur.brand&&cur.brand.text)||'',bc=(cur.brand&&cur.brand.color)||'#6c4bff';
-    const TH=[['','Your room'],['lagos','Lagos Living'],['studio','Soft Studio'],['midnight','Midnight'],['sunset','Sunset'],['forest','Forest']];
-    const WC=[['','Theme colour'],['#ffffff','White'],['#f3e9d8','Cream'],['#dbe9f6','Sky'],['#f6d9de','Blush'],['#d9ecd9','Mint'],['#2b2f45','Slate']];
-    const BC=['#6c4bff','#e8503a','#1f9d6b','#f0b429','#1a1a1a','#ffffff'];
-    sheet('Room look',(b,close)=>{
-      const tw=h('div',{class:'chips'}),ww=h('div',{class:'chips'}),cw=h('div',{class:'chips'});
-      const nm=h('input',{type:'text',maxlength:'28',value:bt,placeholder:'Your name or brand (optional)','aria-label':'Banner text'});
-      const draw=()=>{
-        tw.replaceChildren(...TH.map(([k,l])=>h('button',{class:'chip'+(key===k?' on':''),onclick:()=>{key=k;draw();}},l)));
-        ww.replaceChildren(...WC.map(([k,l])=>h('button',{class:'chip'+(wall===k?' on':''),onclick:()=>{wall=k;draw();}},l)));
-        cw.replaceChildren(...BC.map(c=>h('button',{class:'sp-sw'+(bc===c?' on':''),style:{background:c},'aria-label':'Banner colour '+c,onclick:()=>{bc=c;draw();}})));
-      };draw();
-      b.append(h('p',{class:'tag',style:{marginBottom:'10px'}},'Everyone in this Gist & Paint space sees your look. It applies to this session only.'),
-        h('div',{class:'f-label'},'Room theme'),tw,h('div',{class:'f-label',style:{marginTop:'10px'}},'Wall colour'),ww,
-        h('div',{class:'f-label',style:{marginTop:'10px'}},'Brand banner on the back wall'),nm,h('div',{style:{margin:'8px 0'}},cw),
-        h('button',{class:'btn coral block',style:{marginTop:'10px'},onclick:e=>guard(e.currentTarget,async()=>{
-          const look={};if(key)look.key=key;if(wall)look.wall=wall;if(nm.value.trim())look.brand={text:nm.value.trim(),color:bc};
-          try{await rpc('space_set_look',{p_space:id,p_look:look});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}
-          close();toast('Room look updated');await tick();})},'Apply'),
-        h('button',{class:'btn light block',style:{marginTop:'8px'},onclick:e=>guard(e.currentTarget,async()=>{await rpc('space_set_look',{p_space:id,p_look:{}});close();toast('Back to your normal room');await tick();})},'Reset look'));
+    if(!isHost())return;const cur=D.space.look||{};let bg=cur.bg||'',chair=cur.chair||'',screen=cur.screen||'';
+    sheet('Gist & Paint look',(b,close)=>{
+      const sw=(list,get,set,lab)=>{const w=h('div',{class:'chips'});const draw=()=>w.replaceChildren(...list.map(([c,n])=>h('button',{class:'sp-sw'+(get()===c?' on':''),style:{background:c||'linear-gradient(135deg,#ddd,#999)'},'aria-label':lab+' '+n,title:n,onclick:()=>{set(c);draw();}})));draw();return w;};
+      const tt=h('input',{type:'text',maxlength:'80',value:D.space.title||'','aria-label':'Space title'});
+      const dd=h('textarea',{rows:'3',maxlength:'400','aria-label':'Space description'});dd.value=D.space.description||'';
+      b.append(h('p',{class:'tag',style:{marginBottom:'10px'}},'Premium look for this Gist & Paint space. Everyone in the space sees it.'),
+        h('div',{class:'f-label'},'Space title'),tt,h('div',{class:'f-label',style:{marginTop:'10px'}},'Description'),dd,
+        h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Background colour'),sw(BGC,()=>bg,v=>bg=v,'Background'),
+        h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Chair colour'),sw(CHC,()=>chair,v=>chair=v,'Chair'),
+        h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'"What to Paint" screen colour'),sw(SCC,()=>screen,v=>screen=v,'Screen'),
+        h('button',{class:'btn coral block',style:{marginTop:'14px'},onclick:e=>guard(e.currentTarget,async()=>{
+          if(!tt.value.trim()){toast('Add a title','err');return;}
+          const look={};if(bg)look.bg=bg;if(chair)look.chair=chair;if(screen)look.screen=screen;
+          try{await rpc('space_set_look',{p_space:id,p_look:look,p_title:tt.value.trim(),p_desc:dd.value.trim()});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}
+          close();toast('Look updated');await tick();})},'Apply'),
+        h('button',{class:'btn light block',style:{marginTop:'8px'},onclick:e=>guard(e.currentTarget,async()=>{try{await rpc('space_set_look',{p_space:id,p_look:{},p_title:D.space.title,p_desc:D.space.description||''});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}close();toast('Colours reset');await tick();})},'Reset colours'));
     });
   }
   function paintReq(){
@@ -326,7 +330,7 @@ async function room(id){
         row('Share link','share',async()=>{const u=CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
         paintMode()&&typeof OWTv!=='undefined'?row('Music','music',()=>{if(!OWTv.showMusic()&&startMusic)startMusic();}):null,
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
-        paintMode()&&isHost()?row('Room look: theme and banner','palette',lookSheet):null,
+        paintMode()&&isHost()?row('Gist & Paint look: text and colours','palette',lookSheet):null,
         isMgr()?row('Invite people','people',()=>inviteSheet(D.space)):null,
         isHost()?row('End space for everyone','close',endSpace,true):null,
         !isHost()?row('Report this space','flag',()=>reportSheet(id,null),true):null].filter(Boolean));
@@ -415,7 +419,7 @@ async function room(id){
       const d=await rpc('space_get',{p_space:id});if(dead)return;D=d;
       if(d.space.status==='ended')return finish(d.space.ends_at&&new Date(d.space.ends_at)<=new Date()?'This space reached its time limit.':'The host ended this space.');
       if(d.me&&d.me.status==='removed'){toast('You were removed from this space.','err');return finish('You were removed by the host.');}
-            syncLook();paintTop();paintTimer();paintStage();PT&&PT.update(D);paintReq();paintBar();
+            applyLook();paintTop();paintTimer();paintStage();PT&&PT.update(D);paintReq();paintBar();
       if(audio.room)audio.setBlocked(d.participants.filter(p=>p.blocked).map(p=>p.id));
       if(role()!==lastRole&&audio.room&&connState==='connected')syncMic();
     }catch(e){if(/not found/i.test(e.message||'')){finish('This space is no longer available.');}}
