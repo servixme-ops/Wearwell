@@ -587,7 +587,7 @@ function attach(R,ctx){
   /* table: easels + canvases, palettes, paints, cups */
   const paper=mat(0xfffdf8,.9),wood=mat(0xb98a55,.55),dark=mat(0x2b2f3a,.7);
   const cvW=.272,cvH=.34,tilt=-.12;
-  let seatG=null,aisleG=null,badges=[],joyEl=null;
+  let seatG=null,aisleG=null,badges=[],joyEl=null,artTex=[];
   const slatMat=mat(0xb98a55,.6);
   function mkJoy(){const on=!!st.lay.aisle;if(!on){if(joyEl){joyEl.remove();joyEl=null;R.setJoy&&R.setJoy(0,0);}return;}if(joyEl)return;
     const base=h('div',{class:'joy','aria-label':'Walk joystick'},h('i',{class:'knob'}));let id=null,cx=0,cy=0;const RAD=46;
@@ -626,11 +626,18 @@ function attach(R,ctx){
     if(L.aisle){aisleG=new T.Group();G.add(aisleG);const len=L.D-.4,ph=2.15,py=2.1;
       [-1,1].forEach(sd=>{const wx=sd*(L.W/2-.05),ry=-sd*Math.PI/2;
         const pn=new T.Mesh(new T.BoxGeometry(.06,ph,len),backdrop.material);pn.position.set(wx,py,0);aisleG.add(pn);
-        for(let z=-len/2+.6;z<len/2;z+=1.2){const sl=new T.Mesh(new T.BoxGeometry(.08,ph,.1),slatMat);sl.position.set(wx-sd*.05,py,z);aisleG.add(sl);}
         const rail=new T.Mesh(new T.BoxGeometry(.1,.07,len),slatMat);rail.position.set(wx-sd*.06,py-ph/2,0);aisleG.add(rail);
         const sg=new T.Mesh(new T.PlaneGeometry(2.7,1.06),new T.MeshBasicMaterial({map:signT,transparent:true}));sg.position.set(wx-sd*.045,py+.55,0);sg.rotation.y=ry;aisleG.add(sg);
         const nsc=Math.max(2,Math.round(len/4.2));for(let k=0;k<nsc;k++){const z=-len/2+(k+.5)*len/nsc;if(Math.abs(z)<1.6)continue;const sc=new T.Mesh(new T.PlaneGeometry(1.9,1.07),new T.MeshBasicMaterial({map:wallT}));sc.position.set(wx-sd*.045,py-.15,z);sc.rotation.y=ry;aisleG.add(sc);}
         const nf=new T.Mesh(new T.BoxGeometry(.05,.07,len),mat(0x9a6bff,.3));nf.material.emissive=new T.Color(0x7b4dff);nf.position.set(wx-sd*.05,py-ph/2+.14,0);aisleG.add(nf);});
+      artTex.forEach(t=>t.dispose());artTex=[];
+      ['dkoi','dcaravan','dlight','dmartini'].forEach((k,i)=>{const x=(i-1.5)*1.7,y=2.0,z=-L.D/2+.27;
+        const fr=new T.Mesh(new T.BoxGeometry(1.0,1.22,.06),mat(0x8a6a4a,.6));fr.position.set(x,y,z);aisleG.add(fr);
+        const mt=new T.Mesh(new T.BoxGeometry(.92,1.14,.065),mat(0xfffdf8,.8));mt.position.set(x,y,z+.003);aisleG.add(mt);
+        const tx=new T.CanvasTexture(refCanvas('ref:'+k));tx.encoding=T.sRGBEncoding;artTex.push(tx);
+        const im=new T.Mesh(new T.PlaneGeometry(.8,1.0),new T.MeshBasicMaterial({map:tx}));im.position.set(x,y,z+.04);aisleG.add(im);
+        const lt=new T.Mesh(new T.CylinderGeometry(.03,.03,.5,8),mat(0xb98a55,.5));lt.rotation.z=Math.PI/2;lt.position.set(x,y+.72,z+.1);aisleG.add(lt);
+        const lm=new T.Mesh(new T.SphereGeometry(.03,8,6),new T.MeshBasicMaterial({color:0xffe2a8}));lm.position.set(x,y+.72,z+.14);aisleG.add(lm);});
       const fz=new T.Mesh(new T.PlaneGeometry(L.W-.2,2.6),new T.MeshStandardMaterial({color:0x2b2150,roughness:.9}));fz.position.set(0,1.6,-L.D/2+.22);aisleG.add(fz);}
     buildPlants(plantKind);
     mkJoy();
