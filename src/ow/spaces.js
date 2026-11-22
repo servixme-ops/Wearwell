@@ -111,7 +111,7 @@ function createSheet(onDone,preset){
     b.append(field('Title',title),field('Description',desc),preset==='sipandpaint'?null:field('Category',cat),
       field('Who can join',visw,'Private spaces are only visible to people you invite.'),
       field('When',timing),sched,
-      h('div',{class:'sp-row'},h('span',null,'Allow text chat'),toggleEl(true,v=>chat=v,'Allow text chat')),h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Every space lasts 30 minutes from the moment it goes live. You can start another one afterwards.'),goB);
+      h('div',{class:'sp-row'},h('span',null,'Allow text chat'),toggleEl(true,v=>chat=v,'Allow text chat')),h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Free spaces last 30 minutes from the moment they go live; Premium spaces last 2 hours. You can start another one afterwards.'),goB);
   });
 }
 function inviteSheet(space){
@@ -133,13 +133,13 @@ async function discover(){
   const bk=h('button',{class:'fm-back','aria-label':'Back',onclick:()=>{if(history.length>1&&App.hadRoute)history.back();else go('#/discover');}},'\u2039');
   v.append(h('div',{class:'pg-head sp-head'},h('div',{class:'row-flex'},bk,h('div',null,h('div',{class:'brand'},h('b',null,'Live Spaces')),h('p',{class:'tag'},'Drop in on conversations happening now.'))),startBtn),inv,tabs,chips,list);
   const T=[['live','Live now'],['popular','Popular'],['following','Following'],['upcoming','Upcoming']];
-  const leftTxt=t=>{const ms=new Date(t).getTime()+30*60000-Date.now();if(ms<=0)return 'Ending';const m=Math.ceil(ms/60000);return m+' min left';};
+  const leftTxt=(t,mn)=>{const ms=new Date(t).getTime()+(mn||30)*60000-Date.now();if(ms<=0)return 'Ending';const m=Math.ceil(ms/60000);return m>=90?Math.floor(m/60)+'h '+(m%60)+'m left':m+' min left';};
   const card=s=>{
     const live=s.status==='live',mine=Auth.user&&s.host.id===Auth.user.id;
     const act=live?h('span',{class:'sp-live'},h('i'),'LIVE'):h('span',{class:'sp-when'},s.scheduled_start?when(s.scheduled_start):'Not scheduled');
     const right=!live&&mine?h('button',{class:'btn small coral',onclick:e=>{e.stopPropagation();guard(e.currentTarget,async()=>{await rpc('space_start',{p_space:s.id});go('#/space/'+s.id);});}},'Start now'):null;
     return h('div',{class:'sp-card',role:'button',tabindex:'0',onclick:()=>live||mine?go('#/space/'+s.id):toast('This space starts '+(s.scheduled_start?when(s.scheduled_start):'soon')+'.'),onkeydown:e=>{if(e.key==='Enter')e.currentTarget.click();}},
-      h('div',{class:'sp-top'},act,live&&s.started_at?h('span',{class:'sp-left'},leftTxt(s.started_at)):null,h('span',{class:'sp-cat'},catLabel(s.category)),s.visibility==='private'&&h('span',{class:'sp-lock','aria-label':'Private'},icon('lock')),s.followed&&h('span',{class:'sp-fol'},'Following')),
+      h('div',{class:'sp-top'},act,live&&s.started_at?h('span',{class:'sp-left'},leftTxt(s.started_at,s.minutes)):null,h('span',{class:'sp-cat'},catLabel(s.category)),s.visibility==='private'&&h('span',{class:'sp-lock','aria-label':'Private'},icon('lock')),s.followed&&h('span',{class:'sp-fol'},'Following')),
       h('h3',null,s.title),s.description&&h('p',{class:'sp-desc'},s.description),
       h('div',{class:'sp-foot'},h('button',{class:'sp-host',onclick:e=>{e.stopPropagation();go('#/@'+s.host.username);}},sp_av(s.host,'xs'),h('span',null,'Hosted by ',h('b',null,person(s.host)))),
         h('span',{class:'sp-count'},icon('mic'),String(s.speakers),' · ',icon('people'),String(s.listeners)),right));
@@ -370,7 +370,7 @@ async function room(id){
   const sendMsg=()=>{const t=inp.value.trim();if(!t)return;guard(sendB,async()=>{await rpc('space_message',{p_space:id,p_kind:'text',p_body:t});inp.value='';await chat();});};
   sendB.onclick=sendMsg;inp.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
 
-  /* every space lasts 30 minutes from the moment it goes live */
+  /* free spaces last 30 minutes, Premium 2 hours from the moment it goes live */
   let warned={};
   function paintTimer(){
     const e=D&&D.space&&D.space.ends_at&&D.space.status==='live'?new Date(D.space.ends_at).getTime():0;
@@ -386,7 +386,7 @@ async function room(id){
     if(dead)return;
     try{
       const d=await rpc('space_get',{p_space:id});if(dead)return;D=d;
-      if(d.space.status==='ended')return finish(d.space.ends_at&&new Date(d.space.ends_at)<=new Date()?'This space reached its 30 minute limit.':'The host ended this space.');
+      if(d.space.status==='ended')return finish(d.space.ends_at&&new Date(d.space.ends_at)<=new Date()?'This space reached its time limit.':'The host ended this space.');
       if(d.me&&d.me.status==='removed'){toast('You were removed from this space.','err');return finish('You were removed by the host.');}
             paintTop();paintTimer();paintStage();PT&&PT.update(D);paintReq();paintBar();
       if(audio.room)audio.setBlocked(d.participants.filter(p=>p.blocked).map(p=>p.id));
@@ -463,7 +463,7 @@ function scheduledPage(){
     list.replaceChildren(...(out.length?out:[empty('Nothing scheduled','Tap Schedule to plan a painting session with friends.')]));}).catch(e=>list.replaceChildren(empty('Could not load sessions',friendlyError(e))));}
   rpc('space_my_reminders').then(a=>{(a||[]).forEach(x=>REM.add(x));}).catch(()=>{}).then(load);
 }
-const leftTxt=t=>{const ms=new Date(t).getTime()+30*60000-Date.now();if(ms<=0)return 'Ending';return Math.ceil(ms/60000)+' min left';};
+const leftTxt=(t,mn)=>{const ms=new Date(t).getTime()+(mn||30)*60000-Date.now();if(ms<=0)return 'Ending';const m=Math.ceil(ms/60000);return m>=90?Math.floor(m/60)+'h '+(m%60)+'m left':m+' min left';};
 function paintSection(){
   const list=h('div',{class:'sp-list'},spinner()),inviteBox=h('div',{class:'gp-inv'});
   const liveH=h('h3',{class:'gp-h'},'Live now'),schCnt=h('span',{class:'gp-cnt calm'},'0'),schLink=h('button',{class:'sc-link',onclick:()=>go('#/scheduled')},icon('bell'),h('span',null,'Scheduled sessions'),schCnt,h('i',{class:'sc-arr'},'\u203a'));
@@ -473,7 +473,7 @@ function paintSection(){
     inviteBox,liveH,list,schLink);
   const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
     return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
-      h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room'),r.started_at?h('span',{class:'pn-left'},'\u23f1 '+leftTxt(r.started_at)):null),
+      h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room'),r.started_at?h('span',{class:'pn-left'},'\u23f1 '+leftTxt(r.started_at,r.minutes)):null),
       h('div',{class:'pn-body'},h('b',{class:'pn-t'},r.title),
         h('div',{class:'pn-host'},hs?sp_av(hs,'xs'):null,h('span',null,'Hosted by ',h('b',null,hs?person(hs):(r.host||'a creator')))),
         h('span',{class:'pn-join'},'Join and paint')));};
