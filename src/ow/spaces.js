@@ -274,15 +274,16 @@ async function room(id){
   let lastLook='';let stageBox=null;
   const BGC=[['','Default'],['#4b3a8f','Plum'],['#1f5f8f','Ocean'],['#1f6b4a','Forest'],['#8f2f4f','Wine'],['#8f6a2f','Bronze'],['#2b2f3a','Charcoal'],['#d8cfc0','Cream']];
   const CHC=[['','Purple'],['#e8503a','Coral'],['#1f9d6b','Green'],['#2d6cdf','Blue'],['#f0b429','Gold'],['#d94f9a','Pink'],['#1a1a1f','Black'],['#f5f5f5','White']];
+  const PLC=[['bush','Leafy bush'],['tulip','Tulips'],['sunflower','Sunflowers'],['rose','Roses'],['cactus','Cactus'],['fern','Fern'],['lavender','Lavender']];
   const SCC=[['','Violet'],['#e8503a','Coral'],['#1f9d6b','Green'],['#2d6cdf','Blue'],['#d98a00','Amber'],['#d94f9a','Pink'],['#2b2f45','Slate'],['#0e8f8f','Teal']];
   function applyLook(force){
     if(!D||!D.space)return;const l=D.space.look||{};const k=JSON.stringify(l);if(!force&&k===lastLook)return;lastLook=k;
-    try{PT&&PT.setBackdrop&&PT.setBackdrop(l.bg||null);PT&&PT.setSignText&&PT.setSignText(l.sign,l.tag);}catch(e){}
+    try{PT&&PT.setBackdrop&&PT.setBackdrop(l.bg||null);PT&&PT.setSignText&&PT.setSignText(l.sign,l.tag);PT&&PT.setPlant&&PT.setPlant(l.plant||'bush');}catch(e){}
     try{R&&R.stageChairColor&&R.stageChairColor(l.chair||null);}catch(e){}
     try{PT&&PT.setScreen&&PT.setScreen(l.screen||null);}catch(e){}
   }
   function lookSheet(){
-    if(!isHost())return;const cur=D.space.look||{};let bg=cur.bg||'',chair=cur.chair||'',screen=cur.screen||'';
+    if(!isHost())return;const cur=D.space.look||{};let bg=cur.bg||'',chair=cur.chair||'',screen=cur.screen||'',plant=cur.plant||'bush';
     sheet('Gist & Paint look',(b,close)=>{
       const sw=(list,get,set,lab)=>{const w=h('div',{class:'chips'});const draw=()=>w.replaceChildren(...list.map(([c,n])=>h('button',{class:'sp-sw'+(get()===c?' on':''),style:{background:c||'linear-gradient(135deg,#ddd,#999)'},'aria-label':lab+' '+n,title:n,onclick:()=>{set(c);draw();}})));draw();return w;};
       const tt=h('input',{type:'text',maxlength:'80',value:D.space.title||'','aria-label':'Space title'});
@@ -292,12 +293,13 @@ async function room(id){
       b.append(h('p',{class:'tag',style:{marginBottom:'10px'}},'Premium look for this Gist & Paint space. Everyone in the space sees it.'),
         h('div',{class:'f-label'},'Neon sign text'),sg,h('div',{class:'f-label',style:{marginTop:'10px'}},'Neon sign description'),tg,h('div',{class:'f-hint',style:{margin:'4px 0 10px'}},'Leave blank to keep the default words.'),
         h('div',{class:'f-label'},'Space title'),tt,h('div',{class:'f-label',style:{marginTop:'10px'}},'Description'),dd,
+        h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Plants'),(()=>{const w=h('div',{class:'chips'});const dr=()=>w.replaceChildren(...PLC.map(([k,n])=>h('button',{class:'chip'+(plant===k?' on':''),onclick:()=>{plant=k;dr();}},n)));dr();return w;})(),
         h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Background colour'),sw(BGC,()=>bg,v=>bg=v,'Background'),
         h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'Chair colour'),sw(CHC,()=>chair,v=>chair=v,'Chair'),
         h('div',{class:'f-label',style:{margin:'12px 0 6px'}},'"What to Paint" screen colour'),sw(SCC,()=>screen,v=>screen=v,'Screen'),
         h('button',{class:'btn coral block',style:{marginTop:'14px'},onclick:e=>guard(e.currentTarget,async()=>{
           if(!tt.value.trim()){toast('Add a title','err');return;}
-          const look={};if(sg.value.trim())look.sign=sg.value.trim();if(tg.value.trim())look.tag=tg.value.trim();if(bg)look.bg=bg;if(chair)look.chair=chair;if(screen)look.screen=screen;
+          const look={};if(sg.value.trim())look.sign=sg.value.trim();if(tg.value.trim())look.tag=tg.value.trim();if(plant&&plant!=='bush')look.plant=plant;if(bg)look.bg=bg;if(chair)look.chair=chair;if(screen)look.screen=screen;
           try{await rpc('space_set_look',{p_space:id,p_look:look,p_title:tt.value.trim(),p_desc:dd.value.trim()});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}
           close();toast('Look updated');await tick();})},'Apply'),
         h('button',{class:'btn light block',style:{marginTop:'8px'},onclick:e=>guard(e.currentTarget,async()=>{try{await rpc('space_set_look',{p_space:id,p_look:{},p_title:D.space.title,p_desc:D.space.description||''});}catch(er){if(/PREMIUM_REQUIRED/.test(String(er&&er.message||er))){close();OWPlans.limitSheet(id);return;}throw er;}close();toast('Colours reset');await tick();})},'Reset sign and colours'));

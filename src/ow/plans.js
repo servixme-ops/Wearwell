@@ -18,8 +18,8 @@ const OWPlans=(()=>{
   /* what each plan includes; "soon" perks are shown honestly as coming later */
   const FEATS={
     free:[['Up to 4 painters on easels, you included'],['Unlimited viewers'],['Shared live canvas'],['30-minute sessions'],['Painting reference pictures'],['Save, download in HD and share your artwork']],
-    session:[['Up to 20 painters on easels for that session'],['Unlimited viewers'],['Pay once, no renewal'],['Co-host'],['Edit the neon sign words, space title and description, and change the background, chair and screen colours'],['Fastest finisher award',1],['Artwork voting in the gallery',1],['Longer sessions, up to 2 hours']],
-    monthly:[['Every session you host, as many as you like'],['Up to 20 painters on easels in each'],['Unlimited viewers'],['Cancel any time, access lasts to the end of the paid month'],['Co-host'],['Edit the neon sign words, space title and description, and change the background, chair and screen colours'],['Fastest finisher award',1],['Artwork voting in the gallery',1],['Longer sessions, up to 2 hours']]
+    session:[['Up to 20 painters on easels for that session'],['Unlimited viewers'],['Pay once, no renewal'],['Co-host'],['Edit the neon sign words, space title and description, and change the background, chair and screen colours'],['Painting countdown and Fastest finisher award'],['Artwork voting in the gallery'],['Longer sessions, up to 2 hours']],
+    monthly:[['Every session you host, as many as you like'],['Up to 20 painters on easels in each'],['Unlimited viewers'],['Cancel any time, access lasts to the end of the paid month'],['Co-host'],['Edit the neon sign words, space title and description, and change the background, chair and screen colours'],['Painting countdown and Fastest finisher award'],['Artwork voting in the gallery'],['Longer sessions, up to 2 hours']]
   };
   const feats=k=>h('ul',{class:'pl-feats'},...FEATS[k].map(([t,soon])=>h('li',null,icon('check'),h('span',null,t),soon?h('em',{class:'pl-soon'},'Coming soon'):null)));
 
