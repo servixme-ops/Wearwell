@@ -655,3 +655,4 @@ button.fm-int{border:0}
 .pl-feats li{justify-content:flex-start}.pl-feats li svg{margin:1px 0 0;position:static}.pl-wrap{padding-bottom:120px}.pl-head .row-flex{display:flex;flex-direction:row;align-items:center;gap:10px}.pl-head .fm-back{position:static;flex:0 0 auto}
 .pl-feats li>span.ic svg{width:18px;height:18px;margin:0}
 .sp-sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);margin-right:8px;padding:0}.sp-sw.on{outline:3px solid var(--ink);outline-offset:2px}
+.pt-tm{font-weight:800}.pt-tm.low{color:#ff6b5a}.pt-aw{display:inline-block;margin:4px 4px 0 0;padding:3px 9px;border-radius:99px;background:#ffefc2;color:#6b4a00;font:800 11.5px var(--disp)}.pt-awr{min-height:0}.pt-vrow{display:flex;align-items:center;gap:10px;margin:6px 0}.pt-vc{font-weight:700;font-size:13px;flex:1}.pt-tmrow{flex-wrap:wrap;gap:6px}
