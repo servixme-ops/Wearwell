@@ -485,7 +485,8 @@ function attach(R,ctx){
   const mat=(c,r,m)=>new T.MeshStandardMaterial({color:c,roughness:r==null?.7:r,metalness:m||0});
   const bx=(w,hh,d,m,x,y,z)=>{const o=new T.Mesh(new T.BoxGeometry(w,hh,d),m);o.position.set(x,y,z);G.add(o);return o;};
   /* wall, wooden slats, lights */
-  bx(5.2,3.1,.06,mat(0x2b2150,.9),0,1.5,SZ-1.35);
+  const backdrop=bx(5.2,3.1,.06,mat(0x2b2150,.9),0,1.5,SZ-1.35);
+  function setBackdrop(c){backdrop.material.color.set(/^#[0-9a-f]{6}$/i.test(c||'')?c:0x2b2150);R.markDirty&&R.markDirty();}
   [-2.35,2.35].forEach(x=>{for(let i=0;i<5;i++)bx(.1,3.1,.1,mat(0xb98a55,.6),x+(i-2)*.16,1.5,SZ-1.28);});
   bx(4.6,.08,.08,mat(0x9a6bff,.3),0,.5,SZ-1.3).material.emissive=new T.Color(0x7b4dff);
   for(let i=0;i<3;i++){const l=new T.Mesh(new T.SphereGeometry(.07,12,10),new T.MeshBasicMaterial({color:0xffe2a8}));l.position.set((i-1)*1.2,2.95,SZ-.2);G.add(l);}
@@ -503,17 +504,20 @@ function attach(R,ctx){
   const wall=document.createElement('canvas');wall.width=1024;wall.height=576;const wg=wall.getContext('2d');const wallT=new T.CanvasTexture(wall);wallT.encoding=T.sRGBEncoding;wallT.anisotropy=4;
   bx(1.86,1.1,.05,mat(0x15112a,.4),0,1.78,SZ-1.31);const wm=new T.Mesh(new T.PlaneGeometry(1.76,.99),new T.MeshBasicMaterial({map:wallT}));wm.position.set(0,1.78,SZ-1.28);G.add(wm);
   const rr=(g,x,y,w,hh,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+hh,r);g.arcTo(x+w,y+hh,x,y+hh,r);g.arcTo(x,y+hh,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();};
+  let scr={pill:'#6a3df0',cnt:'#4a2fc4',bg:'#f3efff',tint:'#e4dcff',tick:'#7b4dff'};
+  const mixC=(a,b,t)=>{const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16));const A=p(a),B=p(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');};
+  function setScreen(c){scr=/^#[0-9a-f]{6}$/i.test(c||'')?{pill:c,cnt:mixC(c,'#000000',.3),bg:mixC(c,'#ffffff',.92),tint:mixC(c,'#ffffff',.8),tick:c}:{pill:'#6a3df0',cnt:'#4a2fc4',bg:'#f3efff',tint:'#e4dcff',tick:'#7b4dff'};drawWall();}
   function drawWall(){
-    const g=wg,W=1024,H=576;g.clearRect(0,0,W,H);g.fillStyle='#f3efff';rr(g,0,0,W,H,34);g.fill();
-    g.fillStyle='#6a3df0';rr(g,28,24,610,92,46);g.fill();g.fillStyle='#fff';g.font='800 48px sans-serif';g.textBaseline='middle';g.fillText('What to Paint Today?',64,72);
-    g.fillStyle='#4a2fc4';rr(g,806,24,190,104,24);g.fill();g.fillStyle='#fff';g.textAlign='center';g.font='800 48px sans-serif';g.fillText(String(nSeated),900,60);g.font='600 26px sans-serif';g.fillText('Painting',900,102);g.textAlign='left';
+    const g=wg,W=1024,H=576;g.clearRect(0,0,W,H);g.fillStyle=scr.bg;rr(g,0,0,W,H,34);g.fill();
+    g.fillStyle=scr.pill;rr(g,28,24,610,92,46);g.fill();g.fillStyle='#fff';g.font='800 48px sans-serif';g.textBaseline='middle';g.fillText('What to Paint Today?',64,72);
+    g.fillStyle=scr.cnt;rr(g,806,24,190,104,24);g.fill();g.fillStyle='#fff';g.textAlign='center';g.font='800 48px sans-serif';g.fillText(String(nSeated),900,60);g.font='600 26px sans-serif';g.fillText('Painting',900,102);g.textAlign='left';
     const rc=sp.ref?refCanvas(sp.ref,()=>{drawWall();wallT.needsUpdate=true;R.markDirty&&R.markDirty();}):null;
     if(rc){g.save();rr(g,36,142,350,390,14);g.clip();g.drawImage(rc,36,142,350,390);g.restore();}
-    else{g.fillStyle='#e4dcff';rr(g,36,142,350,390,14);g.fill();g.fillStyle='#6a3df0';g.font='700 28px sans-serif';g.textAlign='center';g.fillText('Host picks',211,320);g.fillText('the picture',211,356);g.textAlign='left';}
+    else{g.fillStyle=scr.tint;rr(g,36,142,350,390,14);g.fill();g.fillStyle=scr.pill;g.font='700 28px sans-serif';g.textAlign='center';g.fillText('Host picks',211,320);g.fillText('the picture',211,356);g.textAlign='left';}
     g.fillStyle='#1d1a2b';g.font='800 38px sans-serif';g.fillText('Your Canvas',470,190);g.font='600 30px sans-serif';
     const items=sp.note?[sp.note]:['Grab your brush','Paint the picture','Enjoy your drink'];
     if(sp.note){g.fillStyle='#1d1a2b';g.font='600 30px sans-serif';const words=sp.note.split(' ');let line='',y=250;words.forEach(w=>{const t=line?line+' '+w:w;if(g.measureText(t).width>480&&line){g.fillText(line,470,y);y+=40;line=w;}else line=t;});if(line)g.fillText(line,470,y);}
-    else items.forEach((t,i)=>{const y=262+i*76;g.fillStyle='#7b4dff';g.beginPath();g.arc(490,y,20,0,7);g.fill();g.strokeStyle='#fff';g.lineWidth=5;g.beginPath();g.moveTo(481,y);g.lineTo(488,y+8);g.lineTo(500,y-8);g.stroke();g.fillStyle='#1d1a2b';g.font='600 32px sans-serif';g.fillText(t,526,y+2);});
+    else items.forEach((t,i)=>{const y=262+i*76;g.fillStyle=scr.tick;g.beginPath();g.arc(490,y,20,0,7);g.fill();g.strokeStyle='#fff';g.lineWidth=5;g.beginPath();g.moveTo(481,y);g.lineTo(488,y+8);g.lineTo(500,y-8);g.stroke();g.fillStyle='#1d1a2b';g.font='600 32px sans-serif';g.fillText(t,526,y+2);});
     if(sp.state!=='painting'){g.fillStyle='rgba(30,20,70,.72)';rr(g,0,0,W,H,34);g.fill();g.fillStyle='#fff';g.textAlign='center';g.font='800 64px sans-serif';g.fillText(sp.state==='paused'?'Paused':'Waiting for the host',512,270);g.font='600 34px sans-serif';g.fillText(sp.state==='paused'?'The host will resume shortly':'Painting starts soon',512,330);g.textAlign='left';}
     wallT.needsUpdate=true;R.markDirty&&R.markDirty();
   }
@@ -710,7 +714,7 @@ function attach(R,ctx){
     sp.state!=='painting'?h('span',{class:'pt-hs'},sp.state==='paused'?'Paused':ctx.isHost()?'Press Studio, pick a picture, then start':'Waiting for the host to start'):null].filter(Boolean));}
   paintHud();drawWall();
 
-  return{hud,
+  return{hud,setScreen,setBackdrop,
     update(D){if(dead)return;const s=Object.assign({},D.space);if(Date.now()<lockUntil){s.paint_ref=sp.ref;s.paint_state=sp.state;s.paint_note=sp.note;}const ch_=sp.ref!==s.paint_ref||sp.state!==s.paint_state||sp.note!==(s.paint_note||'');
       sp={ref:s.paint_ref||null,state:s.paint_state||'waiting',note:s.paint_note||'',title:s.title};seatSync();if(ch_){paintHud();ov&&ov._upd&&ov._upd();}},
     seatSync,

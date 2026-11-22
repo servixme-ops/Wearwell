@@ -42,7 +42,7 @@ class OWRoom{
     rows.forEach((r,ri)=>{const tw=r.reduce((a,i)=>a+dim(i).w,0)+gap*(r.length-1);let x=-tw/2;y-=rh[ri]/2;r.forEach((i,k)=>{const d=dim(i);i.x=x+d.w/2;i.y=y;i.rot=0;x+=d.w+gap;this.clampD(i);this.place(i);});y-=rh[ri]/2+gap;});
     this.refreshHelper();this.changed();return list.length;}
   get W(){return this.room.width}get D(){return this.room.depth}get H(){return this.room.height}
-  get th(){const t=Object.assign({},OW.THEMES.lagos,OW.THEMES[this.room.theme&&this.room.theme.key]||{}),f=this.room.theme&&this.room.theme.floor;if(typeof f==='string'&&/^#[0-9a-f]{6}$/i.test(f))t.floor=f;const w=this.room.theme&&this.room.theme.wall;if(typeof w==='string'&&/^#[0-9a-f]{6}$/i.test(w))t.wall=w;return t}
+  get th(){const t=Object.assign({},OW.THEMES.lagos,OW.THEMES[this.room.theme&&this.room.theme.key]||{}),f=this.room.theme&&this.room.theme.floor;if(typeof f==='string'&&/^#[0-9a-f]{6}$/i.test(f))t.floor=f;return t}
   /* ----- lights ----- */
   lights(){
     this.hemi=new THREE.HemisphereLight(0xfff1de,0x7a5a46,.85);this.sun=new THREE.DirectionalLight(0xfff0d6,.75);
@@ -84,14 +84,6 @@ class OWRoom{
     const df=(h,d,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.07,h,d),M(th.trim,.5));m.position.set(-W/2+.04,y,z);g.add(m);};df(2.1,.05,1.05,dz-.5);df(2.1,.05,1.05,dz+.5);df(.05,1.05,2.1,dz);
     const hd=new THREE.Mesh(new THREE.SphereGeometry(.035,10,8),M('#d4a82e',.3,.8));hd.position.set(-W/2+.08,1.0,dz+.35);g.add(hd);
     for(const[y,hh]of[[1.55,.7],[.6,.7]]){const p=new THREE.Mesh(new THREE.BoxGeometry(.02,hh,.62),M('#7a4a28',.7));p.position.set(-W/2+.06,y,dz);g.add(p);}}
-    /* brand banner on the back wall (Premium Gist & Paint hosts) */
-    const bn=this.room.theme&&this.room.theme.brand;
-    if(bn&&typeof bn.text==='string'&&bn.text.trim()){const bw=Math.min(W*.38,2.4),bh=.46,bc=OW.canvas(512,Math.round(512*bh/bw)),bx=bc.getContext('2d'),col=/^#[0-9a-f]{6}$/i.test(bn.color||'')?bn.color:'#6c4bff';
-      const lum=(parseInt(col.slice(1,3),16)*.3+parseInt(col.slice(3,5),16)*.59+parseInt(col.slice(5,7),16)*.11);
-      bx.fillStyle=col;bx.fillRect(0,0,bc.width,bc.height);bx.strokeStyle=lum>150?'rgba(0,0,0,.35)':'rgba(255,255,255,.55)';bx.lineWidth=5;bx.strokeRect(8,8,bc.width-16,bc.height-16);
-      const tx=bn.text.trim().slice(0,28);let fs=Math.round(bc.height*.5);bx.font='700 '+fs+'px system-ui,sans-serif';while(bx.measureText(tx).width>bc.width-60&&fs>12){fs-=2;bx.font='700 '+fs+'px system-ui,sans-serif';}
-      bx.fillStyle=lum>150?'#1a1a1a':'#ffffff';bx.textAlign='center';bx.textBaseline='middle';bx.fillText(tx,bc.width/2,bc.height/2+2);
-      const bm=new THREE.Mesh(new THREE.PlaneGeometry(bw,bh),new THREE.MeshBasicMaterial({map:OW.tex(bc)}));bm.position.set(-W*.22,Math.min(H-.35,2.35),-D/2+.012);g.add(bm);bm.userData.own=1;}
     /* pendant light */
     const lightOff=hid.light&&(!hid.until||Date.now()<hid.until);
     if(!lightOff){const cord=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.6,6),M('#222'));cord.position.set(0,H-.3,0);g.add(cord);
