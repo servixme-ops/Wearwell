@@ -242,9 +242,10 @@ async function room(id){
   const avCfg=p=>{try{if(p.avatar)return OWA.migrate(p.avatar);}catch(e){}let n=0;for(const c of p.id)n=(n*31+c.charCodeAt(0))|0;return OWA.def(n&1?'m':'f');};
   function syncStage(on){
     const seated=on.slice(0,20),ids=new Set(seated.map(p=>p.id));
-    {const n=seated.length,tier=n<=4?4:n<=8?8:n<=14?14:20;if(tier>(R.stage.lay?R.stage.lay.cap:4)){try{R.stageLayout(tier);PT&&PT.relayout&&PT.relayout();applyLook(true);}catch(e){}}}
+    {const n=seated.length,tier=n<=4?4:n<=8?8:n<=12?12:n<=16?16:20;if(tier>(R.stage.lay?R.stage.lay.cap:4)){try{R.stageLayout(tier);PT&&PT.relayout&&PT.relayout();applyLook(true);}catch(e){}}}
     R.stage.map.forEach((e,u)=>{if(!ids.has(u))R.stageRemove(u);});
     seated.forEach(p=>{R.stageAdd(p.id,avCfg(p));R.stageInfo(p.id,{name:person(p).split(' ')[0]+(p.id===Auth.user.id?' (you)':''),role:p.role==='host'?'Host':p.cohost?'Co-host':'',mic:!(p.muted||(audio.room&&!audio.isMicOn(p.id)))});});
+    {const ly=R.stage.lay;if(ly&&ly.aisle){if(ids.has(Auth.user.id))R.stageWalkerOff();else{const mp=D.participants.find(x=>x.id===Auth.user.id);if(mp)R.stageWalker(avCfg(mp));}}}
     PT&&PT.seatSync();
   }
   async function initStage(){
