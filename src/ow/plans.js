@@ -1,4 +1,4 @@
-/* ---------- Gist & Paint plans: pricing page, upgrade prompt, "My Sip & Paint Plan", payment return ----------
+/* ---------- Gist & Paint plans: pricing page, upgrade prompt, "My Gist & Paint Plan", payment return ----------
    Limits and entitlements live in Postgres (sp_* functions). Payments are created and verified by the
    plan-pay edge function with Paystack. Nothing here can switch Premium on: this file only asks the
    server and shows what it says. */
@@ -73,17 +73,17 @@ const OWPlans=(()=>{
           card({name:'Premium Session',price:fmtKobo(P.session_kobo),per:'one session',k:'session',btn:sessionBtn,note:'Pay once for one session. It never renews.'}),
           card({name:'Premium Monthly',price:fmtKobo(P.monthly_kobo),per:'a month',k:'monthly',btn:monthlyBtn,rec:true,note:P.monthly_recurring?'Renews every month until you cancel.':'Pay for a month at a time.'})),
         h('p',{class:'pl-foot'},'Painting, saving, downloading and sharing your artwork stay free for everyone. Limits are checked on our servers.'),
-        h('button',{class:'btn light',style:{margin:'4px auto 24px',display:'block'},onclick:()=>mySheet()},'My Sip & Paint Plan')));
+        h('button',{class:'btn light',style:{margin:'4px auto 24px',display:'block'},onclick:()=>mySheet()},'My Gist & Paint Plan')));
   }
 
   /* ---------- the prompt a Free host sees when seating a fifth painter ---------- */
   async function limitSheet(spaceId){
     const P=await prices();
     sheet('Make Room for More Creativity',(b,c)=>{
-      b.append(h('p',{class:'pl-p'},'Your current plan supports up to 4 speakers/painters. Upgrade to Premium to bring up to 20 people into your Gist & Paint session.'),
-        h('div',{class:'pl-opt'},h('div',null,h('b',null,'Premium Session – '+fmtKobo(P.session_kobo)),h('span',null,'Unlock up to 20 speakers/painters for this session only.')),
+      b.append(h('p',{class:'pl-p'},'Your current plan has 4 easels, you included. Upgrade to Premium for up to 20 painters on easels. Viewers and speakers are unlimited on every plan.'),
+        h('div',{class:'pl-opt'},h('div',null,h('b',null,'Premium Session – '+fmtKobo(P.session_kobo)),h('span',null,'Up to 20 painters on easels for this session only.')),
           h('button',{class:'btn coral',onclick:e=>buy('session',spaceId,e.currentTarget)},'Choose Premium Session')),
-        h('div',{class:'pl-opt'},h('div',null,h('b',null,'Premium Monthly – '+fmtKobo(P.monthly_kobo)+'/month'),h('span',null,'Host unlimited sessions with up to 20 participants each.')),
+        h('div',{class:'pl-opt'},h('div',null,h('b',null,'Premium Monthly – '+fmtKobo(P.monthly_kobo)+'/month'),h('span',null,'Host unlimited sessions with up to 20 painters on easels in each.')),
           h('button',{class:'btn light',onclick:e=>buy('monthly',null,e.currentTarget)},'Choose Monthly Premium')),
         h('p',{class:'pl-small'},'You will come back to this session after paying. Your invitations and painting stay as they are.'),
         h('button',{class:'btn ghost block',onclick:c},'Maybe Later'));
@@ -120,10 +120,10 @@ const OWPlans=(()=>{
     result(d,ret,ref);return true;
   }
 
-  /* ---------- My Sip & Paint Plan ---------- */
+  /* ---------- My Gist & Paint Plan ---------- */
   async function mySheet(){
     if(!needAuth('Sign in to see your plan'))return;
-    sheet('My Sip & Paint Plan',async(b,c)=>{
+    sheet('My Gist & Paint Plan',async(b,c)=>{
       b.append(spinner());
       let m;try{m=await rpc('sp_my_plan');}catch(e){b.replaceChildren(h('p',{class:'err-t'},errMsg(e)));return;}
       const sub=m.subscription,monthly=m.plan==='monthly',P=m.prices||{};

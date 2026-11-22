@@ -3,7 +3,7 @@ const app=document.getElementById('app');
 const RC={calc(look,items){const w=look.wear_count||0;const rows=items.map(i=>({price:Number(i.price)||0}));return{total:rows.reduce((a,r)=>a+r.price,0)};},money:(n,cur)=>fmtMoney(Math.round((Number(n)||0)*100)/100,cur||'NGN')};
 const Ads={async verify(reference){const r=await sb.functions.invoke('paystack-verify',{body:{reference}});let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(_){}}if(!d)throw new Error('Could not verify payment.');if(d.error&&!d.paid)throw new Error(d.message||'Could not verify payment.');return d;}};
 function thumb(look,w,h_){const c=mk(w,h_),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h_);drawFigure(g,look,w/2,h_*.05,h_*.9);return c;}
-const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['owctl','Spaces, Paint & Topics'],['plans','Sip & Paint plans'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
+const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['owctl','Spaces, Paint & Topics'],['plans','Gist & Paint plans'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
 let tab='overview',counts={};
 function loginView(msg){
   const em=h('input',{type:'email',placeholder:'Email',autocomplete:'email'}),pw=h('input',{type:'password',placeholder:'Password',autocomplete:'current-password'}),err=h('p',{class:'err-t'},msg||'');
@@ -43,7 +43,7 @@ function owads(main){return OWAds.adminPanel(main,dialog);}
 
 /* ---- OpenWalls control: feature switches, live spaces, reports, hosting bans, Gist & Paint artworks ---- */
 async function plans(main){
-  const box=sect(main,'Sip & Paint plans');box.append(spinner());
+  const box=sect(main,'Gist & Paint plans');box.append(spinner());
   const rpc=async(n,a)=>{const r=await sb.rpc(n,a||{});if(r.error)throw r.error;return r.data;};
   let o;try{o=await rpc('sp_admin_overview');}catch(e){box.replaceChildren(h('p',{class:'err-t'},errMsg(e)));return;}
   const again=()=>plans(main),dt=x=>x?new Date(x).toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';

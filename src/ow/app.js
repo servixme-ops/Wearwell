@@ -205,7 +205,7 @@ function settingsSheet(){
     body.append(h('div',{class:'list'},
       h('button',{onclick:()=>msg('suggestion','Suggestion','What would make OpenWalls better?')},icon('sliders'),h('span',{class:'grow'},'Suggestions')),
       h('button',{onclick:()=>msg('complaint','Complaint','Tell us what went wrong')},icon('lock'),h('span',{class:'grow'},'Complaint')),
-      h('button',{onclick:()=>{close();OWPlans.mySheet();}},icon('star'),h('span',{class:'grow'},'My Sip & Paint Plan')),
+      h('button',{onclick:()=>{close();OWPlans.mySheet();}},icon('star'),h('span',{class:'grow'},'My Gist & Paint Plan')),
       h('button',{onclick:pw},icon('lock'),h('span',{class:'grow'},'Change password')),
       h('button',{onclick:async()=>{if(!await confirmBox('Log out of all devices?','You will be signed out here and on every other phone or computer.','Log out everywhere',true))return;
         try{await sb.auth.signOut({scope:'global'});}catch(e){}
