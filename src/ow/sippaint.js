@@ -497,7 +497,13 @@ function attach(R,ctx){
   const sign=document.createElement('canvas');sign.width=768;sign.height=300;
   const NEONS=['#ff3fd0','#3fa9ff','#3dff9a','#ffd23f','#ff8a1f','#ff4d4d','#a66bff','#ffffff'];
   let neonC=(R.room&&R.room.theme&&R.room.theme.neon)||NEONS[0];let signT=null;
-  function drawSign(col){neonC=col||neonC;const g=sign.getContext('2d');g.clearRect(0,0,768,300);g.textAlign='center';g.font='italic 800 118px Georgia,serif';g.shadowColor=neonC;g.shadowBlur=28;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.shadowBlur=22;g.fillStyle=neonC;g.fillText('Gist & Paint',384,125);g.shadowBlur=0;g.fillStyle='#fff';g.fillText('Gist & Paint',384,125);g.font='italic 600 40px Georgia,serif';g.shadowColor=neonC;g.shadowBlur=12;g.fillText('Create \u00b7 Gist \u00b7 Connect',384,200);g.shadowBlur=0;g.strokeStyle=neonC;g.lineWidth=8;g.lineCap='round';g.beginPath();g.moveTo(190,230);g.lineTo(580,222);g.stroke();if(signT)signT.needsUpdate=true;}
+  let signTxt='Gist & Paint',tagTxt='Create \u00b7 Gist \u00b7 Connect';
+  function drawSign(col){neonC=col||neonC;const g=sign.getContext('2d');g.clearRect(0,0,768,300);g.textAlign='center';
+    let fs=118;g.font='italic 800 '+fs+'px Georgia,serif';while(g.measureText(signTxt).width>700&&fs>40){fs-=4;g.font='italic 800 '+fs+'px Georgia,serif';}
+    const y1=125-(118-fs)*.25;g.shadowColor=neonC;g.shadowBlur=28;g.fillStyle='#fff';g.fillText(signTxt,384,y1);g.shadowBlur=22;g.fillStyle=neonC;g.fillText(signTxt,384,y1);g.shadowBlur=0;g.fillStyle='#fff';g.fillText(signTxt,384,y1);
+    let f2=40;g.font='italic 600 '+f2+'px Georgia,serif';while(g.measureText(tagTxt).width>700&&f2>18){f2-=2;g.font='italic 600 '+f2+'px Georgia,serif';}
+    g.shadowColor=neonC;g.shadowBlur=12;g.fillText(tagTxt,384,200);g.shadowBlur=0;g.strokeStyle=neonC;g.lineWidth=8;g.lineCap='round';g.beginPath();g.moveTo(190,230);g.lineTo(580,222);g.stroke();if(signT)signT.needsUpdate=true;R.markDirty&&R.markDirty();}
+  function setSignText(a,b){const x=(a||'').trim().slice(0,18),y=(b||'').trim().slice(0,32);const nx=x||'Gist & Paint',ny=y||'Create \u00b7 Gist \u00b7 Connect';if(nx===signTxt&&ny===tagTxt)return;signTxt=nx;tagTxt=ny;drawSign();}
   drawSign();
   signT=new T.CanvasTexture(sign);signT.encoding=T.sRGBEncoding;const sm=new T.Mesh(new T.PlaneGeometry(1.7,.665),new T.MeshBasicMaterial({map:signT,transparent:true}));sm.position.set(0,2.62,SZ-1.31);G.add(sm);
   /* reference screen */
@@ -714,7 +720,7 @@ function attach(R,ctx){
     sp.state!=='painting'?h('span',{class:'pt-hs'},sp.state==='paused'?'Paused':ctx.isHost()?'Press Studio, pick a picture, then start':'Waiting for the host to start'):null].filter(Boolean));}
   paintHud();drawWall();
 
-  return{hud,setScreen,setBackdrop,
+  return{hud,setScreen,setBackdrop,setSignText,
     update(D){if(dead)return;const s=Object.assign({},D.space);if(Date.now()<lockUntil){s.paint_ref=sp.ref;s.paint_state=sp.state;s.paint_note=sp.note;}const ch_=sp.ref!==s.paint_ref||sp.state!==s.paint_state||sp.note!==(s.paint_note||'');
       sp={ref:s.paint_ref||null,state:s.paint_state||'waiting',note:s.paint_note||'',title:s.title};seatSync();if(ch_){paintHud();ov&&ov._upd&&ov._upd();}},
     seatSync,
