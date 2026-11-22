@@ -232,7 +232,7 @@ async function room(id){
   function paintStage(){
     if(!D)return;const ps=D.participants.filter(p=>!p.blocked||p.role==='host');
     let on=ps.filter(p=>p.role==='host'||p.role==='speaker'),ls=ps.filter(p=>p.role==='listener');
-    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));const seat=all.filter(p=>p.role==='host'||p.painter).slice(0,4);on=seat;ls=all.filter(p=>p.role!=='host'&&!p.painter).sort((a,b)=>(speaking.has(b.id)-speaking.has(a.id))||((b.role==='speaker')-(a.role==='speaker'))||(!!b.hand-!!a.hand));}
+    if(paintMode()){const all=[...ps].sort((a,b)=>(b.role==='host')-(a.role==='host')||new Date(a.joined_at||0)-new Date(b.joined_at||0));const seat=all.filter(p=>p.role==='host'||p.painter).sort((a,b)=>(b.role==='host')-(a.role==='host')||(!!b.cohost-!!a.cohost)).slice(0,20);on=seat;ls=all.filter(p=>p.role!=='host'&&!p.painter).sort((a,b)=>(speaking.has(b.id)-speaking.has(a.id))||((b.role==='speaker')-(a.role==='speaker'))||(!!b.hand-!!a.hand));}
     paintVoice();
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm'),p.role==='speaker'?h('i',{class:'sp-vm'+(p.muted?' off':'')},icon(p.muted?'micoff':'mic')):null),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},paintMode()?'No viewers yet. Share the link to invite people.':'No listeners yet. Share the link to invite people.')]));const lh=v.querySelector('#sp-lh');if(lh)lh.textContent=paintMode()?'Viewing':'Listening';
@@ -241,7 +241,8 @@ async function room(id){
   }
   const avCfg=p=>{try{if(p.avatar)return OWA.migrate(p.avatar);}catch(e){}let n=0;for(const c of p.id)n=(n*31+c.charCodeAt(0))|0;return OWA.def(n&1?'m':'f');};
   function syncStage(on){
-    const seated=on.slice(0,4),ids=new Set(seated.map(p=>p.id));
+    const seated=on.slice(0,20),ids=new Set(seated.map(p=>p.id));
+    {const n=seated.length,tier=n<=4?4:n<=8?8:n<=14?14:20;if(tier>(R.stage.lay?R.stage.lay.cap:4)){try{R.stageLayout(tier);PT&&PT.relayout&&PT.relayout();applyLook(true);}catch(e){}}}
     R.stage.map.forEach((e,u)=>{if(!ids.has(u))R.stageRemove(u);});
     seated.forEach(p=>{R.stageAdd(p.id,avCfg(p));R.stageInfo(p.id,{name:person(p).split(' ')[0]+(p.id===Auth.user.id?' (you)':''),role:p.role==='host'?'Host':p.cohost?'Co-host':'',mic:!(p.muted||(audio.room&&!audio.isMicOn(p.id)))});});
     PT&&PT.seatSync();
