@@ -445,12 +445,23 @@ async function galleryView(spaceId,title,opts){
   let rows=[];try{const r=await sb.rpc('paint_list',{p_space:spaceId});if(r.error)throw r.error;rows=(r.data||[]).filter(x=>(x.ops||[]).some(o=>o.k==='s'));}catch(e){box.replaceChildren(empty('Could not load the gallery',friendlyError(e)));return box;}
   box.querySelector('.spin-wrap')&&box.querySelector('.spin-wrap').remove();
   if(!rows.length){box.append(empty('No paintings yet','Paintings appear here once people have painted something.'));return box;}
-  rows.sort((a,b)=>(b.done-a.done));
+  rows.sort((a,b)=>(b.done-a.done)||((b.votes||0)-(a.votes||0)));
+  const prem=!!(rows[0]&&rows[0].premium);const cards=[];
+  const fm=n=>{n=Math.max(0,Math.round(n));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');};
+  const st0=rows[0]&&rows[0].started_at?new Date(rows[0].started_at).getTime():0,en0=rows[0]&&rows[0].ends_at?new Date(rows[0].ends_at).getTime():0;
+  let fast=null;if(prem&&st0){rows.forEach(r=>{if(!r.done||!r.done_at)return;const t=new Date(r.done_at).getTime();if(en0&&t>en0)return;if(!fast||t<fast.t)fast={u:r.user_id,t};});}
+  const refreshV=()=>{let top=null;rows.forEach(r=>{if((r.votes||0)>0&&(!top||r.votes>top.v))top={u:r.user_id,v:r.votes};});
+    cards.forEach(c=>{const r=c.r;c.cnt.textContent=prem?String(r.votes||0)+((r.votes||0)===1?' vote':' votes'):'';if(c.btn){c.btn.textContent=r.my_vote?'Voted ✓':'Vote';c.btn.classList.toggle('coral',!r.my_vote);}
+      const bd=[];if(fast&&fast.u===r.user_id)bd.push('⚡ Fastest finisher '+fm((fast.t-st0)/1000));if(top&&top.u===r.user_id)bd.push('🏆 Most votes');c.bd.replaceChildren(...bd.map(t=>h('span',{class:'pt-aw'},t)));});};
   rows.forEach(r=>{const pc=new PC();pc.load(r.ops);const url=pc.cv.toDataURL('image/jpeg',.88),mine=Auth.user&&r.user_id===Auth.user.id;
     const save=mine?h('button',{class:'btn small coral'},'Save to my gallery'):null;
     if(save)save.onclick=()=>guard(save,async()=>{const blob=await new Promise(res=>pc.hires(2).toBlob(res,'image/jpeg',.95));const path=await uploadFile('room-images',blob,'jpg','image/jpeg');const x=await sb.rpc('paint_artwork_save',{p_path:path,p_title:'Painting by @'+r.username,p_space_title:title||''});if(x.error)throw x.error;save.textContent='Saved';save.disabled=true;toast('Saved to your gallery');});
     const dl=h('button',{class:'btn small'},'Download HD');dl.onclick=()=>guard(dl,async()=>{const blob=await new Promise(res=>pc.hires(4).toBlob(res,'image/png'));download(blob,'openwalls-painting-'+(r.username||'art')+'.png');});
-    grid.append(h('div',{class:'pt-gc'},h('img',{src:url,alt:'Painting by @'+r.username}),h('div',{class:'pt-gw'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,'@'+r.username),h('span',null,(r.done?'Completed':'In progress')+' · '+(title||'Gist & Paint')))),save,dl));});
+    const cnt=h('span',{class:'pt-vc'}),bd=h('div',{class:'pt-awr'});let vb=null;
+    if(prem&&!mine&&Auth.user){vb=h('button',{class:'btn small'},'Vote');vb.onclick=()=>guard(vb,async()=>{const was=!!r.my_vote;const x=await sb.rpc('paint_vote',{p_space:spaceId,p_artist:was?null:r.user_id});if(x.error)throw x.error;rows.forEach(o=>{if(o.my_vote){o.my_vote=false;o.votes=Math.max(0,(o.votes||0)-1);}});if(!was){r.my_vote=true;r.votes=(r.votes||0)+1;}refreshV();toast(was?'Vote removed':'Vote saved. You can change it any time.');});}
+    cards.push({r,cnt,btn:vb,bd});
+    grid.append(h('div',{class:'pt-gc'},h('img',{src:url,alt:'Painting by @'+r.username}),bd,h('div',{class:'pt-gw'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',null,h('b',null,'@'+r.username),h('span',null,(r.done?'Completed':'In progress')+' · '+(title||'Gist & Paint')))),h('div',{class:'pt-vrow'},cnt,vb),save,dl));});
+  refreshV();
   return box;
 }
 function openArtwork(a){
@@ -475,7 +486,7 @@ async function myArtworks(){
 /* ---------------- attach the studio to a running Space stage ---------------- */
 function attach(R,ctx){
   const st=R.stage,S=R.STAGE,SX=S.SX,SZ=S.SZ,DESKY=S.DESKY,me=Auth.user.id,spaceId=ctx.id;
-  const canv=new Map();let dead=false,ch=null,chOk=false,saveT=null,flushT=null,pending=null,cur=null,sp={ref:null,state:'waiting',note:'',title:''},nSeated=0,lastPaintPing=0,ov=null,lockUntil=0;
+  const canv=new Map();let dead=false,ch=null,chOk=false,saveT=null,flushT=null,pending=null,cur=null,sp={ref:null,state:'waiting',note:'',title:'',ends:0},award=null,upFlag=false,skew=0,nSeated=0,lastPaintPing=0,ov=null,lockUntil=0;
   const redraw=(()=>{let q=false;return()=>{if(q||dead)return;q=true;requestAnimationFrame(()=>{q=false;if(dead||ov)return;canv.forEach(pc=>{if(pc.tex)pc.tex.needsUpdate=true;});R.markDirty&&R.markDirty();});};})();
   const get=uid=>{let pc=canv.get(uid);if(!pc){pc=new PC(redraw);canv.set(uid,pc);}return pc;};
   const mine=get(me);
@@ -492,7 +503,43 @@ function attach(R,ctx){
   for(let i=0;i<3;i++){const l=new T.Mesh(new T.SphereGeometry(.07,12,10),new T.MeshBasicMaterial({color:0xffe2a8}));l.position.set((i-1)*1.2,2.95,SZ-.2);G.add(l);}
   const warm=new T.PointLight(0xffd9a8,.7,7);warm.position.set(0,2.6,SZ+.6);G.add(warm);
   /* plants */
-  [-1.75,1.75].forEach(x=>{bx(.34,.34,.34,mat(0xf1eef9,.5),x,.17,SZ-1.1);const b=mat(0x2f9e5b,.8);for(let i=0;i<7;i++){const s=new T.Mesh(new T.SphereGeometry(.17+.05*(i%3),10,8),b);s.scale.set(.8,1.3,.8);s.position.set(x+Math.sin(i*1.7)*.2,.62+i*.05,SZ-1.1+Math.cos(i*1.7)*.15);G.add(s);}});
+  const plantGs=[];let plantKind='bush';
+  function buildPlants(kind){
+    plantKind=kind||'bush';plantGs.forEach(g=>{G.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();});});plantGs.length=0;
+    const cyl=(g,rt,rb,hh,m,x,y,z,rx,rz)=>{const o=new T.Mesh(new T.CylinderGeometry(rt,rb,hh,7),m);o.position.set(x,y,z);if(rx)o.rotation.x=rx;if(rz)o.rotation.z=rz;g.add(o);return o;};
+    const ball=(g,r,m,x,y,z,sx,sy,sz)=>{const o=new T.Mesh(new T.SphereGeometry(r,8,6),m);o.position.set(x,y,z);o.scale.set(sx||1,sy||1,sz||1);g.add(o);return o;};
+    [-1.75,1.75].forEach((x,side)=>{
+      const g=new T.Group();g.position.set(x,0,SZ-1.1);G.add(g);plantGs.push(g);
+      const pot=new T.Mesh(new T.BoxGeometry(.34,.34,.34),mat(0xf1eef9,.5));pot.position.y=.17;g.add(pot);
+      const gr=mat(0x2f9e5b,.8),dg=mat(0x1f7a44,.8);
+      if(plantKind==='tulip'){
+        const cols=[0xe63946,0xff7aa8,0xffd23f,0xb04dff];
+        for(let i=0;i<6;i++){const a=i*1.05,r=.07+.03*(i%2),hh=.55+.12*(i%3),px=Math.sin(a)*r,pz=Math.cos(a)*r;cyl(g,.01,.012,hh,gr,px,.34+hh/2,pz);const hd=ball(g,.055,mat(cols[(i+side)%4],.5),px,.34+hh+.03,pz,.85,1.25,.85);}
+        for(let i=0;i<4;i++){const a=i*1.6;const l=ball(g,.06,dg,Math.sin(a)*.1,.5,Math.cos(a)*.1,.35,2.2,.8);l.rotation.z=Math.sin(a)*.3;}
+      }else if(plantKind==='sunflower'){
+        for(let i=0;i<3;i++){const hh=.95+.18*i,px=(i-1)*.09,pz=(i%2)*.05-.02;cyl(g,.014,.018,hh,gr,px,.34+hh/2,pz);
+          const hy=.34+hh;const disc=cyl(g,.07,.07,.025,mat(0x5a3a1a,.8),px,hy,pz+.02,Math.PI/2);for(let k=0;k<10;k++){const a=k*Math.PI/5;const pe=ball(g,.032,mat(0xffc21f,.5),px+Math.cos(a)*.095,hy+Math.sin(a)*.095,pz+.015,1,1.7,.4);pe.rotation.z=a+Math.PI/2;}
+          ball(g,.05,dg,px+.07,.34+hh*.45,pz,1.6,.25,.8);}
+      }else if(plantKind==='rose'){
+        for(let i=0;i<7;i++)ball(g,.17+.04*(i%3),gr,Math.sin(i*1.7)*.18,.58+i*.04,Math.cos(i*1.7)*.14,.85,1.1,.85);
+        const rc=[0xe63946,0xff4d6d,0xff8fa3];for(let i=0;i<7;i++){const a=i*0.95;const rr_=ball(g,.05,mat(rc[(i+side)%3],.45),Math.sin(a)*.2,.72+(i%3)*.1,Math.cos(a)*.18+.04);ball(g,.028,mat(0xb11226,.5),rr_.position.x,rr_.position.y+.01,rr_.position.z+.02);}
+      }else if(plantKind==='cactus'){
+        cyl(g,.1,.11,.8,gr,0,.74,0);ball(g,.1,gr,0,1.14,0);
+        cyl(g,.05,.05,.28,gr,.16,.84,0,0,Math.PI/2);cyl(g,.05,.05,.3,gr,.26,1.0,0);ball(g,.05,gr,.26,1.15,0);
+        cyl(g,.05,.05,.24,gr,-.15,.74,0,0,Math.PI/2);cyl(g,.05,.05,.26,gr,-.25,.88,0);ball(g,.05,gr,-.25,1.01,0);
+        ball(g,.045,mat(0xff5fa2,.5),0,1.22,0);
+      }else if(plantKind==='fern'){
+        for(let i=0;i<12;i++){const a=i*Math.PI*2/12,tilt=.55+.2*(i%3);const l=ball(g,.07,i%2?gr:dg,Math.sin(a)*.2,.62+.04*(i%3),Math.cos(a)*.2,.5,3.4+.4*(i%3),.18);l.rotation.z=-Math.sin(a)*tilt;l.rotation.x=Math.cos(a)*tilt;}
+      }else if(plantKind==='lavender'){
+        for(let i=0;i<14;i++){const a=i*2.4,r=.04+.09*((i*7)%5)/4,px=Math.sin(a)*r*1.6,pz=Math.cos(a)*r*1.6,hh=.55+.08*(i%4);cyl(g,.007,.009,hh,gr,px,.34+hh/2,pz);cyl(g,.022,.014,.2,mat(i%2?0x9b6bff:0x7b4dd8,.55),px,.34+hh+.08,pz);}
+      }else{
+        const b=gr;for(let i=0;i<7;i++){const sp_=new T.Mesh(new T.SphereGeometry(.17+.05*(i%3),10,8),b);sp_.scale.set(.8,1.3,.8);sp_.position.set(Math.sin(i*1.7)*.2,.62+i*.05,Math.cos(i*1.7)*.15);g.add(sp_);}
+      }
+    });
+    R.markDirty&&R.markDirty(true);
+  }
+  buildPlants('bush');
+  function setPlant(k){const kk=['bush','tulip','sunflower','rose','cactus','fern','lavender'].includes(k)?k:'bush';if(kk!==plantKind)buildPlants(kk);}
   /* neon sign */
   const sign=document.createElement('canvas');sign.width=768;sign.height=300;
   const NEONS=['#ff3fd0','#3fa9ff','#3dff9a','#ffd23f','#ff8a1f','#ff4d4d','#a66bff','#ffffff'];
@@ -513,6 +560,10 @@ function attach(R,ctx){
   let scr={pill:'#6a3df0',cnt:'#4a2fc4',bg:'#f3efff',tint:'#e4dcff',tick:'#7b4dff'};
   const mixC=(a,b,t)=>{const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16));const A=p(a),B=p(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');};
   function setScreen(c){scr=/^#[0-9a-f]{6}$/i.test(c||'')?{pill:c,cnt:mixC(c,'#000000',.3),bg:mixC(c,'#ffffff',.92),tint:mixC(c,'#ffffff',.8),tick:c}:{pill:'#6a3df0',cnt:'#4a2fc4',bg:'#f3efff',tint:'#e4dcff',tick:'#7b4dff'};drawWall();}
+  const nowS=()=>Date.now()+skew;
+  const timeUp=()=>!!sp.ends&&nowS()>=sp.ends;
+  const openNow=()=>sp.state==='painting'&&!timeUp();
+  const fmtT=n=>{n=Math.max(0,Math.round(n));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');};
   function drawWall(){
     const g=wg,W=1024,H=576;g.clearRect(0,0,W,H);g.fillStyle=scr.bg;rr(g,0,0,W,H,34);g.fill();
     g.fillStyle=scr.pill;rr(g,28,24,610,92,46);g.fill();g.fillStyle='#fff';g.font='800 48px sans-serif';g.textBaseline='middle';g.fillText('What to Paint Today?',64,72);
@@ -524,7 +575,9 @@ function attach(R,ctx){
     const items=sp.note?[sp.note]:['Grab your brush','Paint the picture','Enjoy your drink'];
     if(sp.note){g.fillStyle='#1d1a2b';g.font='600 30px sans-serif';const words=sp.note.split(' ');let line='',y=250;words.forEach(w=>{const t=line?line+' '+w:w;if(g.measureText(t).width>480&&line){g.fillText(line,470,y);y+=40;line=w;}else line=t;});if(line)g.fillText(line,470,y);}
     else items.forEach((t,i)=>{const y=262+i*76;g.fillStyle=scr.tick;g.beginPath();g.arc(490,y,20,0,7);g.fill();g.strokeStyle='#fff';g.lineWidth=5;g.beginPath();g.moveTo(481,y);g.lineTo(488,y+8);g.lineTo(500,y-8);g.stroke();g.fillStyle='#1d1a2b';g.font='600 32px sans-serif';g.fillText(t,526,y+2);});
-    if(sp.state!=='painting'){g.fillStyle='rgba(30,20,70,.72)';rr(g,0,0,W,H,34);g.fill();g.fillStyle='#fff';g.textAlign='center';g.font='800 64px sans-serif';g.fillText(sp.state==='paused'?'Paused':'Waiting for the host',512,270);g.font='600 34px sans-serif';g.fillText(sp.state==='paused'?'The host will resume shortly':'Painting starts soon',512,330);g.textAlign='left';}
+    if(!openNow()){g.fillStyle='rgba(30,20,70,.72)';rr(g,0,0,W,H,34);g.fill();g.fillStyle='#fff';g.textAlign='center';const up=timeUp();g.font='800 64px sans-serif';g.fillText(up?"Time's up!":sp.state==='paused'?'Paused':'Waiting for the host',512,250);g.font='600 34px sans-serif';
+      if(up){const f=award&&award.fastest;g.fillText(f?'\u26a1 Fastest finisher: @'+f.username+' in '+fmtT(f.seconds):'Painting time is over',512,318);if(award&&award.top)g.fillText('\ud83c\udfc6 Most votes: @'+award.top.username+' ('+award.top.votes+')',512,370);else g.fillText('Open the Gallery to vote',512,370);}
+      else{g.fillText(sp.state==='paused'?'The host will resume shortly':'Painting starts soon',512,310);}g.textAlign='left';}
     wallT.needsUpdate=true;R.markDirty&&R.markDirty();
   }
   /* table: easels + canvases, palettes, paints, cups */
@@ -641,8 +694,8 @@ function attach(R,ctx){
         h('div',{class:'pt-hc',style:{marginTop:'10px'}},h('button',{class:'btn small',onclick:()=>{strokes=[];paint();}},'Clear'),h('button',{class:'btn small',onclick:()=>{mine.ops=mine.ops.filter(o=>!o.sig);mine.render();changed(true);closeS();}},'Remove signature'),h('button',{class:'btn small',onclick:closeS},offer?'Skip':'Cancel'),h('button',{class:'btn coral small',onclick:stamp},'Sign'))));
       ov.append(box);paint();
     }
-    const allowed=()=>sp.state==='painting';
-    function paintBan(){banner.textContent=sp.state==='painting'?'':(sp.state==='paused'?'Painting is paused by the host':'Waiting for the host to start the session');banner.style.display=sp.state==='painting'?'none':'';}
+    const allowed=()=>openNow();
+    function paintBan(){const ok=openNow();banner.textContent=ok?'':(timeUp()?"Time's up! Check the Gallery for the fastest finisher":sp.state==='paused'?'Painting is paused by the host':'Waiting for the host to start the session');banner.style.display=ok?'none':'';}
     const pos=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*CW,(e.clientY-r.top)/r.height*CH];};
     let lastMoveT=0;const endStroke=()=>{if(drawing===null)return;drawing=null;try{flush();}catch(x){}cur=null;saveSoon();};
     /* two fingers = pinch to zoom and drag to move; one finger always paints. A second finger landing right after a stroke began cancels that tiny stroke so no stray mark is left */
@@ -701,8 +754,11 @@ function attach(R,ctx){
       const saveN=h('button',{class:'btn small'},'Show on the screen');saveN.onclick=()=>send_('note',note.value);
       const clr=h('button',{class:'btn small'},'Clear picture');clr.onclick=()=>send_('ref','');
       const ctl=h('div',{class:'pt-hc'},sp.state==='waiting'?h('button',{class:'btn coral',onclick:()=>send_('start')},'Start painting'):sp.state==='painting'?h('button',{class:'btn',onclick:()=>send_('pause')},'Pause'):h('button',{class:'btn coral',onclick:()=>send_('resume')},'Resume'));
+      const timerSet=async m=>{try{const r=await sb.rpc('paint_host',{p_space:spaceId,p_action:'timer',p_val:String(m)});if(r.error)throw r.error;sp.ends=m?nowS()+m*60000:0;if(m)sp.state='painting';upFlag=false;award=null;lockUntil=Date.now()+6000;seatSync();paintHud();tickClock();ov&&ov._upd&&ov._upd();ctx.refresh&&ctx.refresh();toast(m?'Countdown started: '+m+' minutes':'Countdown cleared');draw();}catch(e){if(/PREMIUM_REQUIRED/.test(String(e&&e.message||e))){close();typeof OWPlans!=='undefined'&&OWPlans.limitSheet(spaceId);return;}toast(friendlyError(e),'err');}};
+      const tmRow=h('div',{class:'pt-neon pt-tmrow'},...[10,15,20,30,45,60].map(m=>h('button',{class:'btn small',onclick:()=>timerSet(m)},m+' min')),sp.ends?h('button',{class:'btn small',onclick:()=>timerSet(0)},'Clear'):null);
       const neonRow=h('div',{class:'pt-neon'},NEONS.map(c=>h('button',{class:'pt-nsw'+(c.toLowerCase()===String(neonC).toLowerCase()?' on':''),style:{background:c},'aria-label':'Neon colour '+c,onclick:()=>{drawSign(c);send('neon',{c});Store.hostNeon&&Store.hostNeon(c);[...neonRow.children].forEach(x=>x.classList.toggle('on',x===neonRow.children[NEONS.indexOf(c)]));}})));
       body.append(h('p',{class:'f-hint'},'Session: '+(sp.state==='waiting'?'waiting to start':sp.state)),ctl,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Reference picture'),grid,h('div',{class:'pt-hc',style:{marginTop:'8px'}},clr),h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Instructions'),note,h('div',{style:{marginTop:'6px'}},saveN),
+        h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Painting countdown (Premium)'),h('p',{class:'f-hint',style:{margin:'0 0 6px'}},'Starts now and ends painting for everyone. The first painter to mark Completed wins the Fastest finisher award.'),tmRow,
         h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Neon sign colour'),neonRow,
         h('div',{class:'pt-hc',style:{marginTop:'14px'}},h('button',{class:'btn small',onclick:()=>{close();galleryModal();}},'Show all paintings')));
     };build();
@@ -712,17 +768,28 @@ function attach(R,ctx){
 
   /* ---- HUD buttons ---- */
   const hud=h('div',{class:'pt-hud'});
+  const tchip=h('span',{class:'pt-hs pt-tm'});
   function paintHud(){hud.replaceChildren(...[
+    sp.ends?tchip:null,
     h('button',{class:'pt-hb coral',onclick:openPaint},st.map.has(me)?'Paint':'Watching'),
     h('button',{class:'pt-hb',onclick:showRef},'Reference'),
     h('button',{class:'pt-hb',onclick:galleryModal},'Gallery'),
     ctx.isHost()?h('button',{class:'pt-hb',onclick:studio},'Studio'):null,
     sp.state!=='painting'?h('span',{class:'pt-hs'},sp.state==='paused'?'Paused':ctx.isHost()?'Press Studio, pick a picture, then start':'Waiting for the host to start'):null].filter(Boolean));}
-  paintHud();drawWall();
+  async function loadAward(){try{const r=await sb.rpc('paint_award',{p_space:spaceId});if(!r.error){award=r.data||null;drawWall();ov&&ov._upd&&ov._upd();}}catch(e){}}
+  function tickClock(){
+    if(!sp.ends){tchip.textContent='';return;}
+    const ms=sp.ends-nowS();
+    if(ms>0){tchip.textContent='\u23f1 '+fmtT(Math.ceil(ms/1000))+' to paint';tchip.classList.toggle('low',ms<=60000);}
+    else{tchip.textContent="\u23f1 Time's up";tchip.classList.add('low');if(!upFlag){upFlag=true;toast("Time's up! Open the Gallery to see the fastest finisher and vote.");try{saveNow();}catch(e){}paintHud();drawWall();ov&&ov._upd&&ov._upd();setTimeout(loadAward,2500);}}
+  }
+  const clockT=setInterval(()=>{if(dead)clearInterval(clockT);else if(sp.ends)tickClock();},1000);
+  paintHud();drawWall();tickClock();
 
-  return{hud,setScreen,setBackdrop,setSignText,
+
+  return{hud,setScreen,setBackdrop,setSignText,setPlant,
     update(D){if(dead)return;const s=Object.assign({},D.space);if(Date.now()<lockUntil){s.paint_ref=sp.ref;s.paint_state=sp.state;s.paint_note=sp.note;}const ch_=sp.ref!==s.paint_ref||sp.state!==s.paint_state||sp.note!==(s.paint_note||'');
-      sp={ref:s.paint_ref||null,state:s.paint_state||'waiting',note:s.paint_note||'',title:s.title};seatSync();if(ch_){paintHud();ov&&ov._upd&&ov._upd();}},
+      if(s.server_now){const x=new Date(s.server_now).getTime();if(x)skew=x-Date.now();}const ne=s.paint_ends_at?new Date(s.paint_ends_at).getTime():0;const ce=ne!==sp.ends;sp={ref:s.paint_ref||null,state:s.paint_state||'waiting',note:s.paint_note||'',title:s.title,ends:ne};if(ce){upFlag=false;award=null;tickClock();}seatSync();if(ch_||ce){paintHud();ov&&ov._upd&&ov._upd();}},
     seatSync,
     async finalSave(){ctx.final=true;await saveNow();},
     destroy(){dead=true;clearTimeout(saveT);try{if(ov){mine.cv.remove();ov.remove();ov=null;}}catch(e){}try{R.host.removeEventListener('click',onClick);}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}badges.forEach(b=>b.remove());hud.remove();}};
