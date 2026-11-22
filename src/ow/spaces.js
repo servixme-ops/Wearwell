@@ -173,7 +173,7 @@ async function room(id){
   const chatBox=h('div',{class:'sp-chat'},chatX,msgs,h('div',{class:'cin'},inp,sendB));
   const top=h('div',{class:'sp-topbar'});
   v.append(top,banner,tbox,h('div',{class:'sp-scroll'},reqBox,h('h4',{class:'sp-h sp-hstage'},'On stage'),stage,h('h4',{class:'sp-h',id:'sp-lh'},'Listening'),crowd),floats,chatBox,bar);
-  const me=()=>D&&D.me;const role=()=>(me()&&me().role)||'listener';const isHost=()=>role()==='host';const onStage=()=>role()==='host'||role()==='speaker';
+  const me=()=>D&&D.me;const role=()=>(me()&&me().role)||'listener';const isHost=()=>role()==='host';const isMgr=()=>isHost()||!!(me()&&me().cohost);const onStage=()=>role()==='host'||role()==='speaker';
   const user=u=>({id:u.id,username:u.username,display_name:u.display_name,avatar_url:u.avatar_url});
 
   const ev=(k,a,b)=>{
@@ -226,7 +226,7 @@ async function room(id){
     const t=h('button',{class:'sp-tile'+(big?' big':''),'data-uid':p.id,onclick:()=>personSheet(p)},
       h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p)),
       h('span',{class:'sp-name'},person(p)+(p.id===Auth.user.id?' (you)':'')),
-      h('span',{class:'sp-role'},p.role==='host'?'Host':'Speaker',h('span',{class:'sp-mic '+(mic==='mute'?'off':'on')},icon(mic==='mute'?'micoff':'mic'))));
+      h('span',{class:'sp-role'},p.role==='host'?'Host':p.cohost?'Co-host':'Speaker',h('span',{class:'sp-mic '+(mic==='mute'?'off':'on')},icon(mic==='mute'?'micoff':'mic'))));
     return t;
   }
   function paintStage(){
@@ -243,7 +243,7 @@ async function room(id){
   function syncStage(on){
     const seated=on.slice(0,4),ids=new Set(seated.map(p=>p.id));
     R.stage.map.forEach((e,u)=>{if(!ids.has(u))R.stageRemove(u);});
-    seated.forEach(p=>{R.stageAdd(p.id,avCfg(p));R.stageInfo(p.id,{name:person(p).split(' ')[0]+(p.id===Auth.user.id?' (you)':''),role:p.role==='host'?'Host':'',mic:!(p.muted||(audio.room&&!audio.isMicOn(p.id)))});});
+    seated.forEach(p=>{R.stageAdd(p.id,avCfg(p));R.stageInfo(p.id,{name:person(p).split(' ')[0]+(p.id===Auth.user.id?' (you)':''),role:p.role==='host'?'Host':p.cohost?'Co-host':'',mic:!(p.muted||(audio.room&&!audio.isMicOn(p.id)))});});
     PT&&PT.seatSync();
   }
   async function initStage(){
@@ -271,7 +271,7 @@ async function room(id){
     document.querySelectorAll('.sp-view [data-uid]').forEach(el=>{const r=el.querySelector('.sp-ring');if(r)r.classList.toggle('on',speaking.has(el.dataset.uid));});
   }
   function paintReq(){
-    if(!isHost()||!D.requests.length){reqBox.replaceChildren();return;}
+    if(!isMgr()||!D.requests.length){reqBox.replaceChildren();return;}
     reqBox.replaceChildren(h('div',{class:'sp-reqs'},h('h4',{class:'sp-h'},'✋ Wants to speak ('+D.requests.length+')'),...D.requests.map(q=>h('div',{class:'sp-person'},sp_av(q,'sm'),h('div',{class:'who'},h('b',null,person(q)),h('span',null,'@'+q.username)),
       h('button',{class:'btn small',onclick:e=>guard(e.currentTarget,async()=>{await adm('deny',id,{request_id:q.id});tick();})},'Deny'),
       h('button',{class:'btn small coral',onclick:e=>guard(e.currentTarget,async()=>{await adm('approve',id,{request_id:q.id});tick();})},'Allow')))));
@@ -300,23 +300,24 @@ async function room(id){
         row('Share link','share',async()=>{const u=CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
         paintMode()&&typeof OWTv!=='undefined'?row('Music','music',()=>{if(!OWTv.showMusic()&&startMusic)startMusic();}):null,
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
-        isHost()?row('Invite people','people',()=>inviteSheet(D.space)):null,
+        isMgr()?row('Invite people','people',()=>inviteSheet(D.space)):null,
         isHost()?row('End space for everyone','close',endSpace,true):null,
         !isHost()?row('Report this space','flag',()=>reportSheet(id,null),true):null].filter(Boolean));
     });
   }
   function personSheet(p){
-    const mine=p.id===Auth.user.id;
+    const mine=p.id===Auth.user.id;const mg=isMgr()&&(isHost()||!(p.role==='host'||p.cohost));
     sheet(person(p),(b,close)=>{
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:async()=>{close();try{await cb();}catch(e){toast(friendlyError(e),'err');}}},icon(ic),l);
       const act=(a,extra)=>async()=>{await adm(a,id,Object.assign({user_id:p.id},extra||{}));await tick();};
-      b.append(...[h('div',{class:'sp-pcard'},sp_av(p,'lg'),h('b',null,person(p)),h('span',null,'@'+p.username+' · '+(p.role==='host'?'Host':paintMode()?[p.painter?'Painter':'Viewer',p.role==='speaker'?'can speak':null].filter(Boolean).join(' · '):p.role==='speaker'?'Speaker':'Listener'))),
+      b.append(...[h('div',{class:'sp-pcard'},sp_av(p,'lg'),h('b',null,person(p)),h('span',null,'@'+p.username+' · '+(p.role==='host'?'Host':p.cohost?'Co-host':paintMode()?[p.painter?'Painter':'Viewer',p.role==='speaker'?'can speak':null].filter(Boolean).join(' · '):p.role==='speaker'?'Speaker':'Listener'))),
         row('View profile','user',()=>go('#/@'+p.username)),
-        isHost()&&!mine&&p.role==='listener'?row('Invite to speak','mic',act('promote')):null,
-        isHost()&&!mine&&paintMode()?row(p.painter?'Take off easel':'Invite to paint','palette',async()=>{try{await rpc('space_set_painter',{p_space:id,p_user:p.id,p_on:!p.painter});}catch(e){if(OWPlans.isLimit(e)){OWPlans.limitSheet(id);return;}throw e;}toast(p.painter?'Off the easel. They can still speak.':'On an easel. They can paint and speak.');await tick();}):null,
-        isHost()&&!mine&&p.role==='speaker'?row(p.muted?'Allow to unmute':'Mute','micoff',act(p.muted?'unmute':'mute')):null,
-        isHost()&&!mine&&p.role==='speaker'?row(paintMode()?'Stop speaking':'Move to listeners','people',act('demote')):null,
-        isHost()&&!mine?row('Remove from space','close',async()=>{if(await confirmBox('Remove '+person(p)+'?','They will not be able to rejoin this space.','Remove',true))await act('remove')();},true):null,
+        mg&&!mine&&p.role==='listener'?row('Invite to speak','mic',act('promote')):null,
+        mg&&!mine&&paintMode()?row(p.painter?'Take off easel':'Invite to paint','palette',async()=>{try{await rpc('space_set_painter',{p_space:id,p_user:p.id,p_on:!p.painter});}catch(e){if(OWPlans.isLimit(e)){OWPlans.limitSheet(id);return;}throw e;}toast(p.painter?'Off the easel. They can still speak.':'On an easel. They can paint and speak.');await tick();}):null,
+        isHost()&&!mine&&paintMode()?row(p.cohost?'Remove as co-host':'Make co-host','people',async()=>{try{await rpc('space_set_cohost',{p_space:id,p_user:p.id,p_on:!p.cohost});}catch(e){if(/PREMIUM_REQUIRED|PLAN_LIMIT/.test(String(e&&e.message||e))){OWPlans.limitSheet(id);return;}throw e;}toast(p.cohost?'No longer a co-host.':'Now a co-host. They can run the room with you.');await tick();}):null,
+        mg&&!mine&&p.role==='speaker'?row(p.muted?'Allow to unmute':'Mute','micoff',act(p.muted?'unmute':'mute')):null,
+        mg&&!mine&&p.role==='speaker'?row(paintMode()?'Stop speaking':'Move to listeners','people',act('demote')):null,
+        mg&&!mine?row('Remove from space','close',async()=>{if(await confirmBox('Remove '+person(p)+'?','They will not be able to rejoin this space.','Remove',true))await act('remove')();},true):null,
         !mine?row(p.blocked?'Unblock':'Block','lock',async()=>{if(await blockUser(user(p),!p.blocked)){await tick();}},true):null,
         !mine?row('Report','flag',()=>reportSheet(id,user(p)),true):null].filter(Boolean));
     });
