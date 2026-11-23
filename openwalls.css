@@ -659,3 +659,4 @@ button.fm-int{border:0}
 .sp-lbls.many .sp-lbl span{display:none}.sp-lbls.many .sp-lbl b{font-size:10px;max-width:58px;overflow:hidden;text-overflow:ellipsis}
 .sp-lbls.many .sp-lbl:not(.speak){display:none}
 .sp-lbls.compact .sp-lbl span{display:none}.sp-lbls.compact .sp-lbl{padding:2px 7px}.sp-lbls.compact .sp-lbl b{font-size:10.5px}.sp-lbls.compact .pt-badge{font-size:9px;padding:1px 5px}
+.vfy{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:5px;border-radius:50%;background:#6c4bff;color:#fff;font:800 10px/1 system-ui;vertical-align:1px}

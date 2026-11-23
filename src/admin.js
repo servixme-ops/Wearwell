@@ -3,7 +3,7 @@ const app=document.getElementById('app');
 const RC={calc(look,items){const w=look.wear_count||0;const rows=items.map(i=>({price:Number(i.price)||0}));return{total:rows.reduce((a,r)=>a+r.price,0)};},money:(n,cur)=>fmtMoney(Math.round((Number(n)||0)*100)/100,cur||'NGN')};
 const Ads={async verify(reference){const r=await sb.functions.invoke('paystack-verify',{body:{reference}});let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(_){}}if(!d)throw new Error('Could not verify payment.');if(d.error&&!d.paid)throw new Error(d.message||'Could not verify payment.');return d;}};
 function thumb(look,w,h_){const c=mk(w,h_),g=c.getContext('2d');g.fillStyle=look.bg;g.fillRect(0,0,w,h_);drawFigure(g,look,w/2,h_*.05,h_*.9);return c;}
-const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['owctl','Spaces, Paint & Topics'],['plans','Gist & Paint plans'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
+const ADM_TABS=[['overview','Overview'],['ads','Ads & payments'],['owads','OpenWalls ads'],['owctl','Spaces, Paint & Topics'],['house','OpenWalls Gallery'],['plans','Gist & Paint plans'],['feats','Magazine lukks'],['subs','Magazine submissions'],['photos','Photos'],['testi','Testimonials'],['events','Events'],['msgs','Team inbox']];
 let tab='overview',counts={};
 function loginView(msg){
   const em=h('input',{type:'email',placeholder:'Email',autocomplete:'email'}),pw=h('input',{type:'password',placeholder:'Password',autocomplete:'current-password'}),err=h('p',{class:'err-t'},msg||'');
@@ -26,7 +26,7 @@ function shell(){
   const nav=h('nav',null,h('h2',null,'LUKKS'),...ADM_TABS.map(t=>h('button',{'data-t':t[0],class:tab===t[0]?'on':'',onclick:()=>{tab=t[0];shell();}},t[1],counts[t[0]]?h('span',{class:'cnt'},counts[t[0]]):null)),h('span',{class:'sp'}),h('a',{class:'btn ghost',style:{color:'#f4ead9'},href:'./'},'Open Lukks'),h('button',{onclick:async()=>{await Auth.signOut();loginView();}},'Sign out'));
   const main=h('main');app.replaceChildren(h('div',{class:'adm'},nav,main));
   loadCounts().then(()=>{$$('nav button',nav).forEach(b=>{const t=b.dataset.t;let c=b.querySelector('.cnt');const n=({ads:counts.ads,subs:counts.subs,photos:counts.photos,testi:counts.testi,msgs:counts.msgs})[t];if(n){if(!c){c=h('span',{class:'cnt'});b.append(c);}c.textContent=n;}});});
-  ({overview,ads,owads,owctl,plans,subs,feats,photos,testi,events,msgs})[tab](main);
+  ({overview,ads,owads,owctl,house,plans,subs,feats,photos,testi,events,msgs})[tab](main);
 }
 const sect=(main,title)=>{main.replaceChildren(h('h1',null,title));const box=h('div',{class:'tbl'});main.append(box);return box;};
 const setStatus=async(table,id,status,note)=>{const r=await sb.rpc('admin_set_status',{p_table:table,p_id:id,p_status:status,p_note:note||null});if(r.error)throw r.error;};
@@ -65,6 +65,21 @@ async function plans(main){
   if(!o.payments.length)out.push(empty('No payments yet'));
   o.payments.forEach(p=>out.push(h('div',{class:'rowc'},h('div',{class:'grow'},h('b',null,(p.kind==='session'?'Premium Session':'Premium Monthly')+' \u00b7 '+fmtKobo(p.amount_kobo)),h('div',{class:'muted small-t'},'@'+(p.username||'user')+(p.space_title?' \u00b7 '+p.space_title:'')+' \u00b7 '+dt(p.paid_at||p.created_at)+' \u00b7 '+p.reference)),h('span',{class:'chipS s-'+(p.status==='paid'?'approved':p.status==='pending'?'pending':'rejected')},p.status))));
   box.replaceChildren(...out);
+}
+
+/* the official OpenWalls gallery room: verified, pinned first on the Wall, owned by the @openwalls account */
+async function house(main){
+  const box=sect(main,'OpenWalls Gallery');box.append(spinner());
+  let st;try{const r=await sb.rpc('ow_house_status');if(r.error)throw r.error;st=r.data;}catch(e){box.replaceChildren(h('p',{class:'err-t'},errMsg(e)));return;}
+  const again=()=>house(main),pub=st.visibility==='public';
+  const nm=h('input',{type:'text',maxlength:'60',value:st.name||'OpenWalls Gallery'});
+  box.replaceChildren(
+    h('p',{class:'muted small-t'},'The official room. It carries the verified tick and stays first on the Wall once it is public. While hidden, only admins can open it.'),
+    h('div',{class:'rowc'},h('div',{class:'grow'},h('div',{class:'row-flex'},h('b',null,st.name),h('span',{class:'chipS s-'+(pub?'approved':'rejected')},pub?'Public \u00b7 pinned first':'Hidden')),h('div',{class:'muted small-t'},'@'+st.username+' \u00b7 '+(st.songs||0)+' song'+(st.songs===1?'':'s')+' in the speaker playlist')),
+      h('div',{class:'acts'},h('a',{class:'btn',href:'index.html#/@'+st.username,target:'_blank',rel:'noopener'},'Open room'),
+        h('button',{class:'btn '+(pub?'danger':'primary'),onclick:e=>guard(e.currentTarget,async()=>{if(!pub&&!await confirmBox('Make the gallery public?','It appears first on the Wall for everyone. Make sure people have reloaded the app to get the new room.','Make public'))return;const r=await sb.rpc('ow_house_set_visibility',{p_public:!pub});if(r.error)throw r.error;toast(pub?'Gallery hidden':'Gallery is public','ok');again();})},pub?'Hide it':'Make public'))),
+    h('div',{class:'rowc'},h('div',{class:'grow'},h('b',null,'Room name'),nm),h('div',{class:'acts'},h('button',{class:'btn primary',onclick:e=>guard(e.currentTarget,async()=>{const r=await sb.rpc('ow_house_rename',{p_name:nm.value});if(r.error)throw r.error;toast('Name saved','ok');again();})},'Save'))),
+    h('p',{class:'muted small-t'},'Music: open the room while signed in as admin, tap the speaker (or the music button) and add songs. The playlist saves for every visitor.'));
 }
 async function owctl(main){
   const box=sect(main,'Spaces & Gist & Paint');box.append(spinner());

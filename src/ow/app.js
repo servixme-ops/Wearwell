@@ -96,10 +96,11 @@ function rxBtn(r){
   const b=h('button',{class:'rx'+(r.mine?' on':''),'aria-label':'React to this room'});const paint=()=>{b.className='rx'+(r.mine?' on':'');b.replaceChildren(h('span',null,r.mine?EMOJI[r.mine]:'♡'),h('span',null,r.reactions?String(r.reactions):''));};paint();
   b.onclick=()=>{if(!needAuth('Sign in to react to rooms'))return;const was=r.mine;guard(b,async()=>{await Store.react(r.id,was?null:'love');r.mine=was?null:'love';r.reactions=Math.max(0,(+r.reactions||0)+(was?-1:1));paint();});};
   return b;}
+const vfy=()=>h('span',{class:'vfy',title:'Verified by OpenWalls','aria-label':'Verified'},'\u2713');
 function roomPiece(r,i){
   const shot=OWPrev.node(r,'pshot',roomLabel(r)+' by @'+r.username);
-  return h('div',{class:'piece'},r.featured?h('span',{class:'star'},'★ Featured'):null,h('button',{class:'pframe','aria-label':'Visit '+roomLabel(r)+' by @'+r.username,onclick:()=>go('#/@'+r.username)},shot),
-    h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,'@'+r.username)),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
+  return h('div',{class:'piece'},r.house?h('span',{class:'star'},'\u2713 Verified \u00b7 Pinned'):(r.featured?h('span',{class:'star'},'★ Featured'):null),h('button',{class:'pframe','aria-label':'Visit '+roomLabel(r)+' by @'+r.username,onclick:()=>go('#/@'+r.username)},shot),
+    h('div',{class:'plaque'},avatarEl({avatar_url:r.avatar_url,display_name:r.display_name,username:r.username},'sm'),h('div',{class:'who'},h('b',null,'@'+r.username,r.house?vfy():null)),h('button',{class:'visit',onclick:()=>go('#/@'+r.username)},'Visit')),
     r.visits?h('div',{class:'vis'},r.visits+(r.visits===1?' visit':' visits')):null);
 }
 const WALL_SEED=Math.random().toString(36).slice(2,8);
@@ -518,10 +519,11 @@ async function visitView(hs0){
   const fol=h('button',{class:'rbtn '+(cn.iFollow?'':'coral'),onclick:()=>{if(!Auth.user){authSheet('signin','Sign in to follow '+o.username);return;}guard(fol,async()=>{await Store.follow(o.id,!cn.iFollow);cn.iFollow=!cn.iFollow;fol.textContent=cn.iFollow?'Following':'Follow';fol.classList.toggle('coral',!cn.iFollow);});}},cn.iFollow?'Following':'Follow');
   const cntPill=h('span',{class:'live-n',style:{display:'none'},'aria-label':'People in this room'});if(R)R.onCount=n=>{cntPill.style.display=n>0?'':'none';cntPill.replaceChildren(h('i'),String(n));};
   const top=h('div',{class:'rtop'},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go(d.is_me?'#/me':'#/wall')},icon('back')),
-    h('button',{class:'owner',onclick:()=>ownerSheet(o,cn)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
+    h('button',{class:'owner',onclick:()=>ownerSheet(o,cn)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,d.room.name,o.verified?vfy():null),h('span',{class:'s'},'@'+o.username+(cn.followers?' · '+cn.followers+' followers':'')))),
     cntPill,
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
     h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>{if(d.room.visibility==='private'&&!d.is_me){toast('Only the owner can share a private room');return;}shareRoom(o.username,d.room.name,d.room.visibility);}},icon('share')),
+    R&&o.verified?h('button',{class:'rbtn','aria-label':'Gallery music',onclick:()=>openItem({type:'speaker',kind:'furniture',id:'house-speaker',link:'',title:'OpenWalls Gallery speaker'})},icon('music')):null,
     R?h('button',{class:'rbtn','aria-label':'Take a photo',onclick:()=>photoSheet(R,d.room.name,!!R.me)},icon('cam')):null,
     R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null,
     R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk(true)},icon('walk')):null);
@@ -539,7 +541,7 @@ async function visitView(hs0){
   /* YouTube links play on the room's shared TV (synced for everyone in the room) */
   function tvPlay(it,src){OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src,title:it.title||null,comments:{load:v=>Store.videoComments(d.room.id,v),post:async(v,t)=>{if(!needAuth('Sign in to comment'))throw new Error('auth');try{await Store.videoComment(d.room.id,v,t);}catch(e){toast(friendlyError(e),'err');throw e;}}}});}
   function openItem(it){
-    if(it.type==='speaker'){const src=it.link&&OWTv.parse(it.link);OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src||null,title:it.title||null,music:true,seed:d.is_me?(d.room.theme&&d.room.theme.playlist):null,onQueue:d.is_me?(q=>Store.savePlaylist(q)):null});return;}
+    if(it.type==='speaker'){const src=it.link&&OWTv.parse(it.link);const hs=!!o.verified,adm=hs&&Auth.isAdmin;OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me||adm,vid:src||null,title:it.title||null,music:true,seed:(d.is_me||hs)?(d.room.theme&&d.room.theme.playlist):null,onQueue:adm?(q=>Store.saveHousePlaylist(q)):d.is_me?(q=>Store.savePlaylist(q)):null});return;}
     const src=it.link&&OWTv.parse(it.link);if(src)return tvPlay(it,src);
     const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path||(it.props&&it.props.images&&it.props.images.length);if(!hasInfo)return;
     sheet(it.title||def.name,(body)=>{
