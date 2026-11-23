@@ -32,7 +32,7 @@ function build(cfg){
   const group=new T.Group();group.name='avatar';
   const st={pose:'stand',t:Math.random()*10,walk:0,blink:2+Math.random()*3,bl:0,talk:0,talkS:0,syl:0,gR:0,gL:0,w:{},ready:false,disposed:false,wear:{}};
   const av={group,cfg,height:M.height,scale:M.height/1.68,lift:0,seatTop:null,ready:null,A:null,
-    update,setPose(p){st.pose=p;},headPos(v){if(bones.Head)bones.Head.getWorldPosition(v);return v;},setGesture(n,t,w,tg){st.gn=n||null;st.gt=t||0;st.gw=w==null?1:w;st.gtg=tg||null;},get pose(){return st.pose;},apply,dispose,attach,detach,setTalk(v){st.talk=clamp(+v||0,0,1);},get talking(){return st.talkS>.05;},morphNames:[],slots:{}};
+    update,setPose(p){st.pose=p;},act(){st.act=1;},setHold(h){st.hold=h||null;},headPos(v){if(bones.Head)bones.Head.getWorldPosition(v);return v;},setGesture(n,t,w,tg){st.gn=n||null;st.gt=t||0;st.gw=w==null?1:w;st.gtg=tg||null;},get pose(){return st.pose;},apply,dispose,attach,detach,setTalk(v){st.talk=clamp(+v||0,0,1);},get talking(){return st.talkS>.05;},morphNames:[],slots:{}};
   let A=null,root=null,bones={},rest={},home={},skin={},eyeImg=null,eyeKey='',rs=1,floor=0,ankle=0,geo={},baseHidden={};
   const parts=()=>A.skinned;
 
@@ -256,6 +256,20 @@ function build(cfg){
       const b=Math.sin(t*7),bb=Math.abs(b);placeHips(geo.hipsH-bb*.04,0);const fl=Math.max(0,b),fr=Math.max(0,-b);
       leg('L',.1,-Math.cos(fl*.5),Math.sin(fl*.5),.03,-Math.cos(fl*.5-fl*.7),Math.sin(fl*.5-fl*.7));leg('R',.1,-Math.cos(fr*.5),Math.sin(fr*.5),.03,-Math.cos(fr*.5-fr*.7),Math.sin(fr*.5-fr*.7));
       arm('L',.5,.55+Math.sin(t*7)*.4,.2,.3,.9,.3);arm('R',.5,.55-Math.sin(t*7)*.4,.2,.3,.9,.3);rot('Spine1',0,1,0,Math.sin(t*3.5)*.18);rot('Head',0,0,1,Math.sin(t*3.5)*.08);
+    }else if(P==='strum'||P==='drum'||P==='shake'||P==='kali'||P==='pat'||P==='flute'){
+      st.act=Math.max(0,(st.act||0)-dt*2.4);const sw=Math.sin(t*22)*st.act;
+      leg('L',.04,-1,0,.03,-1,0);leg('R',.04,-1,0,.03,-1,0);rot('Spine2',1,0,0,br*.01);
+      if(st.hold){const lp=n=>root.worldToLocal(bones[n].getWorldPosition(new T.Vector3())),m=1/rs,V=(x,y,z)=>new T.Vector3(x,y,z),H=st.hold,mo=H.mo||{};
+        rot('Spine2',1,0,0,.04);
+        [['Left',1,'L'],['Right',-1,'R']].forEach(([S,sg,k])=>{const tg=H[k];if(!tg)return;const mv=mo[k]||[0,0,0],ph=(k==='L'?Math.sin(t*22+1.3):sw);
+          reachTo(S,sg,V((tg[0]+mv[0]*(k==='L'?Math.sin(t*22+1.3)*st.act:sw))*m,floor+(tg[1]+mv[1]*(k==='L'?Math.sin(t*22+1.3)*st.act:sw))*m,(tg[2]+mv[2]*(k==='L'?Math.sin(t*22+1.3)*st.act:sw))*m),V(sg*.6,-.8,-.3),lp);});
+        if(P==='flute')rot('Head',1,0,0,-.04);}
+      else if(P==='strum'){arm('L',.3,-.5,.55,-.55,.2,1);arm('R',.2,-.85,.35,-.75,-.1+sw*.7,.7);}
+      else if(P==='drum'){arm('L',.15,-.9,.15,-.9,-.15,.5);arm('R',.35,-.55,.5,-.45,.45+sw*1.2,.8);}
+      else if(P==='shake'){const s2=Math.sin(t*19)*st.act;arm('L',.3,.1+s2*.5,.7,-.4,.8+s2,.6);arm('R',.3,.1-s2*.5,.7,-.4,.8-s2,.6);}
+      else if(P==='pat'){arm('L',.25,-.7,.5,-.3,-.35+sw*.7,.8);arm('R',.25,-.7,.5,-.3,-.35-sw*.7,.8);rot('Head',1,0,0,.18);}
+      else if(P==='flute'){arm('L',.2,-.35,.6,-.5,.9,.45);arm('R',.2,-.35,.6,-.5,.9,.45);rot('Head',1,0,0,-.05);}
+      else{arm('L',.25,-.6,.6,-.7,-.05+sw*.2,1);arm('R',.25,-.6,.6,-.7,-.05-sw*.2,1);rot('Head',1,0,0,.12);}
     }else{
       /* stand / walk */
       st.walk+=dt*(5+4*w)*(w>.05?1:0);const p=st.walk,s=Math.sin(p),c=Math.cos(p),A_=.5*w;
