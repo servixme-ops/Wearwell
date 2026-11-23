@@ -40,8 +40,9 @@ let unreadN=0;
 function drawNav(active){
   $nav().replaceChildren(...NAV.map(([k,l,ic])=>h('button',{class:'nv'+(k==='create'?' plus':'')+(k===active?' on':''),'aria-label':l+(k==='inbox'&&unreadN?' ('+unreadN+' unread)':''),'aria-current':k===active?'page':null,onclick:()=>k==='create'?create():go('#/'+k)},icon(ic),k==='create'?null:h('span',{class:'l'},l),k==='inbox'&&unreadN?h('i',{class:'badge'},unreadN>9?'9+':String(unreadN)):null)));
 }
-async function refreshUnread(){const n=await Store.unread();if(n!==unreadN){unreadN=n;const m=App.route.split('/')[0];if(['wall','discover','inbox','me'].includes(m||'wall'))drawNav(m||'wall');}}
-setInterval(()=>{if(Auth.user&&!document.hidden)refreshUnread();},45000);
+let unreadReady=false;
+async function refreshUnread(){const n=await Store.unread();if(n>unreadN&&unreadReady&&!/^chat\//.test(App.route)&&window.OWSound)OWSound.play('note');unreadReady=true;if(n!==unreadN){unreadN=n;const m=App.route.split('/')[0];if(['wall','discover','inbox','me'].includes(m||'wall'))drawNav(m||'wall');}}
+setInterval(()=>{if(Auth.user&&!document.hidden)refreshUnread();},20000);
 async function create(){
   if(!Auth.user){authSheet('signup','Create an account to build your room');return;}
   go('#/edit');
@@ -511,7 +512,7 @@ async function visitView(hs0){
   host.replaceChildren();document.title=d.room.name+' · @'+o.username+' · OpenWalls';
   let R=null;
   let hud=null;
-  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+hs0;go('#/avatar');},onToast:t=>toast(t)});R.load(d.room,d.items);try{OWTv.unpark();}catch(e){}App.teardown=()=>{OWTv.close(d.room.id);OWTv.park();hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
+  if(OWRoom.supported()){R=new OWRoom(host,{edit:false,onOpen:openItem,onNear:n=>hud&&hud.setAction(n),onLook:()=>{App.avBack='#/@'+hs0;go('#/avatar');},onToast:t=>toast(t),onMusicHold:on=>{HM&&HM.hold&&HM.hold(on);}});R.load(d.room,d.items);try{OWTv.unpark();}catch(e){}App.teardown=()=>{OWTv.close(d.room.id);OWTv.park();hud&&hud.destroy();R.destroy();document.title="OpenWalls · Discover what's on everyone's walls";};
     R.liveStart({roomId:d.room.id,uid:Auth.user&&Auth.user.id,ownerId:o.id,cb:{onTap:info=>info.owner?ownerSheet(o,cn):sheet(info.name,(b,close)=>{b.append(info.username?h('button',{class:'btn coral block',onclick:()=>{close();go('#/@'+info.username);}},'View profile'):h('p',{class:'tag'},'Visiting this room'));})}});}
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}
@@ -523,7 +524,6 @@ async function visitView(hs0){
     cntPill,
     d.is_me?h('button',{class:'rbtn dark',onclick:()=>go('#/edit')},icon('edit'),'Edit'):fol,
     h('button',{class:'rbtn','aria-label':'Share room',onclick:()=>{if(d.room.visibility==='private'&&!d.is_me){toast('Only the owner can share a private room');return;}shareRoom(o.username,d.room.name,d.room.visibility);}},icon('share')),
-    R&&o.verified?h('button',{class:'rbtn','aria-label':'Gallery music',onclick:()=>openItem({type:'speaker',kind:'furniture',id:'house-speaker',link:'',title:'OpenWalls Gallery speaker'})},icon('music')):null,
     R?h('button',{class:'rbtn','aria-label':'Take a photo',onclick:()=>photoSheet(R,d.room.name,!!R.me)},icon('cam')):null,
     R?h('button',{class:'rbtn','aria-label':'Reset camera',onclick:()=>R.resetCamera()},icon('reset')):null,
     R?h('button',{class:'rbtn walkbtn','aria-label':'Walk around or overview',onclick:()=>hud?leaveWalk():enterWalk(true)},icon('walk')):null);
@@ -532,6 +532,9 @@ async function visitView(hs0){
   async function enterWalk(manual){if(!R||hud)return;const cfg=await Store.loadAvatar();if(!cfg){if(manual){App.avBack='#/@'+username;chooseAvatar();}return;}R.startWalk(cfg);hud=walkHud(host,R);if(Auth.user){const pf=Auth.profile||{};R.liveTrack({uid:Auth.user.id,name:pf.username||pf.display_name||'Guest',username:pf.username||'',cfg});}const b=walkBtn();b&&b.classList.add('on');host.classList.add('walking');
     const hn=host.querySelector('.hint');hn&&hn.remove();host.append(h('div',{class:'hint'},'Joystick to walk · tap the floor to go there · drag to look'));setTimeout(()=>{const x=host.querySelector('.hint');x&&x.remove();},6000);}
   function leaveWalk(){if(!hud)return;hud.destroy();hud=null;R.liveUntrack();R.stopWalk();const b=walkBtn();b&&b.classList.remove('on');host.classList.remove('walking');}
+  /* the official gallery plays its own music for everyone; only admins can change it */
+  let HM=null;
+  if(R&&o.verified){const pl=(d.room.theme&&d.room.theme.playlist)||[],adm=!!Auth.isAdmin;if(pl.length||adm){HM=OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:adm,music:true,quiet:true,house:true,autoplay:true,seed:pl,onQueue:adm?(q=>Store.saveHousePlaylist(q)):null});const old0=App.teardown;App.teardown=()=>{try{HM&&HM.destroy();}catch(e){}old0&&old0();};}}
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
   if(R)enterWalk();
   host.append(socialBar(d,o));
@@ -541,7 +544,8 @@ async function visitView(hs0){
   /* YouTube links play on the room's shared TV (synced for everyone in the room) */
   function tvPlay(it,src){OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src,title:it.title||null,comments:{load:v=>Store.videoComments(d.room.id,v),post:async(v,t)=>{if(!needAuth('Sign in to comment'))throw new Error('auth');try{await Store.videoComment(d.room.id,v,t);}catch(e){toast(friendlyError(e),'err');throw e;}}}});}
   function openItem(it){
-    if(it.type==='speaker'){const src=it.link&&OWTv.parse(it.link);const hs=!!o.verified,adm=hs&&Auth.isAdmin;OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me||adm,vid:src||null,title:it.title||null,music:true,seed:(d.is_me||hs)?(d.room.theme&&d.room.theme.playlist):null,onQueue:adm?(q=>Store.saveHousePlaylist(q)):d.is_me?(q=>Store.savePlaylist(q)):null});return;}
+    if(it.type==='speaker'&&o.verified){if(HM&&Auth.isAdmin){HM.unpark&&HM.unpark();}else toast('The gallery music is chosen by OpenWalls');return;}
+    if(it.type==='speaker'){const src=it.link&&OWTv.parse(it.link);OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src||null,title:it.title||null,music:true,seed:d.is_me?(d.room.theme&&d.room.theme.playlist):null,onQueue:d.is_me?(q=>Store.savePlaylist(q)):null});return;}
     const src=it.link&&OWTv.parse(it.link);if(src)return tvPlay(it,src);
     const def=OW.def(it.type);const hasInfo=it.title||it.description||it.link||it.image_path||(it.props&&it.props.images&&it.props.images.length);if(!hasInfo)return;
     sheet(it.title||def.name,(body)=>{
@@ -587,7 +591,7 @@ function commentsSheet(d,onCount){
 async function inboxView(){
   const v=setView(false);drawNav('inbox');let tab='msg';
   if(!Auth.user){v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Inbox'))),empty('Sign in to see your inbox','Messages, reactions and comments show up here.',h('button',{class:'btn coral',onclick:()=>authSheet('signin')},'Sign in')));return;}
-  const tabs=h('div',{class:'scrollx'}),body=h('div');v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Inbox'))),tabs,body);
+  const tabs=h('div',{class:'scrollx'}),body=h('div');const snd=h('button',{class:'chip',style:{marginLeft:'auto'},onclick:()=>{OWSound.set(!OWSound.enabled());snd.textContent=OWSound.enabled()?'🔔 Sound on':'🔕 Sound off';if(OWSound.enabled())OWSound.play('note');}},OWSound.enabled()?'🔔 Sound on':'🔕 Sound off');v.append(h('div',{class:'pg-head',style:{display:'flex',alignItems:'center'}},h('div',{class:'brand'},h('b',null,'Inbox')),snd),tabs,body);
   const paint=async()=>{
     tabs.replaceChildren(...[['msg','Messages'],['act','Activity']].map(([k,l])=>h('button',{class:'chip'+(tab===k?' on':''),onclick:()=>{tab=k;paint();}},l)));body.replaceChildren(spinner());
     try{
@@ -605,9 +609,33 @@ async function chatView(username){
   const o=d.owner;const list=h('div',{class:'cl'}),inp=h('input',{type:'text',maxlength:'1000',placeholder:'Message @'+o.username}),send=h('button',{class:'btn coral small'},'Send');
     wrap.replaceChildren(h('div',{class:'rtop',style:{position:'relative',background:'var(--paper)',borderBottom:'1px solid var(--line)'}},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go('#/inbox')},icon('back')),h('button',{class:'owner',onclick:()=>go('#/@'+o.username)},avatarEl(o,'sm'),h('div',{class:'who'},h('b',null,'@'+(o.username||o.display_name)),h('span',{class:'s'},'@'+o.username)))),list,
     h('div',{class:'cin'},inp,send));
-  let last='';const load=async()=>{try{const ms=await Store.thread(o.id);const key=ms.length+':'+(ms[ms.length-1]||{}).id;if(key===last)return;last=key;const nearEnd=list.scrollHeight-list.scrollTop-list.clientHeight<80||!list.childNodes.length;
-    list.replaceChildren(...(ms.length?ms.map(m=>h('div',{class:'bub '+(m.sender_id===Auth.user.id?'me':'them')},m.body)):[h('p',{class:'tag',style:{textAlign:'center',padding:'20px'}},'Say hello to @'+o.username)]));if(nearEnd)list.scrollTop=list.scrollHeight;Store.markRead(o.id).then(refreshUnread);}catch(e){}};
-  const post=()=>{const t=inp.value.trim();if(!t)return;guard(send,async()=>{await Store.send(o.id,t);inp.value='';last='';await load();});};
+  let reply=null,editing=null,last='',cache=[];
+  const bar=h('div',{class:'cbar',style:{display:'none'}});
+  const hm=d=>new Date(d).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  const dayLbl=d=>{const x=new Date(d),t=new Date(),y=new Date(Date.now()-864e5);return x.toDateString()===t.toDateString()?'Today':x.toDateString()===y.toDateString()?'Yesterday':x.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'});};
+  const setBar=()=>{if(!reply&&!editing){bar.style.display='none';bar.replaceChildren();return;}bar.style.display='flex';const m=editing||reply;bar.replaceChildren(h('div',{class:'q'},h('b',null,editing?'Editing message':'Replying to '+(m.sender_id===Auth.user.id?'yourself':'@'+o.username)),h('span',null,(m.body||'').slice(0,80))),h('button',{class:'rbtn','aria-label':'Cancel',onclick:()=>{reply=editing=null;inp.value='';setBar();}},'✕'));};
+  const menu=m=>{const mine=m.sender_id===Auth.user.id,gone=!!m.deleted_at;const items=[];
+    if(!gone)items.push(['Reply',()=>{reply=m;editing=null;setBar();inp.focus();}]);
+    if(!gone)items.push(['Copy',()=>{try{navigator.clipboard.writeText(m.body);toast('Copied','ok');}catch(e){}}]);
+    if(mine&&!gone)items.push(['Edit',()=>{editing=m;reply=null;inp.value=m.body;setBar();inp.focus();}]);
+    if(mine&&!gone)items.push(['Unsend for everyone',async()=>{if(!confirm('Unsend this message for everyone?'))return;try{await Store.msgUnsend(m.id);last='';load();}catch(e){toast(friendlyError(e),'err');}}]);
+    items.push(['Delete for me',async()=>{try{await Store.msgHide(m.id);last='';load();}catch(e){toast(friendlyError(e),'err');}}]);
+    const sh=h('div',{class:'sheetbg',onclick:e=>{if(e.target===sh)sh.remove();}},h('div',{class:'msheet'},items.map(([t,f])=>h('button',{class:'btn ghost'+(/Unsend|Delete/.test(t)?' danger':''),onclick:()=>{sh.remove();f();}},t)),h('button',{class:'btn ghost',onclick:()=>sh.remove()},'Cancel')));document.body.append(sh);};
+  const bubble=m=>{const mine=m.sender_id===Auth.user.id,gone=!!m.deleted_at;const rp=m.reply;
+    const b=h('div',{class:'bub '+(mine?'me':'them')+(gone?' gone':''),id:'m'+m.id},
+      rp?h('div',{class:'quote',onclick:e=>{e.stopPropagation();const t=document.getElementById('m'+m.reply_to);if(t){t.scrollIntoView({block:'center'});t.classList.add('flash');setTimeout(()=>t.classList.remove('flash'),1200);}}},h('b',null,rp.mine?'You':'@'+o.username),h('span',null,rp.deleted?'Message unsent':(rp.body||''))):null,
+      h('div',{class:'bt'},gone?'Message unsent':m.body),
+      h('div',{class:'bm'},(m.edited_at&&!gone?'edited · ':'')+hm(m.created_at)+(mine&&!gone?(m.read_at?' ✓✓':' ✓'):'')));
+    let tm=null;const stop=()=>clearTimeout(tm);
+    b.addEventListener('touchstart',()=>{tm=setTimeout(()=>menu(m),450);},{passive:true});['touchend','touchmove','touchcancel'].forEach(ev=>b.addEventListener(ev,stop,{passive:true}));
+    b.addEventListener('contextmenu',e=>{e.preventDefault();menu(m);});
+    b.append(h('button',{class:'bdots','aria-label':'Message options',onclick:e=>{e.stopPropagation();menu(m);}},'⋯'));return b;};
+  const render=ms=>{const out=[];let day='';ms.forEach(m=>{const dl=dayLbl(m.created_at);if(dl!==day){day=dl;out.push(h('div',{class:'dsep'},dl));}out.push(bubble(m));});return out;};
+  const load=async()=>{try{const ms=await Store.thread(o.id);cache=ms;const key=ms.map(m=>m.id+(m.edited_at||'')+(m.deleted_at||'')+(m.read_at?1:0)).join('|');if(key===last)return;
+    const fresh=last!==''&&ms.some(m=>m.sender_id!==Auth.user.id&&!m.read_at&&!m.deleted_at);last=key;const nearEnd=list.scrollHeight-list.scrollTop-list.clientHeight<80||!list.childNodes.length;
+    list.replaceChildren(...(ms.length?render(ms):[h('p',{class:'tag',style:{textAlign:'center',padding:'20px'}},'Say hello to @'+o.username)]));if(nearEnd)list.scrollTop=list.scrollHeight;if(fresh&&window.OWSound)OWSound.play('msg');Store.markRead(o.id).then(refreshUnread);}catch(e){}};
+  const post=()=>{const t=inp.value.trim();if(!t)return;guard(send,async()=>{if(editing){await Store.msgEdit(editing.id,t);}else{await Store.send(o.id,t,reply&&reply.id);if(window.OWSound)OWSound.play('sent');}inp.value='';reply=editing=null;setBar();last='';await load();list.scrollTop=list.scrollHeight;});};
+  wrap.querySelector('.cin').before(bar);
   send.onclick=post;inp.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
   await load();const iv=setInterval(()=>{if(!document.hidden)load();},6000);App.teardown=()=>clearInterval(iv);
 }

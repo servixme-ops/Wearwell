@@ -173,7 +173,7 @@ const OWTv=(()=>{
     const evt={
       busy:()=>busy(900),
       state:p=>{if(!alive||isBusy()||ro)return;if(p&&!S.play){S.play=true;render();announce();}else if(!p&&S.play){S.play=false;render();announce();}},
-      end:()=>{if(!alive||isBusy()||ro)return;if(S.i+1<S.q.length){const i=S.i+1;S.i=i;apply({q:S.q,i,play:true,pos:0});}else{S.play=false;render();}},
+      end:()=>{if(!alive||isBusy()||(ro&&!o.house))return;if(S.i+1<S.q.length){const i=S.i+1;S.i=i;apply({q:S.q,i,play:true,pos:0});}else if(o.house&&S.q.length){S.i=0;apply({q:S.q,i:0,play:true,pos:0});}else{S.play=false;render();}},
       err:()=>{if(!alive)return;const m=box.querySelector('.tv-msg');m.textContent='This video cannot be played here. Skipping\u2026';setTimeout(()=>{m.textContent='';if(alive&&S.i+1<S.q.length)next();},1800);},
       blocked:on=>{startB.classList.toggle('on',!!on);box.classList.toggle('tv-blocked',!!on&&!!o.music);}
     };
@@ -324,7 +324,7 @@ const OWTv=(()=>{
     hb=setInterval(()=>{if(alive&&lead&&S.play&&S.q.length)send(snap());if(alive&&o.isOwner&&S.play&&S.q.length&&Date.now()-lastRep>45000){lastRep=Date.now();report(true);}},8000);
 
     /* ----- channel ----- */
-    if(typeof sb!=='undefined'&&sb.channel){
+    if(typeof sb!=='undefined'&&sb.channel&&!o.house){
       ch=sb.channel((o.music?'sp:':'tv:')+o.roomId,{config:{broadcast:{self:false}}});
       ch.on('broadcast',{event:'tv'},onMsg);
       ch.subscribe(s=>{if(s==='SUBSCRIBED'){send({k:'hello'});}});
@@ -342,6 +342,8 @@ const OWTv=(()=>{
       park(){if(!o.music||!alive)return;box.classList.add('parked');if(!box.classList.contains('mini'))mn.click();},
       unpark(){if(!box.classList.contains('parked'))return;box.classList.remove('parked');box.style.left='';box.style.top='';if(box.classList.contains('mini'))mn.click();},
       show(){box.classList.remove('tv-away');},
+      /* the gallery pauses its music while someone plays an instrument, and picks it up again afterwards */
+      hold(on){if(!alive)return;if(on){api._was=!!S.play;if(S.play){S.play=false;busy(1500);try{ad&&ad.pause();}catch(e){}render();}}else if(api._was){api._was=false;S.play=true;busy(1500);try{ad&&ad.play();}catch(e){}render();}},
       kick(){if(!alive||!S.play||!ad||!ad.play)return;if(box.classList.contains('tv-blocked')||stall>=2||startB.classList.contains('on')){try{ad.play();}catch(e){}box.classList.remove('tv-blocked');startB.classList.remove('on');stall=0;}},
       setVol(x){volLvl=Math.max(0,Math.min(1,x));},
       duck(on){clearTimeout(duckT);if(on)duckF=.3;else duckT=setTimeout(()=>{duckF=1;},2500);applyVol();},
