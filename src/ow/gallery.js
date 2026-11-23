@@ -403,11 +403,11 @@ const HOLD={
 P.gxPlay=function(sp){
   const m=this.me;if(!m||this.seat)return;const H=HOLD[sp.kind];if(!H)return;
   m.x=sp.x+sp.nx*.8;m.z=sp.z+sp.nz*.8;const q=this.pushOut(m.x,m.z,.24,this.blockers());m.x=q[0];m.z=q[1];m.yaw=Math.atan2(sp.nx,sp.nz===0?0:sp.nz);if(sp.nz===0)m.yaw=sp.nx>0?PI/2:-PI/2;m.y=0;
-  const k=m.av.scale||1,g=new T.Group();INSTR[sp.kind](g);g.traverse(o=>{if(o.name==='stick')o.visible=false;});g.scale.setScalar(H.s);g.position.set(H.p[0],H.p[1]*k,H.p[2]);g.rotation.set(...H.r);m.holder.add(g);this._held={g,sp};m.av.setHold({L:H.L&&[H.L[0],H.L[1]*k,H.L[2]],R:H.R&&[H.R[0],H.R[1]*k,H.R[2]],mo:H.mo});sp.node.visible=false;
+  const k=m.av.scale||1,g=new T.Group();INSTR[sp.kind](g);g.traverse(o=>{if(o.name==='stick')o.visible=false;});g.scale.setScalar(H.s);g.position.set(H.p[0],H.p[1]*k,H.p[2]);g.rotation.set(...H.r);m.holder.add(g);this._held={g,sp};this.cb.onMusicHold&&this.cb.onMusicHold(true);m.av.setHold({L:H.L&&[H.L[0],H.L[1]*k,H.L[2]],R:H.R&&[H.R[0],H.R[1]*k,H.R[2]],mo:H.mo});sp.node.visible=false;this.cb.onMusicHold&&this.cb.onMusicHold(true);
   m.av.setPose(H.pose);m.pose=H.pose;this.seat={it:{id:'gx'},gx:true,front:[Math.sin(m.yaw),Math.cos(m.yaw)],d:.2};this.goal=null;this.placeFigure(m);this.setNear(null);this.nearId='';
   this.cb.onNear&&this.cb.onNear({act:{k:'stand',label:'Put back'}});this.gxUi(sp.kind);this.markDirty(true);};
 P.gxStop=function(){
-  const m=this.me,h=this._held;this.gxUiOff();if(h){h.sp.node.visible=true;if(m)m.holder.remove(h.g);h.g.traverse(o=>{if(o.geometry)o.geometry.dispose();});this._held=null;}
+  const m=this.me,h=this._held;this.gxUiOff();if(h){this.cb.onMusicHold&&this.cb.onMusicHold(false);h.sp.node.visible=true;if(m)m.holder.remove(h.g);h.g.traverse(o=>{if(o.geometry)o.geometry.dispose();});this._held=null;}
   if(m&&this.seat&&this.seat.gx){m.av.setHold(null);m.av.setPose('stand');m.pose='stand';}if(this.seat&&this.seat.gx)this.seat=null;this.nearId='x';this.setNear(null);this.markDirty(true);};
 const baseStand=P.standUp;P.standUp=function(){if(this.seat&&this.seat.gx)return this.gxStop();return baseStand.call(this);};
 const baseStop=P.stopWalk;P.stopWalk=function(){if(this._held)this.gxStop();return baseStop.apply(this,arguments);};

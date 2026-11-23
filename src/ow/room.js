@@ -170,9 +170,16 @@ class OWRoom{
   setSize(key,dims){this.pushHist();const s=dims||OW.SIZES[key];this.room.size=key;this.room.width=s.w;this.room.depth=s.d;this.room.height=s.h;this.buildShell();
     this.items.forEach(i=>{if(i.kind==='furniture')this.settle(i);else{this.clampD(i);this.place(i);}});this.refreshHelper();this.resetCamera();this.changed();}
   /* ----- camera ----- */
-  setCam(az,el,dist){this.az=az;this.el=Math.max(this.wTarget?.05:.18,Math.min(this.wTarget?1.2:1.3,el));this.dist=dist;const c=this.cam,tg=this.wTarget,ty=tg?tg.y:this.H*.38,ce=Math.cos(this.el);
-    if(tg){const hx=this.W/2-.14,hz=this.D/2-.14;c.position.set(Math.max(-hx,Math.min(hx,tg.x+Math.sin(this.az)*ce*this.dist)),Math.max(.3,Math.min(this.H-.15,ty+Math.sin(this.el)*this.dist)),Math.max(-hz,Math.min(hz,tg.z+Math.cos(this.az)*ce*this.dist)));c.lookAt(tg.x,ty,tg.z);}
-    else{c.position.set(Math.sin(this.az)*ce*this.dist,ty+Math.sin(this.el)*this.dist,Math.cos(this.az)*ce*this.dist);c.lookAt(0,ty,0);}if(this.caps){const wf=this.wf();this.caps.forEach(({m,k})=>{const f=wf[k];m.visible=f.n[0]*(c.position.x-f.o[0])+f.n[2]*(c.position.z-f.o[2])>0;});}this.markDirty();}
+  setCam(az,el,dist){
+    /* walking/seated view: close behind your avatar, but zoom out and the view slides back to the whole room, just like the view without an avatar */
+    const tg=this.wTarget,free=!!(tg&&this.walkOn&&!this.stage),H0=this.H*.38;let k=0;
+    if(free){const mx=this.maxD();k=Math.max(0,Math.min(1,(dist-3.6)/Math.max(.5,mx-3.6)));k=k*k*(3-2*k);}
+    this.az=az;this.el=Math.max(tg&&k<.05?.05:.18,Math.min(tg?1.2:1.3,el));this.dist=dist;const c=this.cam,ce=Math.cos(this.el);
+    if(tg){const tx=tg.x*(1-k),tz=tg.z*(1-k),ty=tg.y+(H0-tg.y)*k;
+      if(k>.02){c.position.set(tx+Math.sin(this.az)*ce*this.dist,ty+Math.sin(this.el)*this.dist,tz+Math.cos(this.az)*ce*this.dist);}
+      else{const hx=this.W/2-.14,hz=this.D/2-.14;c.position.set(Math.max(-hx,Math.min(hx,tx+Math.sin(this.az)*ce*this.dist)),Math.max(.3,Math.min(this.H-.15,ty+Math.sin(this.el)*this.dist)),Math.max(-hz,Math.min(hz,tz+Math.cos(this.az)*ce*this.dist)));}
+      c.lookAt(tx,ty,tz);}
+    else{const ty=H0;c.position.set(Math.sin(this.az)*ce*this.dist,ty+Math.sin(this.el)*this.dist,Math.cos(this.az)*ce*this.dist);c.lookAt(0,ty,0);}if(this.caps){const wf=this.wf();this.caps.forEach(({m,k})=>{const f=wf[k];m.visible=f.n[0]*(c.position.x-f.o[0])+f.n[2]*(c.position.z-f.o[2])>0;});}this.markDirty();}
   setInset(px){this.inset=px||0;this.applyView();}
   applyView(){if(!this.host)return;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;if(this.inset)this.cam.setViewOffset(w,h,0,this.inset,w,h);else this.cam.clearViewOffset();this.cam.updateProjectionMatrix();this.markDirty();}
   resetCamera(now){this.userZ=false;this.camT={az:this.cam0.az,el:this.cam0.el,dist:this.cam0.dist,t:0};if(now)this.setCam(this.cam0.az,this.cam0.el,this.cam0.dist),this.camT=null;}
@@ -187,7 +194,7 @@ class OWRoom{
   minD(){return this.wTarget?1.4:Math.max(1.6,Math.max(this.W,this.D)*.28);}
   /* the distance at which the whole room (walls included) fits the screen, whatever the shape of the screen */
   fitDist(){const a=this.cam.aspect||1,vf=this.cam.fov*Math.PI/180,hf=2*Math.atan(Math.tan(vf/2)*a),R=Math.sqrt(this.W*this.W+this.D*this.D+this.H*this.H)*.5;return R/Math.sin(Math.min(vf,hf)/2)*1.04;}
-  maxD(){return this.wTarget?5:this.fitDist();}
+  maxD(){return this.wTarget?(this.walkOn&&!this.stage?this.fitDist():5):this.fitDist();}
   ndc(e){const r=this.canvas.getBoundingClientRect();return new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);}
   pickItem(e){this.ray.setFromCamera(this.ndc(e),this.cam);const hits=this.ray.intersectObjects(this.root.children,true);for(const h of hits){let o=h.object;while(o&&!o.userData.itemId)o=o.parent;if(o)return this.get(o.userData.itemId);}return null;}
   down(e){
