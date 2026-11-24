@@ -559,7 +559,7 @@ async function visitView(hs0){
   function leaveWalk(){if(!hud)return;hud.destroy();hud=null;R.liveUntrack();R.stopWalk();const b=walkBtn();b&&b.classList.remove('on');host.classList.remove('walking');}
   /* the official gallery plays its own music for everyone; only admins can change it */
   let HM=null;
-  if(R&&o.verified){const pl=(d.room.theme&&d.room.theme.playlist)||[],adm=!!Auth.isAdmin;if(pl.length||adm){HM=OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:adm,music:true,quiet:true,house:true,autoplay:true,seed:pl,onQueue:adm?(q=>Store.saveHousePlaylist(q)):null});const old0=App.teardown;App.teardown=()=>{try{HM&&HM.destroy();}catch(e){}old0&&old0();};
+  if(R&&o.verified){const pl=(d.room.theme&&d.room.theme.playlist)||[],adm=!!Auth.isAdmin;if(pl.length||adm){HM=OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:adm,music:true,quiet:true,house:true,autoplay:true,seed:pl,onAway:()=>{try{fab.classList.remove('on');}catch(e){}},onQueue:adm?(q=>Store.saveHousePlaylist(q)):null});const old0=App.teardown;App.teardown=()=>{try{HM&&HM.destroy();}catch(e){}old0&&old0();};
     const fab=h('button',{class:'ow-music-fab','aria-label':'Gallery music',onclick:()=>{const on=HM&&HM.toggle&&HM.toggle();fab.classList.toggle('on',!!on);}},h('span',{html:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>'}));host.append(fab);}}
   if(R)host.append(h('div',{class:'hint'},'Drag to look · pinch to zoom · tap the dots'));
   if(R)enterWalk();
