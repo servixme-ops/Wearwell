@@ -378,7 +378,8 @@ P._galleryBuild=function(g){
   curRoom=this;
   Object.keys(artCache).forEach(k=>delete artCache[k]);
   const G=OW.GALLERY,W=this.W,D=this.D,H=this.H,fl=new T.Mesh(new T.PlaneGeometry(W,D),new T.MeshStandardMaterial({map:marble(W,D),roughness:.2,metalness:.1}));
-  fl.rotation.x=-PI/2;fl.position.y=.004;fl.receiveShadow=true;fl.userData.own=1;g.add(fl);
+  g.children.forEach(c=>{if(c!==fl&&c.isMesh&&c.geometry&&c.geometry.type==='PlaneGeometry'&&Math.abs(c.rotation.x+PI/2)<.01&&c.position.y<.01)c.visible=false;});/* the plain room floor sits at the same height and flickered through the marble */
+  fl.rotation.x=-PI/2;fl.position.y=.002;fl.receiveShadow=true;fl.userData.own=1;g.add(fl);
   /* soft floor reflection of the room: a faint lighter sheen strip under each wall */
   const trim=M('#d9d7d0',.5);[[-D/2+.03,0],[D/2-.03,0]].forEach(([z])=>box(g,W,.09,.04,trim,0,.045,z));[-W/2+.03,W/2-.03].forEach(x=>box(g,.04,.09,D,trim,x,.045,0));
   const fm=M('#16161a',.45),gold=M('#c8a24a',.35,.7);

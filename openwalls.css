@@ -689,3 +689,6 @@ button.fm-int{border:0}
 .tvplayer.tv-house .tv-bar>.tv-grip{display:none}
 .tvplayer.tv-house .tv-bar{touch-action:none;cursor:grab}
 .tvplayer.tv-house.tv-noadd .tv-pl .tv-none{font-size:0}.tvplayer.tv-house.tv-noadd .tv-pl .tv-none:after{content:"OpenWalls chooses the gallery music.";font-size:13px}
+
+/* solo painting: no voices, no listeners */
+.sp-solo .sp-crowd,.sp-solo #sp-lh,.sp-solo .sp-hstage{display:none!important}
