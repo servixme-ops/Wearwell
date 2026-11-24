@@ -133,7 +133,7 @@ async function avatarView(){
     tabs.replaceChildren(...TABS.map(([k,l,ic])=>h('button',{class:'av-tab'+(tab===k?' on':''),onclick:()=>{tab=k;content.scrollTop=0;paint();}},icon(ic),h('span',null,l))));
     const keep=content.scrollTop,out=[];
     if(tab==='face'){
-      out.push(h('div',{class:'av-lab'},'Eyeglasses'),chips([['on','Glasses on'],['off','Glasses off']],cfg.glasses?'on':'off',k=>apply({glasses:k==='on'})));
+      if(cfg.g!=='m')out.push(h('div',{class:'av-lab'},'Eyeglasses'),chips([['on','Glasses on'],['off','Glasses off']],cfg.glasses?'on':'off',k=>apply({glasses:k==='on'})));
       out.push(h('div',{class:'av-lab'},'Expression'),chips(OWA.EXPR.map(e=>[e[0],e[1]]),cfg.ex,k=>apply({ex:k})));
       out.push(swatches(OWA.EYEC,cfg.eyec,(c,i)=>apply({eyec:i}),'Eye colour'));
       out.push(h('div',{class:'av-lab',style:{marginTop:'10px'}},'Fine-tune face'));
