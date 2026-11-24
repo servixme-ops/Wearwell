@@ -182,7 +182,7 @@ class OWRoom{
     else{const ty=H0;c.position.set(Math.sin(this.az)*ce*this.dist,ty+Math.sin(this.el)*this.dist,Math.cos(this.az)*ce*this.dist);c.lookAt(0,ty,0);}if(this.caps){const wf=this.wf();this.caps.forEach(({m,k})=>{const f=wf[k];m.visible=f.n[0]*(c.position.x-f.o[0])+f.n[2]*(c.position.z-f.o[2])>0;});}this.markDirty();}
   setInset(px){this.inset=px||0;this.applyView();}
   applyView(){if(!this.host)return;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;if(this.inset)this.cam.setViewOffset(w,h,0,this.inset,w,h);else this.cam.clearViewOffset();this.cam.updateProjectionMatrix();this.markDirty();}
-  resetCamera(now){this.userZ=false;this.camT={az:this.cam0.az,el:this.cam0.el,dist:this.cam0.dist,t:0};if(now)this.setCam(this.cam0.az,this.cam0.el,this.cam0.dist),this.camT=null;}
+  resetCamera(now){this.userZ=false;if(this.wTarget&&this.walkOn&&this.me&&!this.stage){const y=this.me.yaw+Math.PI;this.camT=null;this.setCam(y,.36,3.1);this.markDirty(true);return;}this.camT={az:this.cam0.az,el:this.cam0.el,dist:this.cam0.dist,t:0};if(now)this.setCam(this.cam0.az,this.cam0.el,this.cam0.dist),this.camT=null;}
   focusWall(k){let a=WALL_AZ[k];const cur=this.az,tau=Math.PI*2;a+=Math.round((cur-a)/tau)*tau;this.camT={az:a,el:.5,dist:this.cam0.dist*.8,t:0};}
   /* ----- input ----- */
   bind(cv){
