@@ -343,7 +343,7 @@ const OWTv=(()=>{
       park(){if(!o.music||!alive)return;box.classList.add('parked');if(!box.classList.contains('mini'))mn.click();},
       unpark(){if(!box.classList.contains('parked'))return;box.classList.remove('parked');box.style.left='';box.style.top='';if(box.classList.contains('mini'))mn.click();},
       show(){box.classList.remove('tv-away');},
-      toggle(){if(box.classList.contains('tv-away')){api.reopen();return true;}api.away();return false;},
+      toggle(){if(box.classList.contains('tv-away')){api.reopen();return true;}box.classList.add('tv-away');return false;}, /* music icon while the bar is open: tuck it away, the music keeps playing */
       /* gallery music: Close stops it and hides the bar; the music icon brings it back and plays again */
       away(){if(!alive)return;if(S.play){S.play=false;busy(1500);try{ad&&ad.pause();}catch(e){}render();}api._was=false;box.classList.add('tv-away');o.onAway&&o.onAway();},
       reopen(){if(!alive)return;box.classList.remove('tv-away');const r=box.getBoundingClientRect(),hr=o.host.getBoundingClientRect();if(r.right<hr.left+40||r.left>hr.right-40||r.bottom<hr.top+40||r.top>hr.bottom-40){box.style.left=box.style.top=box.style.right=box.style.bottom='';}

@@ -93,25 +93,32 @@ function createSheet(onDone,preset){
     const desc=h('textarea',{rows:'3',maxlength:'400',placeholder:'Tell people what this space is about'});
     const cat=h('select',null,(preset==='sipandpaint'?CATS:LCATS).map(([k,l])=>h('option',{value:k},l)));
     if(preset){cat.value=preset;if(preset==='sipandpaint'){title.placeholder='Name your painting session';title.value='';}}
-    let vis='public',live=true,chat=true;
+    let vis='public',live=true,chat=true,solo=false;
     const mk=(opts,get,set)=>{const w=h('div',{class:'sp-seg'});const paint=()=>w.replaceChildren(...opts.map(([k,l])=>h('button',{class:get()===k?'on':'',onclick:()=>{set(k);paint();}},l)));paint();return w;};
     const st=h('input',{type:'datetime-local'}),en=h('input',{type:'datetime-local'});
     const sched=h('div',{style:{display:'none'}},field('Starts',st),field('Ends (optional)',en));
     const timing=mk([['now','Go live now'],['later','Schedule']],()=>live?'now':'later',k=>{live=k==='now';sched.style.display=live?'none':'block';});
     const visw=mk([['public','Public'],['private','Private']],()=>vis,k=>vis=k);
     const goB=h('button',{class:'btn coral block'},'Create space');
+    const soloBox=h('div',null);const grp=[];
+    const soloRow=preset==='sipandpaint'?h('div',{class:'sp-row'},h('span',null,'Paint solo (just me)'),toggleEl(false,v=>{solo=v;if(v){live=true;sched.style.display='none';}[...grp].forEach(e=>e.style.display=v?'none':'');goB.textContent=v?'Start solo painting':'Create space';},'Paint solo')):null;
+    const soloHint=preset==='sipandpaint'?h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Solo: only you. No microphone, no viewers and no invites. Your easel, painting tools and music all stay.'):null;
     goB.onclick=()=>guard(goB,async()=>{
       if(title.value.trim().length<3){toast('Give your space a title.','err');return;}
-      if(!live&&!st.value){toast('Pick a start time.','err');return;}
+      if(!solo&&!live&&!st.value){toast('Pick a start time.','err');return;}
       if(navigator.onLine===false){toast('No network. Connect to the internet and try again.','err');return;}
-      const id=await rpc('space_create',{p_title:title.value,p_desc:desc.value,p_category:cat.value,p_visibility:vis,p_start:live?null:new Date(st.value).toISOString(),p_end:!live&&en.value?new Date(en.value).toISOString():null,p_go_live:live,p_chat:chat});
+      const id=await rpc('space_create',{p_title:title.value,p_desc:desc.value,p_category:cat.value,p_visibility:solo?'private':vis,p_start:live?null:new Date(st.value).toISOString(),p_end:!live&&en.value?new Date(en.value).toISOString():null,p_go_live:live,p_chat:solo?false:chat});
+      if(solo){try{await rpc('space_make_solo',{p_space:id});}catch(e){toast('Could not make this solo. It was made as a normal private session.','err');}}
       if(cat.value==='sipandpaint'||preset==='sipandpaint'){if(live)Store.hostLight(true);}
       close();if(live)go('#/space/'+id);else{toast('Space scheduled');try{pushReady().then(ok=>{if(ok)toast('We will remind you 10 minutes before it starts','ok');});}catch(e){}onDone&&onDone('upcoming');}
     });
+    const fW=field('Who can join',visw,'Private spaces are only visible to people you invite.'),fT=field('When',timing),cR=h('div',{class:'sp-row'},h('span',null,'Allow text chat'),toggleEl(true,v=>chat=v,'Allow text chat'));
+    grp.push(fW,fT,cR);
     b.append(field('Title',title),field('Description',desc),preset==='sipandpaint'?null:field('Category',cat),
-      field('Who can join',visw,'Private spaces are only visible to people you invite.'),
-      field('When',timing),sched,
-      h('div',{class:'sp-row'},h('span',null,'Allow text chat'),toggleEl(true,v=>chat=v,'Allow text chat')),h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Free spaces last 30 minutes from the moment they go live; Premium spaces last 2 hours. You can start another one afterwards.'),goB);
+      soloRow,soloHint,
+      fW,
+      fT,sched,
+      cR,h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Free spaces last 30 minutes from the moment they go live; Premium spaces last 2 hours. You can start another one afterwards.'),goB);
   });
 }
 function inviteSheet(space){
@@ -165,7 +172,7 @@ async function discover(){
 async function room(id){
   if(!Auth.user){authSheet('signin','Sign in to join Live Spaces');go('#/spaces');return;}
   const v=setView(true);v.classList.add('sp-view');
-  let musicOn=false,startMusic=null,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
+  let solo=false,musicOn=false,startMusic=null,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
   const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),nowEl=h('div',{class:'sp-now'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl,nowEl);let voiceKey='';let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
@@ -237,7 +244,7 @@ async function room(id){
     if(R)syncStage(on);else stage.replaceChildren(...on.map(p=>tile(p,true)));
     crowd.replaceChildren(...(ls.length?ls.map(p=>h('button',{class:'sp-lis','data-uid':p.id,onclick:()=>personSheet(p)},h('span',{class:'sp-ring'+(speaking.has(p.id)?' on':'')},sp_av(p,'sm'),p.role==='speaker'?h('i',{class:'sp-vm'+(p.muted?' off':'')},icon(p.muted?'micoff':'mic')):null),h('span',{class:'sp-name'},person(p).split(' ')[0]),p.hand&&h('span',{class:'sp-hand'},'✋'))):[h('p',{class:'tag'},paintMode()?'No viewers yet. Share the link to invite people.':'No listeners yet. Share the link to invite people.')]));const lh=v.querySelector('#sp-lh');if(lh)lh.textContent=paintMode()?'Viewing':'Listening';
     const sc=crowd.parentNode;if(sc&&sc.classList)sc.classList.toggle('nol',!ls.length);
-    metaEl.replaceChildren(...[h('span',{class:'sp-live'},h('i'),'LIVE'),h('span',{class:'sp-cat'},catLabel(D.space.category)),D.space.visibility==='private'&&h('span',{class:'sp-lock'},icon('lock')),h('span',{class:'sp-count'},icon('mic'),String(on.length),' · ',icon('people'),String(ls.length))].filter(Boolean));
+    metaEl.replaceChildren(...[h('span',{class:'sp-live'},h('i'),'LIVE'),h('span',{class:'sp-cat'},catLabel(D.space.category)),D.space.visibility==='private'&&h('span',{class:'sp-lock'},icon('lock')),solo?h('span',{class:'sp-cat'},'Solo'):h('span',{class:'sp-count'},icon('mic'),String(on.length),' · ',icon('people'),String(ls.length))].filter(Boolean));
   }
   const avCfg=p=>{try{if(p.avatar)return OWA.migrate(p.avatar);}catch(e){}let n=0;for(const c of p.id)n=(n*31+c.charCodeAt(0))|0;return OWA.def(n&1?'m':'f');};
   function syncStage(on){
@@ -315,7 +322,7 @@ async function room(id){
   function paintBar(){
     if(!D)return;const r=role(),muted=me()&&me().muted;
     const btns=[];
-    if(onStage())btns.push(h('button',{class:'sp-mic-btn'+(audio.micOn?' live':''),disabled:!!muted||connState!=='connected','aria-label':audio.micOn?'Mute microphone':'Unmute microphone',onclick:toggleMic},icon(audio.micOn?'mic':'micoff'),h('span',null,muted?'Muted by host':audio.micOn?'Mute':'Unmute')));
+    if(solo){}else if(onStage())btns.push(h('button',{class:'sp-mic-btn'+(audio.micOn?' live':''),disabled:!!muted||connState!=='connected','aria-label':audio.micOn?'Mute microphone':'Unmute microphone',onclick:toggleMic},icon(audio.micOn?'mic':'micoff'),h('span',null,muted?'Muted by host':audio.micOn?'Mute':'Unmute')));
     else{const pend=D.my_request==='pending';btns.push(h('button',{class:'sp-hand-btn'+(pend?' on':''),disabled:reqBusy,'aria-label':pend?'Cancel your request to speak':'Raise your hand to ask the host to let you speak',onclick:async e=>{reqBusy=true;try{if(pend){await rpc('space_cancel_request',{p_space:id});toast('Hand lowered');}else{await rpc('space_request_speak',{p_space:id});toast('Hand raised. The host can now let you speak.');}await tick();}catch(er){toast(friendlyError(er),'err');}finally{reqBusy=false;paintBar();}}},'✋',h('span',null,pend?'Cancel request':'Ask to speak')));}
     btns.push(h('button',{class:'sp-round','aria-label':'React',onclick:reactSheet},'😊'));
     if(D.space.chat_enabled)btns.push(h('button',{class:'sp-round'+(chatOpen?' on':''),'aria-label':'Chat',onclick:()=>{chatOpen=!chatOpen;chatBox.classList.toggle('open',chatOpen);if(chatOpen){chatSeen=lastMsg;msgs.scrollTop=msgs.scrollHeight;}paintBar();}},icon('chat'),(!chatOpen&&unread>0)?h('i',{class:'sp-dot'},unread>99?'99+':String(unread)):null));
@@ -332,12 +339,12 @@ async function room(id){
     sheet('Space options',(b,close)=>{
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:()=>{close();cb();}},icon(ic),l);
       const vs=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(audio.voiceVol()*100)),'aria-label':'Voices volume',style:{width:'100%'}});vs.addEventListener('input',()=>audio.setVoiceVol(vs.value/100));
-      b.append(...[h('div',{class:'sp-vv'},h('b',null,'Voices volume'),h('span',{class:'muted small-t',style:{display:'block',margin:'2px 0 6px'}},'Only changes how loud people speaking sound. Music has its own volume in the music player.'),vs),D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
-        row('Share link','share',async()=>{const u=CFG.pretty?CFG.site+'s/'+id:CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
+      b.append(...[solo?null:h('div',{class:'sp-vv'},h('b',null,'Voices volume'),h('span',{class:'muted small-t',style:{display:'block',margin:'2px 0 6px'}},'Only changes how loud people speaking sound. Music has its own volume in the music player.'),vs),D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
+        solo?null:row('Share link','share',async()=>{const u=CFG.pretty?CFG.site+'s/'+id:CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
         paintMode()&&typeof OWTv!=='undefined'?row('Music','music',()=>{if(!OWTv.showMusic()&&startMusic)startMusic();}):null,
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
         paintMode()&&isHost()?row('Gist & Paint look: text and colours','palette',lookSheet):null,
-        isMgr()?row('Invite people','people',()=>inviteSheet(D.space)):null,
+        isMgr()&&!solo?row('Invite people','people',()=>inviteSheet(D.space)):null,
         isHost()?row('End space for everyone','close',endSpace,true):null,
         !isHost()?row('Report this space','flag',()=>reportSheet(id,null),true):null].filter(Boolean));
     });
@@ -437,7 +444,10 @@ async function room(id){
   /* join */
   v.append(h('div',{class:'sp-joining'},spinner('Joining…')));
   try{
-    connecting=true;await audio.connect(id);connecting=false;connState='connected';
+    connecting=true;
+    try{const pre=await rpc('space_get',{p_space:id});solo=!!(pre&&pre.space&&pre.space.solo);}catch(e){}
+    if(solo){v.classList.add('sp-solo');await rpc('space_join',{p_space:id}).catch(()=>{});}else await audio.connect(id);
+    connecting=false;connState='connected';
     await tick();v.querySelector('.sp-joining')&&v.querySelector('.sp-joining').remove();await initStage();
     pollT=setInterval(()=>{if(!document.hidden)tick();},3000);hbT=setInterval(hb,15000);chatT=setInterval(()=>{if(!document.hidden)chat();},3000);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!dead){tick();chat();hb();if(audio.room)audio.startPlayback();}});
