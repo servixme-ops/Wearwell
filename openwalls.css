@@ -683,3 +683,9 @@ button.fm-int{border:0}
 .tvplayer.tv-house.tv-away{display:block!important;visibility:hidden;pointer-events:none}
 .tvplayer.tv-house.tv-ro .tv-bar>.tv-grip{display:none}
 .tvplayer.tv-house.mini{width:min(330px,calc(100vw - 24px))!important;min-width:0}
+
+/* gallery visitors: full player controls, but no adding or removing songs */
+.tvplayer.tv-noadd .tv-add-row,.tvplayer.tv-noadd .tv-li .tv-x{display:none!important}
+.tvplayer.tv-house .tv-bar>.tv-grip{display:none}
+.tvplayer.tv-house .tv-bar{touch-action:none;cursor:grab}
+.tvplayer.tv-house.tv-noadd .tv-pl .tv-none{font-size:0}.tvplayer.tv-house.tv-noadd .tv-pl .tv-none:after{content:"OpenWalls chooses the gallery music.";font-size:13px}
