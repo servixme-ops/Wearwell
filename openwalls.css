@@ -692,3 +692,8 @@ button.fm-int{border:0}
 
 /* solo painting: no voices, no listeners */
 .sp-solo .sp-crowd,.sp-solo #sp-lh,.sp-solo .sp-hstage{display:none!important}
+
+/* private code boxes: input and Join button always sit side by side */
+.code-row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;margin:10px 18px 4px}
+.code-row .code-in{flex:1 1 auto;min-width:0;width:auto;margin:0;padding:12px 14px;border-radius:99px;border:1.5px solid rgba(40,20,70,.12);background:#fff;font:600 14px var(--body,inherit)}
+.code-row .btn{flex:0 0 auto;margin:0}

@@ -15,7 +15,7 @@ function marble(W,D){
   for(let i=0;i<46;i++){let x=rnd()*512,y=rnd()*512,a=rnd()*6.28;g.strokeStyle='rgba('+(190+rnd()*50|0)+','+(190+rnd()*50|0)+','+(195+rnd()*50|0)+','+(.05+rnd()*.17)+')';g.lineWidth=.7+rnd()*2.6;g.beginPath();g.moveTo(x,y);
     for(let k=0;k<14;k++){a+=(rnd()-.5)*1.1;x+=Math.cos(a)*(14+rnd()*26);y+=Math.sin(a)*(14+rnd()*26);g.lineTo(x,y);}g.stroke();}
   for(let i=0;i<70;i++){g.fillStyle='rgba(255,255,255,'+(.015+rnd()*.035)+')';g.beginPath();g.arc(rnd()*512,rnd()*512,6+rnd()*30,0,7);g.fill();}
-  g.strokeStyle='rgba(15,15,20,.7)';g.lineWidth=2;g.strokeRect(1,1,510,510);
+  g.strokeStyle='rgba(15,15,20,.28)';g.lineWidth=4;g.strokeRect(2,2,508,508);
   return OW.tex(c,[W/1.6,D/1.6]);}
 
 /* ----- original African-inspired artworks, drawn in code ----- */
