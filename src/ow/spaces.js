@@ -527,11 +527,11 @@ function paintSection(){
   const el=h('div',{class:'gp-sec'},
     h('div',{class:'ent2 paint gp-banner'},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Gist & Paint'),h('span',null,'Paint the same picture with friends, then hang it on your wall')),
       h('button',{class:'ent2-go',onclick:()=>{if(!needAuth('Sign in to host a Gist & Paint'))return;createSheet(()=>{load();loadSched();},'sipandpaint');}},'Host')),
-    (()=>{const inp=h('input',{type:'text',class:'ds-search',maxlength:'24',placeholder:'Have a private session code?',autocapitalize:'none',autocomplete:'off','aria-label':'Private session code',style:{marginBottom:'0',flex:'1',minWidth:'0',width:'auto'}}),jb=h('button',{class:'btn coral'},'Join');
+    (()=>{const inp=h('input',{type:'text',class:'code-in',maxlength:'24',placeholder:'Private session code',autocapitalize:'none',autocomplete:'off','aria-label':'Private session code',style:{}}),jb=h('button',{class:'btn coral'},'Join');
       const run=()=>guard(jb,async()=>{const c=inp.value.trim().toLowerCase();if(c.length<6){toast('Enter the full code','err');return;}if(!needAuth('Sign in to join a private session'))return;
         let sid=null;try{sid=await rpc('space_join_by_code',{p_code:c});}catch(e){toast(friendlyError(e),'err');return;}
         if(!sid){toast('That code did not match a live private session','err');return;}go('#/space/'+sid);});
-      jb.onclick=run;inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});return h('div',{class:'row',style:{gap:'8px',margin:'10px 0 0'}},inp,jb);})(),
+      jb.onclick=run;inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});return h('div',{class:'code-row'},inp,jb);})(),
     inviteBox,liveH,list,schLink);
   const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
     return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},

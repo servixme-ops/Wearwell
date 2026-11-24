@@ -22,7 +22,7 @@ function bx(g,w,h,d,c,x,y,z,o){o=o||{};const m=new T.Mesh(new T.BoxGeometry(w,h,
 function cy(g,rt,rb,h,c,x,y,z,o){o=o||{};const m=new T.Mesh(new T.CylinderGeometry(rt,rb,h,o.seg||18),o.mat||mat(c,o.r,o.m));m.position.set(x||0,y||0,z||0);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;}
 function sp(g,r,c,x,y,z,sx,sy,sz){const m=new T.Mesh(new T.SphereGeometry(r,14,10),mat(c,.85));m.position.set(x,y,z);m.scale.set(sx||1,sy||1,sz||1);m.castShadow=true;g.add(m);return m;}
 function canvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
-function tex(c,rep){const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.anisotropy=4;if(rep){t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(rep[0],rep[1]);}return t;}
+function tex(c,rep){const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.anisotropy=8;if(rep){t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(rep[0],rep[1]);}return t;}
 OW.canvas=canvas;OW.tex=tex;
 function glow(c){return new T.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:1.1,roughness:.5});}
 function screenTex(a,b){const c=canvas(64,40),g=c.getContext('2d'),gr=g.createLinearGradient(0,0,64,40);gr.addColorStop(0,a);gr.addColorStop(1,b);g.fillStyle=gr;g.fillRect(0,0,64,40);return tex(c);}

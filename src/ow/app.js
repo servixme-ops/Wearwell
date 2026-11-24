@@ -269,13 +269,13 @@ function ownerSheet(o,cn){
 
 /* join a private room with a code the owner shared */
 function joinCodeRow(){
-  const inp=h('input',{type:'text',class:'ds-search',maxlength:'24',placeholder:'Have a private room code?',autocapitalize:'none',autocomplete:'off','aria-label':'Private room code',style:{marginBottom:'0',flex:'1',minWidth:'0',width:'auto'}});
+  const inp=h('input',{type:'text',class:'code-in',maxlength:'24',placeholder:'Private room code',autocapitalize:'none',autocomplete:'off','aria-label':'Private room code',style:{}});
   const go2=h('button',{class:'btn coral'},'Join');
   const run=()=>guard(go2,async()=>{const c=inp.value.trim().toLowerCase();if(c.length<6){toast('Enter the full code','err');return;}if(!needAuth('Sign in to join a private room'))return;
     let u=null;try{u=await Store.roomByCode(c);}catch(e){toast(friendlyError(e),'err');return;}
     if(!u){toast('That code did not match a private room','err');return;}go('#/@'+u+'/'+encodeURIComponent(c));});
   go2.onclick=run;inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});
-  return h('div',{class:'row',style:{gap:'8px',margin:'10px 0 0'}},inp,go2);
+  return h('div',{class:'code-row'},inp,go2);
 }
 
 /* the owner's invite code: show it, copy it, share the link, or make a new one */
