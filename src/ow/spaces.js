@@ -128,7 +128,17 @@ function inviteSheet(space){
     const pnt=h('button',{class:'sp-seg-one'+(paint?' on':''),onclick:()=>{paint=!paint;pnt.classList.toggle('on',paint);pnt.textContent=(paint?'\u2713 ':'')+'Seat at an easel (paint and speak)';}},'Seat at an easel (paint and speak)');
     let t;q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(async()=>{const s=q.value.trim().replace(/^@/,'');if(s.length<2){res.replaceChildren();return;}
       try{const rows=(await rpc('space_find_people',{p_q:s}))||[];res.replaceChildren(...(rows.length?rows.map(p=>{const bt=h('button',{class:'btn small'},'Invite');bt.onclick=()=>guard(bt,async()=>{try{await rpc('space_invite',{p_space:space.id,p_user:p.id,p_role:role,p_paint:paint});}catch(e){if(OWPlans.isLimit(e)){OWPlans.limitSheet(space.id);return;}throw e;}bt.textContent='Invited';bt.disabled=true;});return h('div',{class:'sp-person'},sp_av(p,'sm'),h('div',{class:'who'},h('b',null,person(p)),h('span',null,'@'+p.username)),bt);}):[h('p',{class:'tag'},'No one found.')]));}catch(e){toast(friendlyError(e),'err');}},250);});
-    b.append(seg,...(space.category==='sipandpaint'?[pnt]:[]),field('Find people',q),res);
+    let codeBox=null;
+    if(space.visibility==='private'&&!space.solo){
+      let code='';const ce=h('div',{style:{font:'800 24px/1.1 ui-monospace,Menlo,monospace',letterSpacing:'.12em',padding:'12px 14px',borderRadius:'12px',background:'rgba(108,75,255,.1)',textAlign:'center',userSelect:'all',wordBreak:'break-all'}},'…');
+      const ld=async reset=>{try{code=await rpc('space_code_get',{p_space:space.id,p_reset:!!reset});ce.style.fontSize='24px';ce.textContent=code;}catch(e){code='';ce.style.fontSize='15px';ce.textContent='Could not load the code. Tap to try again';}};
+      ce.onclick=()=>{if(!code)ld(false);};ld(false);
+      codeBox=field('Private session code',h('div',null,ce,h('p',{class:'f-hint',style:{margin:'6px 0'}},'Share this code. People enter it on the Gist & Paint page under "Have a private session code?" to join. Anyone with it can come in, so send it only to people you trust.'),
+        h('div',{class:'row',style:{gap:'8px',flexWrap:'wrap'}},
+          h('button',{class:'btn',onclick:async()=>{if(!code)await ld(false);if(!code){toast('Could not load the code','err');return;}if(await copyText(code))toast('Code copied','ok');else dialog({title:'Session code',body:code});}},'Copy code'),
+          h('button',{class:'btn light',onclick:async()=>{if(!(await confirmBox('Make a new code?','The old code stops working. People already inside can stay.','New code')))return;await ld(true);toast('New code ready','ok');}},'New code'))));
+    }
+    b.append(...(codeBox?[codeBox]:[]),seg,...(space.category==='sipandpaint'?[pnt]:[]),field('Find people',q),res);
   });
 }
 
@@ -340,7 +350,7 @@ async function room(id){
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:()=>{close();cb();}},icon(ic),l);
       const vs=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(audio.voiceVol()*100)),'aria-label':'Voices volume',style:{width:'100%'}});vs.addEventListener('input',()=>audio.setVoiceVol(vs.value/100));
       b.append(...[solo?null:h('div',{class:'sp-vv'},h('b',null,'Voices volume'),h('span',{class:'muted small-t',style:{display:'block',margin:'2px 0 6px'}},'Only changes how loud people speaking sound. Music has its own volume in the music player.'),vs),D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
-        solo?null:row('Share link','share',async()=>{const u=CFG.pretty?CFG.site+'s/'+id:CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
+        solo?null:row('Share link','share',async()=>{const u=CFG.pretty?CFG.site+'s/'+id:CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,text:(D.space.category==='sipandpaint'?'Join my Gist & Paint session':'Join my live space')+' "'+D.space.title+'" on OpenWalls'+(D.space.category==='sipandpaint'?' and paint along.':'.'),url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
         paintMode()&&typeof OWTv!=='undefined'?row('Music','music',()=>{if(!OWTv.showMusic()&&startMusic)startMusic();}):null,
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
         paintMode()&&isHost()?row('Gist & Paint look: text and colours','palette',lookSheet):null,
@@ -517,6 +527,11 @@ function paintSection(){
   const el=h('div',{class:'gp-sec'},
     h('div',{class:'ent2 paint gp-banner'},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Gist & Paint'),h('span',null,'Paint the same picture with friends, then hang it on your wall')),
       h('button',{class:'ent2-go',onclick:()=>{if(!needAuth('Sign in to host a Gist & Paint'))return;createSheet(()=>{load();loadSched();},'sipandpaint');}},'Host')),
+    (()=>{const inp=h('input',{type:'text',class:'ds-search',maxlength:'24',placeholder:'Have a private session code?',autocapitalize:'none',autocomplete:'off','aria-label':'Private session code',style:{marginBottom:'0',flex:'1',minWidth:'0',width:'auto'}}),jb=h('button',{class:'btn coral'},'Join');
+      const run=()=>guard(jb,async()=>{const c=inp.value.trim().toLowerCase();if(c.length<6){toast('Enter the full code','err');return;}if(!needAuth('Sign in to join a private session'))return;
+        let sid=null;try{sid=await rpc('space_join_by_code',{p_code:c});}catch(e){toast(friendlyError(e),'err');return;}
+        if(!sid){toast('That code did not match a live private session','err');return;}go('#/space/'+sid);});
+      jb.onclick=run;inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});return h('div',{class:'row',style:{gap:'8px',margin:'10px 0 0'}},inp,jb);})(),
     inviteBox,liveH,list,schLink);
   const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
     return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
