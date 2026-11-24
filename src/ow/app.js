@@ -242,7 +242,7 @@ function followSheet(uid,kind){
 function activeSpaces(uid,close){
   const box=h('div',{class:'list',style:{margin:'12px 0 0',display:'none'}});
   sb.rpc('ow_user_spaces',{p_user:uid}).then(r=>{const xs=(r.data||[]);if(!xs.length)return;box.style.display='';
-    box.replaceChildren(h('div',{class:'f-label',style:{padding:'0 4px 6px'}},'Spaces'),...xs.map(x=>h('button',{onclick:()=>{close&&close();go('#/space/'+x.id);}},icon('mic'),h('span',{class:'grow'},x.title),h('b',null,x.status==='live'?'Live now':'Soon'))));}).catch(()=>{});
+    box.replaceChildren(h('div',{class:'f-label',style:{padding:'0 4px 6px'}},'Active spaces'),...xs.map(x=>h('button',{onclick:()=>{close&&close();go('#/space/'+x.id);}},icon(x.visibility==='private'?'lock':'mic'),h('span',{class:'grow'},x.title,h('small',{style:{display:'block',opacity:.65,fontWeight:600,fontSize:'11px'}},(x.solo?'Solo':x.visibility==='private'?'Private':'Public')+' · '+(x.category==='sipandpaint'?'Gist & Paint':'Space'))),h('b',null,x.status==='live'?'Live now':'Soon'))));}).catch(()=>{});
   return box;
 }
 function photoSheet(R,name,hasMe){
@@ -282,19 +282,24 @@ function joinCodeRow(){
 function inviteField(room){
   const codeEl=h('div',{style:{font:'800 24px/1.1 ui-monospace,Menlo,monospace',letterSpacing:'.12em',padding:'12px 14px',borderRadius:'12px',background:'rgba(108,75,255,.1)',textAlign:'center',userSelect:'all',wordBreak:'break-all'}},'…');
   let code='';const isPriv=()=>(room.visibility||'public')==='private';
-  const load=async(reset)=>{try{code=await Store.inviteCode(!!reset);codeEl.textContent=code;}catch(e){codeEl.textContent='Save your room first';}};load(false);
-  const need=()=>{if(!isPriv()){toast('Save the room as Private first');return true;}return false;};
+  const load=async(reset)=>{codeEl.style.fontSize='24px';
+    for(let k=0;k<3;k++){try{code=await Store.inviteCode(!!reset);codeEl.textContent=code;return code;}catch(e){const m=String((e&&e.message)||'');if(/no room/i.test(m))break;await new Promise(r=>setTimeout(r,700));}}
+    code='';codeEl.style.fontSize='15px';codeEl.textContent=room.id?'Could not load the code. Tap to try again':'Save your room once, then your code appears here';return '';};
+  codeEl.onclick=()=>{if(!code)load(false);};load(false);
+  const need=()=>{if(!isPriv())toast('The code works once the room is saved as Private','ok');return false;};
   return h('div',{class:'field'},h('span',{class:'f-label'},'Private room code'),codeEl,
     h('p',{class:'f-hint',style:{margin:'6px 0'}},'Share this code. People enter it under Discover > "Have a private room code?" to join your private room. Anyone with it can come in, so send it only to people you trust.'),
     h('div',{class:'row',style:{gap:'8px',flexWrap:'wrap'}},
-      h('button',{class:'btn',onclick:async()=>{if(need()||!code)return;if(await copyText(code))toast('Code copied','ok');else dialog({title:'Your room code',body:code});}},'Copy code'),
+      h('button',{class:'btn',onclick:async()=>{need();if(!code)await load(false);if(!code){toast('Could not load the code. Check your connection','err');return;}if(await copyText(code))toast('Code copied','ok');else dialog({title:'Your room code',body:code});}},'Copy code'),
       h('button',{class:'btn',onclick:()=>{if(need())return;shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),
       h('button',{class:'btn light',onclick:async()=>{if(need())return;if(!(await confirmBox('Make a new code?','The old code and links stop working. People already inside can stay until they leave.','New code')))return;await load(true);toast('New code ready. The old one no longer works','ok');}},'New code')));
 }
 async function shareRoom(username,name,vis){
   let url=roomUrl(username);
   if(vis==='private'){try{url+='/'+await Store.inviteCode();}catch(e){toast('Could not make the invite link','err');return;}}
-  if(navigator.share){try{await navigator.share({title:name||'My open room on OpenWalls',text:'Come and see my open room on OpenWalls',url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  const gal=String(username).toLowerCase()==='openwalls',mine=Auth.user&&Auth.profile&&Auth.profile.username===username;
+  const ttl=gal?'The OpenWalls Gallery':(name||'An open room on OpenWalls'),txt=gal?'Walk the OpenWalls Gallery: Nigerian and African art, instruments you can play and objects to inspect in 3D.':vis==='private'?'Join my private room on OpenWalls with this link.':mine?'Come and see my open room on OpenWalls':'Have a look at this open room on OpenWalls';
+  if(navigator.share){try{await navigator.share({title:ttl,text:txt,url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
   if(await copyText(url))toast('Room link copied','ok');else dialog({title:'Your room link',body:url});
 }
 /* choose paintings (from My artworks) to feature on the room card; at most 2 */
