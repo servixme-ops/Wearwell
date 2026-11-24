@@ -11,7 +11,7 @@ class OWRoom{
     this.r=new THREE.WebGLRenderer({canvas,antialias:!low,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:!!o.preserve});
     this.r.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1.5:2));this.r.outputEncoding=THREE.sRGBEncoding;
     this.r.shadowMap.enabled=true;this.r.shadowMap.type=THREE.PCFSoftShadowMap;this.r.shadowMap.autoUpdate=false;
-    this.scene=new THREE.Scene();this.cam=new THREE.PerspectiveCamera(40,1,.1,80);
+    this.scene=new THREE.Scene();this.cam=new THREE.PerspectiveCamera(40,1,.2,60);
     this.shell=new THREE.Group();this.root=new THREE.Group();this.scene.add(this.shell,this.root);
     this.ray=new THREE.Raycaster();this.low=low;
     if(host){host.appendChild(canvas);this.ro=new ResizeObserver(()=>this.resize());this.ro.observe(host);this.bind(canvas);}
