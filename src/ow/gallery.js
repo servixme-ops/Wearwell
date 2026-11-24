@@ -89,6 +89,55 @@ const ART={
     g.strokeStyle='#120b10';g.lineWidth=6;g.lineCap='round';g.beginPath();g.moveTo(296,330);g.quadraticCurveTo(330,300,320,262);g.stroke();g.fillStyle='#120b10';g.beginPath();g.arc(320,260,9,0,7);g.fill();
     g.fillStyle='#e8d6a8';g.beginPath();g.ellipse(128,318,24,7,0,0,7);g.fill();
     g.fillStyle='#120b10';g.beginPath();g.ellipse(170,170,16,10,.2,0,7);g.fill();},
+  /* ---- new works: original, Nigerian / African subjects ---- */
+  uli(g,w,h){g.fillStyle='#d8a24a';g.fillRect(0,0,w,h);g.fillStyle='#c4862f';g.fillRect(0,0,w,h*.06);g.fillRect(0,h*.94,w,h*.06);
+    g.strokeStyle='#1a120c';g.fillStyle='#1a120c';g.lineCap='round';g.lineWidth=5;
+    const leaf=(x,y,a,l)=>{g.save();g.translate(x,y);g.rotate(a);g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(l*.5,-l*.28,l,0);g.quadraticCurveTo(l*.5,l*.28,0,0);g.fill();g.restore();};
+    const spiral=(x,y,r,t)=>{g.lineWidth=4;g.beginPath();for(let a=0;a<t*6.28;a+=.15){const rr=r*(a/(t*6.28));const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;a?g.lineTo(px,py):g.moveTo(px,py);}g.stroke();};
+    g.lineWidth=4;g.beginPath();g.moveTo(w*.5,h*.1);g.bezierCurveTo(w*.2,h*.3,w*.8,h*.5,w*.5,h*.9);g.stroke();
+    for(let i=0;i<9;i++){const t=.1+i*.1,y=h*(.1+t*.8),x=w*.5+Math.sin(t*9)*52;leaf(x,y,-.3-(i%2)*2.5,48);leaf(x,y,.3+(i%2)*-.2+(i%2?2.6:0),40);}
+    spiral(w*.2,h*.22,38,2.5);spiral(w*.8,h*.22,38,2.5);spiral(w*.2,h*.78,38,2.5);spiral(w*.8,h*.78,38,2.5);
+    for(let i=0;i<8;i++){g.beginPath();g.arc(30+i*48,h*.035,6,0,7);g.fill();g.beginPath();g.arc(30+i*48,h*.965,6,0,7);g.fill();}
+    g.lineWidth=3;g.strokeStyle='#7a4a16';for(let k=0;k<3;k++){g.beginPath();g.arc(w*.5,h*.5,60+k*10,0,7);g.stroke();}
+    g.fillStyle='#1a120c';g.beginPath();g.arc(w*.5,h*.5,20,0,7);g.fill();},
+  zuma(g,w,h){const sk=g.createLinearGradient(0,0,0,h);sk.addColorStop(0,'#7a2a55');sk.addColorStop(.35,'#e0562e');sk.addColorStop(.62,'#ffb347');sk.addColorStop(1,'#ffe3a0');g.fillStyle=sk;g.fillRect(0,0,w,h);
+    g.fillStyle='#ffe9b0';g.beginPath();g.arc(w*.72,h*.42,52,0,7);g.fill();g.fillStyle='rgba(255,233,176,.28)';g.beginPath();g.arc(w*.72,h*.42,82,0,7);g.fill();
+    g.fillStyle='#3b1a26';g.beginPath();g.moveTo(40,h*.72);g.bezierCurveTo(70,h*.5,90,h*.3,130,h*.2);g.bezierCurveTo(165,h*.13,215,h*.14,244,h*.24);g.bezierCurveTo(274,h*.34,296,h*.52,330,h*.72);g.closePath();g.fill();
+    g.strokeStyle='rgba(255,170,90,.35)';g.lineWidth=3;for(let i=0;i<7;i++){g.beginPath();g.moveTo(120+i*22,h*.2+Math.abs(i-3)*8);g.lineTo(100+i*30,h*.7);g.stroke();}
+    g.fillStyle='#4a2a18';g.fillRect(0,h*.72,w,h*.28);g.fillStyle='#2a1810';for(let i=0;i<40;i++)g.fillRect((i*47)%w,h*.74+(i*13)%90,22,3);
+    const palm=(x,y,s)=>{g.strokeStyle='#150b0e';g.lineWidth=5*s;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+14*s,y-70*s,x+4*s,y-130*s);g.stroke();for(let a=-2;a<=2;a++){g.lineWidth=3*s;g.beginPath();g.moveTo(x+4*s,y-130*s);g.quadraticCurveTo(x+4*s+a*28*s,y-160*s+Math.abs(a)*14*s,x+4*s+a*48*s,y-120*s+Math.abs(a)*18*s);g.stroke();}};
+    palm(340,h*.82,1.2);palm(60,h*.88,1);g.fillStyle='#150b0e';[[200,h*.8],[250,h*.85]].forEach(([x,y])=>{g.beginPath();g.ellipse(x,y,16,7,0,0,7);g.fill();});},
+  bridge(g,w,h){const sk=g.createLinearGradient(0,0,0,h*.62);sk.addColorStop(0,'#1d2a6b');sk.addColorStop(.5,'#c2467a');sk.addColorStop(1,'#ffb25a');g.fillStyle=sk;g.fillRect(0,0,w,h);
+    g.fillStyle='#ffe2a0';g.beginPath();g.arc(w*.3,h*.52,44,0,7);g.fill();
+    const wt=g.createLinearGradient(0,h*.62,0,h);wt.addColorStop(0,'#e9964a');wt.addColorStop(.3,'#8b3a6a');wt.addColorStop(1,'#141c4a');g.fillStyle=wt;g.fillRect(0,h*.62,w,h*.38);
+    g.fillStyle='rgba(255,226,160,.5)';for(let i=0;i<9;i++)g.fillRect(w*.3-40+i*3-Math.abs(i-4)*3,h*.64+i*11,80-i*3,3);
+    g.fillStyle='#121530';[[20,40,.62],[80,55,.62],[300,50,.62],[345,64,.62]].forEach(([x,bw,y])=>{g.fillRect(x,h*y-(bw*2.2),bw*.6,bw*2.2);});
+    for(let i=0;i<30;i++){g.fillStyle='rgba(255,220,130,.8)';g.fillRect(24+(i%3)*14+(i>15?280:0),h*.62-100+((i*17)%90),4,5);}
+    g.strokeStyle='#121530';g.lineWidth=7;g.beginPath();g.moveTo(0,h*.66);g.lineTo(w,h*.66);g.stroke();g.lineWidth=2;g.beginPath();g.moveTo(0,h*.66+10);g.lineTo(w,h*.66+10);g.stroke();for(let x=10;x<w;x+=34){g.beginPath();g.moveTo(x,h*.66);g.lineTo(x,h*.66+10);g.stroke();}
+    [[110],[290]].forEach(([x])=>{g.lineWidth=7;g.beginPath();g.moveTo(x,h*.66);g.lineTo(x,h*.45);g.stroke();g.lineWidth=1.5;for(let k=-5;k<=5;k++){g.beginPath();g.moveTo(x,h*.45+Math.abs(k)*0);g.lineTo(x+k*26,h*.66);g.stroke();}});
+    g.fillStyle='#0b0d22';[[170,h*.78,90],[250,h*.86,70],[90,h*.9,60]].forEach(([x,y,l])=>{g.beginPath();g.moveTo(x-l/2,y);g.quadraticCurveTo(x,y+14,x+l/2,y);g.quadraticCurveTo(x+l/2+8,y-8,x+l/2+14,y-14);g.lineTo(x-l/2-10,y-12);g.closePath();g.fill();g.fillRect(x-1,y-48,2,36);});},
+  eyo(g,w,h){const bg=g.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#10102a');bg.addColorStop(1,'#3b1a4a');g.fillStyle=bg;g.fillRect(0,0,w,h);
+    g.fillStyle='#e8963c';g.beginPath();g.arc(w*.5,h*.45,150,0,7);g.fill();g.fillStyle='#f3b15c';g.beginPath();g.arc(w*.5,h*.45,118,0,7);g.fill();
+    g.fillStyle='#f6f1e4';g.beginPath();g.moveTo(w*.5-70,h*.36);g.quadraticCurveTo(w*.5-130,h*.7,w*.5-120,h*.93);g.lineTo(w*.5+120,h*.93);g.quadraticCurveTo(w*.5+130,h*.7,w*.5+70,h*.36);g.closePath();g.fill();
+    g.fillStyle='#ddd5c0';for(let i=0;i<6;i++){g.beginPath();g.moveTo(w*.5-90+i*36,h*.5);g.quadraticCurveTo(w*.5-96+i*36,h*.7,w*.5-100+i*36,h*.93);g.lineTo(w*.5-90+i*36+10,h*.93);g.quadraticCurveTo(w*.5-86+i*36,h*.7,w*.5-90+i*36+6,h*.5);g.fill();}
+    g.fillStyle='#f6f1e4';g.beginPath();g.moveTo(w*.5-74,h*.37);g.quadraticCurveTo(w*.5,h*.31,w*.5+74,h*.37);g.lineTo(w*.5+64,h*.45);g.quadraticCurveTo(w*.5,h*.4,w*.5-64,h*.45);g.closePath();g.fill();
+    g.fillStyle='#1b1b3a';g.beginPath();g.moveTo(w*.5-82,h*.2);g.lineTo(w*.5-48,h*.07);g.quadraticCurveTo(w*.5,h*.0,w*.5+48,h*.07);g.lineTo(w*.5+82,h*.2);g.quadraticCurveTo(w*.5,h*.26,w*.5-82,h*.2);g.fill();
+    g.fillStyle='#f6f1e4';g.beginPath();g.ellipse(w*.5,h*.27,60,34,0,0,7);g.fill();g.fillStyle='#1b1b3a';g.fillRect(w*.5-30,h*.255,16,5);g.fillRect(w*.5+14,h*.255,16,5);
+    g.fillStyle='#ffd23f';g.fillRect(w*.5-82,h*.2,164,7);g.fillStyle='#0d7a74';g.fillRect(w*.5-74,h*.215,148,5);
+    g.strokeStyle='#d9a441';g.lineWidth=6;g.beginPath();g.moveTo(w*.5+104,h*.6);g.lineTo(w*.5+104,h*.9);g.stroke();g.fillStyle='#d9a441';g.beginPath();g.arc(w*.5+104,h*.58,12,0,7);g.fill();
+    g.fillStyle='#0b0b1c';g.fillRect(0,h*.93,w,h*.07);},
+  lagoon(g,w,h){const sk=g.createLinearGradient(0,0,0,h*.55);sk.addColorStop(0,'#3a8aa8');sk.addColorStop(.6,'#f6d27a');sk.addColorStop(1,'#fff0c0');g.fillStyle=sk;g.fillRect(0,0,w,h);
+    g.fillStyle='#fff6d0';g.beginPath();g.arc(w*.5,h*.5,60,0,7);g.fill();
+    const wt=g.createLinearGradient(0,h*.55,0,h);wt.addColorStop(0,'#e7c06a');wt.addColorStop(.25,'#2f8a8e');wt.addColorStop(1,'#0e3b4e');g.fillStyle=wt;g.fillRect(0,h*.55,w,h*.45);
+    g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=2;for(let i=0;i<14;i++){const y=h*.6+i*15;g.beginPath();g.moveTo(10+(i*53)%80,y);g.quadraticCurveTo(60+(i*53)%80,y-5,110+(i*53)%80,y);g.moveTo(230+(i*31)%70,y+5);g.quadraticCurveTo(270+(i*31)%70,y,310+(i*31)%70,y+5);g.stroke();}
+    /* stilt houses */
+    const house=(x,y,s)=>{g.fillStyle='#3a2415';for(let k=0;k<4;k++)g.fillRect(x+k*14*s,y,3*s,34*s);g.fillStyle='#5a3a22';g.fillRect(x-4*s,y-3*s,64*s,5*s);g.fillStyle='#7a4a2a';g.fillRect(x,y-34*s,56*s,31*s);g.fillStyle='#2a1a10';g.beginPath();g.moveTo(x-8*s,y-34*s);g.lineTo(x+28*s,y-58*s);g.lineTo(x+64*s,y-34*s);g.closePath();g.fill();g.fillStyle='#ffd23f';g.fillRect(x+10*s,y-26*s,10*s,10*s);g.fillStyle='#0d7a74';g.fillRect(x+34*s,y-26*s,12*s,22*s);};
+    house(40,h*.66,1.2);house(250,h*.64,1);house(150,h*.6,.7);
+    /* canoe with a fisher and a net */
+    g.fillStyle='#1a0f08';g.beginPath();g.moveTo(90,h*.84);g.quadraticCurveTo(190,h*.9,300,h*.82);g.quadraticCurveTo(300,h*.86,284,h*.87);g.quadraticCurveTo(190,h*.93,100,h*.88);g.closePath();g.fill();
+    g.fillStyle='#120b10';g.beginPath();g.ellipse(188,h*.74,14,16,0,0,7);g.fill();g.beginPath();g.moveTo(170,h*.78);g.quadraticCurveTo(188,h*.75,208,h*.78);g.lineTo(212,h*.84);g.lineTo(166,h*.85);g.fill();
+    g.strokeStyle='#120b10';g.lineWidth=4;g.beginPath();g.moveTo(206,h*.78);g.lineTo(290,h*.66);g.stroke();g.lineWidth=1.5;g.strokeStyle='#120b10';for(let i=0;i<6;i++){g.beginPath();g.moveTo(290,h*.66);g.lineTo(240+i*20,h*.8);g.stroke();}},
+
 };
 function mathMax(a,b){return Math.max(a,b);}
 const artCache={};
@@ -97,13 +146,13 @@ function artTex(k){
   if(ART[k])ART[k](g,400,500);else{try{const s=OWPaint.refCanvas('ref:'+k);g.drawImage(s,0,0,400,500);}catch(e){g.fillStyle='#ccc';g.fillRect(0,0,400,500);}}
   return artCache[k]=OW.tex(c);}
 
-OW.artCanvases=function(){return['adire','ankara','danfo','gele','aso','drum'].map(k=>{const c=OW.canvas(400,500);ART[k](c.getContext('2d'),400,500);return c;});};
+OW.artCanvases=function(){return['adire','ankara','danfo','gele','aso','drum','uli','zuma','bridge','eyo','lagoon'].map(k=>{const c=OW.canvas(400,500);ART[k](c.getContext('2d'),400,500);return c;});};
 /* a framed picture on a wall; n = wall normal axis */
 function frame(g,k,x,y,z,ry,w,h,fm){
   const grp=new T.Group();grp.position.set(x,y,z);grp.rotation.y=ry;
   box(grp,w+.14,h+.14,.07,fm||M('#1a1a1a',.5),0,0,.035,false);box(grp,w+.02,h+.02,.02,M('#fbfaf6',.9),0,0,.075);
-  const p=new T.Mesh(new T.PlaneGeometry(w-.1,h-.1),new T.MeshStandardMaterial({map:artTex(k),roughness:.7}));p.position.z=.09;grp.add(p);
-  g.add(grp);return grp;}
+  const p=new T.Mesh(new T.PlaneGeometry(w-.1,h-.1),new T.MeshStandardMaterial({map:artTex(k),roughness:.7}));p.userData.own=1;p.position.z=.09;grp.add(p);
+  grp.userData.info={kind:'art',key:k};g.add(grp);return grp;}
 
 /* ----- plinth objects, all small and original ----- */
 const OBJ=(function(){
@@ -281,7 +330,49 @@ function track(g,x,len,z0,H,targets){
   targets.forEach(t=>{const h=new T.Group();h.position.set(x,H-.07,t.z);const stem=cyl(h,.012,.012,.1,M('#0d0d10'),0,0,0,6);const can=cyl(h,.045,.06,.15,M('#111114',.4,.3),0,-.1,0,14);
     const lens=cyl(h,.04,.04,.012,glowM('#fff6dc',2.2),0,-.18,0,14);const aim=new T.Vector3(t.tx-x,t.ty-(H-.17),t.tz-t.z);h.lookAt(h.position.clone().add(new T.Vector3(aim.x,aim.y,aim.z)));h.rotateX(-PI/2);h.updateMatrix();g.add(h);});}
 
+
+/* ----- wall texts: what each work, instrument and object is ----- */
+const INFO={
+  art:{
+    adire:['Adire Eleko','Yoruba · indigo resist-dye','Adire is cloth patterned by resisting the dye, traditionally indigo, around Abeokuta. In adire eleko the pattern is painted on with cassava paste, so the covered lines stay pale when the cloth is dyed. Circles, waves and small repeated marks are classic.'],
+    aso:['Aso Oke','Yoruba · hand-woven strips','Aso oke means "top cloth". It is woven on a narrow loom in long strips that are sewn together into wrappers, caps and headties for weddings and naming ceremonies. The stripes and colour blocks here follow that strip-weave look.'],
+    gele:['Gele','Yoruba · the headtie','A gele is a stiff wrapped headtie worn by women for celebrations. Tying one is an art: the folds are pleated and sculpted over the head, and the size of the wrap is part of the occasion.'],
+    ankara:['Ankara Print','West African wax print','Ankara is bold wax-printed cotton loved across West Africa. Tailors in Lagos turn it into everything from iro and buba to modern streetwear. This piece plays with its big motifs and hot colours.'],
+    danfo:['Danfo','Lagos · the yellow bus','The yellow-and-black danfo minibus is the heartbeat of Lagos traffic. Conductors shout the stops, the buses are hand-painted with sayings, and a ride costs a few naira.'],
+    drum:['Dùndún at Sunset','Yoruba · the talking drum','A drummer plays the dùndún, the hourglass talking drum. Pressing the cords changes the pitch, so the drum can copy the tones of Yoruba speech. This work shows a drummer against a golden evening.'],
+    uli:['Uli','Igbo · line and leaf','Uli is the Igbo tradition of flowing, curved line drawing, painted on bodies and walls. Leaves, spirals and bold black lines on warm earth colours are typical. This piece is an original drawing in that spirit.'],
+    zuma:['Zuma Rock','Niger State · near Abuja','Zuma Rock is a huge granite monolith beside the highway to Abuja, rising roughly 700 metres above the plain. It is often called the Gateway to Abuja.'],
+    bridge:['Third Mainland Bridge','Lagos Lagoon · at dusk','Third Mainland Bridge runs for about 11.8 km across the Lagos Lagoon, linking the mainland to Lagos Island. Fishermen still paddle under it as the evening lights come on.'],
+    eyo:['Eyo','Lagos Island · masquerade','Eyo masquerades dress in flowing white and a wide hat, carrying a staff called opa. They parade through Lagos Island at special ceremonies, and the white figures move like moving statues.'],
+    lagoon:['Makoko Morning','Lagos Lagoon · stilt houses','Makoko is a community built on stilts over the Lagos Lagoon. Families fish from long wooden canoes, casting nets at sunrise while their houses stand on the water.']},
+  obj:{
+    danfo:['Danfo Bus','Lagos · model','A small model of the Lagos danfo: yellow body, black stripe, ladder at the back, and a conductor hanging by the door.'],
+    keke:['Keke Napep','Nigeria · the tricycle taxi','The keke is the three-wheel tricycle taxi that fills the short routes in Nigerian cities. Yellow and compact, it fits through spaces buses cannot.'],
+    eyo:['Eyo Figure','Lagos Island · masquerade','A small figure of an Eyo masquerade in white robes, wide hat and staff. Turn it around to see the folds of the robe.'],
+    towers:['Lagos Skyline','Victoria Island · model','A small sculpture of glass towers, a cable-stayed bridge and an antenna mast, to suggest the skyline of Lagos Island and Victoria Island.'],
+    pot:['Clay Pot','Nigeria · hand-built pottery','Hand-built clay pots carry water, palm wine and stew across Nigeria. The incised bands and dots on this one echo traditional pottery decoration.'],
+    mask:['Carved Mask','West African tradition · original','A carved wooden mask in the spirit of West African masquerade carving, with a long face, narrow eyes and incised marks. It is an original design, not a copy of a museum piece.'],
+    agbada:['Agbada','Yoruba · the grand robe','The agbada is a wide, flowing robe worn over a shirt and trousers for weddings and festivals. Gold embroidery along the neck and chest is part of what makes it special.']},
+  instr:{
+    guitar:['Highlife Guitar','West Africa · strings','Highlife, born in Ghana and loved in Nigeria, is built on bright, rolling guitar lines. Pick it up and strum along.'],
+    drum:['Talking Drum','Yoruba · dùndún','Squeeze the cords under your arm to bend the pitch and make the drum "speak". Played with a curved stick.'],
+    djembe:['Djembe','Mali, Guinea · goblet drum','A goblet-shaped drum played with bare hands. Bass in the middle, tone and slap near the rim.'],
+    agogo:['Agogo Bells','Yoruba · double bell','A pair of iron bells of different pitch, struck with a stick. In many rhythms the agogo holds the pattern that everyone else follows.'],
+    shekere:['Shekere','Yoruba · gourd rattle','A dried gourd wrapped in a net of beads. Shake it for a rattle, tap the base for a deep thud.'],
+    kalimba:['Kalimba','Africa · thumb piano','Metal tines on a wooden board, plucked with the thumbs. Related thumb pianos include the mbira and the Igbo ubo.'],
+    udu:['Udu','Igbo · clay pot drum','Udu means "vessel" in Igbo. Hit the side for a thud, and cover or uncover the hole for a deep, wobbly bass.'],
+    flute:['Bamboo Flute','Many cultures · wind','A simple bamboo flute with finger holes. Each key plays a different note of the scale.']}
+};
+const LBL={guitar:'Highlife Guitar',drum:'Talking Drum',djembe:'Djembe',agogo:'Agogo Bells',shekere:'Shekere',kalimba:'Kalimba',udu:'Udu',flute:'Bamboo Flute'};
+function labelMesh(title,sub,w,h,dark){
+  const c=OW.canvas(512,Math.round(512*h/w)),x=c.getContext('2d');x.fillStyle=dark?'#1b1b20':'#f4f2ec';x.fillRect(0,0,c.width,c.height);
+  x.strokeStyle=dark?'#c8a24a':'#b9b5a8';x.lineWidth=4;x.strokeRect(5,5,c.width-10,c.height-10);
+  x.textBaseline='middle';x.fillStyle=dark?'#f4f2ec':'#15131c';let fs=Math.round(c.height*.42);x.font='700 '+fs+'px system-ui,sans-serif';while(x.measureText(title).width>c.width-36&&fs>14){fs-=2;x.font='700 '+fs+'px system-ui,sans-serif';}
+  x.fillText(title,18,c.height*.36);x.fillStyle=dark?'#c8a24a':'#6b6679';x.font='500 '+Math.round(c.height*.24)+'px system-ui,sans-serif';let t2=sub;while(x.measureText(t2).width>c.width-36&&t2.length>6)t2=t2.slice(0,-2);x.fillText(t2===sub?sub:t2+'…',18,c.height*.74);
+  const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:OW.tex(c)}));m.userData.own=1;return m;}
+
 P._galleryBuild=function(g){
+  Object.keys(artCache).forEach(k=>delete artCache[k]);
   const G=OW.GALLERY,W=this.W,D=this.D,H=this.H,fl=new T.Mesh(new T.PlaneGeometry(W,D),new T.MeshStandardMaterial({map:marble(W,D),roughness:.2,metalness:.1}));
   fl.rotation.x=-PI/2;fl.position.y=.004;fl.receiveShadow=true;fl.userData.own=1;g.add(fl);
   /* soft floor reflection of the room: a faint lighter sheen strip under each wall */
@@ -290,23 +381,25 @@ P._galleryBuild=function(g){
   /* back wall: three large works */
   [['adire',-2.4,.62*0+2.0],['aso',0,2.0],['gele',2.4,2.0]].forEach(([k,x,y])=>frame(g,k,x,y,-D/2+.01,0,1.5,1.85,fm));
   /* left wall (faces +x) and right wall (faces -x): rows of works and instruments */
-  const L=[['dkoi',-4.6],['ankara',-2.0],['danfo',2.4],['drum',4.8]],R=[['sunset',-4.6],['city',-2.0],['mountains',2.4],['aso',4.8]];
+  const L=[['uli',-4.6],['ankara',-2.0],['danfo',2.4],['drum',4.8]],R=[['zuma',-4.6],['bridge',-2.0],['eyo',2.4],['lagoon',4.8]];
   L.forEach(([k,z])=>frame(g,k,-W/2+.01,2.0,z,PI/2,1.0,1.3,fm));R.forEach(([k,z])=>frame(g,k,W/2-.01,2.0,z,-PI/2,1.0,1.3,fm));
+  const artLbl=(k,x,y,z,ry)=>{const m=labelMesh(INFO.art[k][0],INFO.art[k][1],.5,.13,false);m.position.set(x,y,z);m.rotation.y=ry;m.userData.info={kind:'art',key:k};g.add(m);};
+  L.forEach(([k,z])=>artLbl(k,-W/2+.012,1.1,z,PI/2));R.forEach(([k,z])=>artLbl(k,W/2-.012,1.1,z,-PI/2));[['adire',-2.4],['aso',0],['gele',2.4]].forEach(([k,x])=>artLbl(k,x,.9,-D/2+.012,0));
   /* each instrument hangs on a bracket: [mount height, centre offset, distance from the wall, scale] */
   const MNT={guitar:[1.45,.22,.1,.82],drum:[.8,0,.14,1],djembe:[.85,0,.25,1],agogo:[.85,0,.12,1],shekere:[.8,0,.27,1],kalimba:[.5,0,.07,1.1],udu:[.65,0,.26,1],flute:[.9,0,.06,1]};
   const inst=(kind,wall,z,y,s)=>{const M2=MNT[kind],grp=new T.Group();INSTR[kind](grp);grp.scale.setScalar(M2[3]);const side=wall<0?1:-1;
     const off=M2[2]+.02;grp.position.set(wall*(W/2-off),y+M2[1]*0,z);grp.rotation.y=side>0?PI/2:-PI/2;
     const back=box(g,.035,M2[0],.5,M('#e4e1d8',.9),wall*(W/2-.02),y+M2[1],z,false);
     if(off>.15)box(g,off-.03,.03,.05,M('#2a2a2e',.5,.4),wall*(W/2-.03-(off-.03)/2),y,z,false);
-    const pq=box(g,.012,.045,.16,M('#c8a24a',.35,.7),wall*(W/2-.03),y-M2[0]/2+M2[1]-.1,z,false);
-    g.add(grp);grp.userData.instr=kind;(this.instruments=this.instruments||[]).push({kind,x:grp.position.x,y,z,wall:side>0?'left':'right',node:grp});return grp;};
+    const pq=labelMesh(LBL[kind],INFO.instr[kind][1],.4,.11,true);pq.position.set(wall*(W/2-.034),y-M2[0]/2+M2[1]-.12,z);pq.rotation.y=side>0?PI/2:-PI/2;pq.userData.info={kind:'instr',key:kind};g.add(pq);
+    grp.userData.info={kind:'instr',key:kind};g.add(grp);grp.userData.instr=kind;(this.instruments=this.instruments||[]).push({kind,x:grp.position.x,y,z,wall:side>0?'left':'right',node:grp});return grp;};
   this.instruments=[];
   inst('guitar',-1,-3.3,1.75,1);inst('drum',-1,-1.0,1.75,1);inst('djembe',-1,.2,1.75,1);inst('agogo',-1,1.4,1.75,1);inst('shekere',1,-3.3,1.75,1);inst('kalimba',1,-1.0,1.75,1);inst('udu',1,.2,1.75,1);inst('flute',1,1.4,1.75,1);
   /* pillars (plinths) of different heights, each carrying something from Lagos or Nigeria */
   const pw=M('#fbfaf7',.55),cap=M('#e6e3dc',.5);
   const PL=[['danfo',-1.7,-3.6,1.05,1.0,.62,.85],['keke',1.8,-3.1,.95,.8,.56,1.05],['eyo',-1.9,-.8,.9,.58,.58,.9],['towers',1.9,.3,1.0,.86,.62,1],['pot',-1.6,2.3,.85,.72,.6,1.25],['mask',1.6,3.1,1.0,.52,.52,1.05],['agbada',0,-1.3,.8,.6,.6,.85]];
-  PL.forEach(([k,x,z,h,w,d,sc])=>{box(g,w,h,d,pw,x,h/2,z,true);box(g,w+.06,.04,d+.06,cap,x,h+.02,z);box(g,w+.03,.03,d+.03,M('#d9d7d0',.5),x,.015,z);const o=new T.Group();o.position.set(x,h+.04,z);OBJ[k](o);o.rotation.y=(x>0?-.55:.55);o.scale.setScalar(sc);g.add(o);
-    box(g,.22,.05,.01,M('#2b2b30',.5),x,h-.14,z+d/2+.006);});
+  PL.forEach(([k,x,z,h,w,d,sc])=>{box(g,w,h,d,pw,x,h/2,z,true);box(g,w+.06,.04,d+.06,cap,x,h+.02,z);box(g,w+.03,.03,d+.03,M('#d9d7d0',.5),x,.015,z);const o=new T.Group();o.position.set(x,h+.04,z);OBJ[k](o);o.rotation.y=(x>0?-.55:.55);o.scale.setScalar(sc);o.userData.info={kind:'obj',key:k};g.add(o);
+    const pl2=labelMesh(INFO.obj[k][0],INFO.obj[k][1],.46,.13,true);pl2.position.set(x,h-.17,z+d/2+.008);pl2.userData.info={kind:'obj',key:k};g.add(pl2);});
   /* speakers in the front corners */
   this.spots=this.instruments.map(i=>({kind:i.kind,label:'Pick up '+({guitar:'the guitar',drum:'the talking drum',shekere:'the shekere',kalimba:'the kalimba',djembe:'the djembe',udu:'the udu pot',agogo:'the agogo bells',flute:'the bamboo flute'})[i.kind],x:i.x,z:i.z,nx:i.wall==='left'?1:-1,nz:0,node:i.node,y:i.y}));
   [[-W/2+.45,D/2-.5,PI*.78],[W/2-.45,D/2-.5,-PI*.78]].forEach(([x,z,r])=>{const sp=speaker(g,x,z,r);this.spots.push({kind:'speaker',label:'Play music',x,z,nx:Math.sign(-x)*.6,nz:-.8,node:sp});});
@@ -372,6 +465,12 @@ function flute(i){const a=audio();if(!a)return;const t=a.currentTime,f=FL[i%FL.l
   const nb=a.createBuffer(1,Math.floor(a.sampleRate*.85),a.sampleRate),nd=nb.getChannelData(0);for(let k=0;k<nd.length;k++)nd[k]=(Math.random()*2-1);const ns=a.createBufferSource();ns.buffer=nb;const nf=a.createBiquadFilter();nf.type='bandpass';nf.frequency.value=f*2;nf.Q.value=4;const ng=a.createGain();ng.gain.setValueAtTime(.0001,t);ng.gain.linearRampToValueAtTime(.06,t+.07);ng.gain.linearRampToValueAtTime(.0001,t+.85);ns.connect(nf);nf.connect(ng);ng.connect(master);ns.start(t);}
 
 function css(){if(document.getElementById('gx-css'))return;const st=document.createElement('style');st.id='gx-css';st.textContent=
+'.gx-info{position:absolute;inset:0;z-index:40;background:rgba(10,8,18,.62);display:flex;align-items:flex-end;justify-content:center}.gx-card{position:relative;width:100%;max-width:520px;max-height:92%;overflow:auto;background:#fbfaf6;border-radius:22px 22px 0 0;padding:14px 16px calc(18px + var(--sab,0px));box-shadow:0 -12px 40px rgba(0,0,0,.35)}'+
+'.gx-x{position:absolute;top:10px;right:12px;z-index:3;width:38px;height:38px;border-radius:50%;background:rgba(20,17,31,.85);color:#fff;font-size:16px}'+
+'.gx-stage{position:relative;display:flex;justify-content:center;background:radial-gradient(circle at 50% 40%,#fff,#e9e6dc);border-radius:16px;margin-top:6px;overflow:hidden}.gx-art{max-width:100%;max-height:44vh;width:auto;height:auto;aspect-ratio:4/5;object-fit:contain;padding:12px;box-sizing:border-box}'+
+'.gx-cv{width:100%;height:40vh;display:block}.gx-hint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font:600 12px var(--disp,system-ui);color:#6b6679;pointer-events:none}'+
+'.gx-body h3{margin:12px 0 2px;font:800 22px var(--disp,system-ui);color:#15131c}.gx-sub{font:700 12px var(--disp,system-ui);color:#6c4bff;text-transform:uppercase;letter-spacing:.04em}.gx-body p{margin:8px 0 0;font:500 15px/1.5 var(--body,system-ui);color:#2c2838}'+
+'.room.gx-on .joy,.room.gx-on .emobtn,.room.gx-on .emopop{display:none!important}.gx-pl{bottom:calc(100px + var(--sab,0px))!important;padding:0 14px;box-sizing:border-box}'+
 '.gx-pl{position:absolute;left:0;right:0;bottom:calc(92px + var(--sab,0px));z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}.gx-pl *{pointer-events:auto}'+
 '.gx-t{background:rgba(20,17,31,.82);color:#fff;border-radius:99px;padding:6px 14px;font:700 13px var(--disp,system-ui);backdrop-filter:blur(6px)}'+
 '.gx-pads{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:94vw}.gx-pad{min-width:62px;min-height:62px;border:2px solid rgba(255,255,255,.85);border-radius:18px;background:rgba(108,75,255,.88);color:#fff;font:800 15px var(--disp,system-ui);touch-action:manipulation;user-select:none;-webkit-user-select:none}'+
@@ -393,25 +492,25 @@ P.gxUiOff=function(){if(this._gxEl){this._gxEl.remove();this._gxEl=null;}};
 /* hold position and orientation of each instrument relative to the avatar (facing +z) */
 const HOLD={
   guitar:{p:[.10,1.147,.3],r:[0,0,-1.15],s:.82,pose:'strum',L:[.40,1.27,.33],R:[-.03,1.08,.37],mo:{R:[0,.07,0]}},
-  drum:{p:[.14,1.0,.2],r:[0,0,1.25],s:.85,pose:'drum',L:[.2,.96,.27],R:[-.08,1.12,.28],mo:{R:[0,.05,.05]}},
+  drum:{p:[.14,1.0,.18],r:[0,0,1.25],s:.85,pose:'drum',L:[.22,.97,.31],R:[-.12,1.17,.38],mo:{R:[0,.05,.05]}},
   shekere:{p:[0,1.12,.34],r:[0,0,0],s:.8,pose:'shake',L:[.19,1.12,.34],R:[-.19,1.12,.34],mo:{L:[0,.09,0],R:[0,-.09,0]}},
-  kalimba:{p:[0,1.05,.3],r:[-.9,0,0],s:1.25,pose:'kali',L:[.1,1.07,.33],R:[-.1,1.07,.33],mo:{L:[0,.01,0],R:[0,.01,0]}},
+  kalimba:{p:[0,1.05,.3],r:[-.9,0,0],s:1.25,pose:'kali',L:[.18,1.1,.37],R:[-.18,1.1,.37],mo:{L:[0,.01,0],R:[0,.01,0]}},
   djembe:{p:[0,.8,.36],r:[0,0,0],s:.9,pose:'pat',L:[.11,1.1,.36],R:[-.11,1.1,.36],mo:{L:[0,.06,0],R:[0,-.06,0]}},
   udu:{p:[0,.95,.34],r:[0,0,0],s:.75,pose:'pat',L:[.17,1.04,.4],R:[-.17,1.04,.4],mo:{R:[0,.06,0]}},
-  agogo:{p:[.2,1.12,.3],r:[0,0,0],s:.72,pose:'drum',L:[.2,1.04,.32],R:[.0,1.15,.34],mo:{R:[.05,0,0]}},
+  agogo:{p:[.24,1.12,.24],r:[0,0,0],s:.72,pose:'drum',L:[.2,1.1,.38],R:[-.02,1.17,.4],mo:{R:[.05,0,0]}},
   flute:{p:[.22,1.5,.13],r:[0,0,1.5708],s:.75,pose:'flute',L:[.32,1.47,.18],R:[.12,1.46,.16],mo:{}}};
 P.gxPlay=function(sp){
   const m=this.me;if(!m||this.seat)return;const H=HOLD[sp.kind];if(!H)return;
   m.x=sp.x+sp.nx*.8;m.z=sp.z+sp.nz*.8;const q=this.pushOut(m.x,m.z,.24,this.blockers());m.x=q[0];m.z=q[1];m.yaw=Math.atan2(sp.nx,sp.nz===0?0:sp.nz);if(sp.nz===0)m.yaw=sp.nx>0?PI/2:-PI/2;m.y=0;
-  const k=m.av.scale||1,g=new T.Group();INSTR[sp.kind](g);g.traverse(o=>{if(o.name==='stick')o.visible=false;});g.scale.setScalar(H.s);g.position.set(H.p[0],H.p[1]*k,H.p[2]);g.rotation.set(...H.r);m.holder.add(g);this._held={g,sp};this.cb.onMusicHold&&this.cb.onMusicHold(true);m.av.setHold({L:H.L&&[H.L[0],H.L[1]*k,H.L[2]],R:H.R&&[H.R[0],H.R[1]*k,H.R[2]],mo:H.mo});sp.node.visible=false;this.cb.onMusicHold&&this.cb.onMusicHold(true);
+  const k=m.av.scale||1,g=new T.Group();INSTR[sp.kind](g);g.traverse(o=>{if(o.name==='stick')o.visible=false;});g.scale.setScalar(H.s);g.position.set(H.p[0],H.p[1]*k,H.p[2]);g.rotation.set(...H.r);m.holder.add(g);this._held={g,sp};this.host.classList.add('gx-on');this.cb.onMusicHold&&this.cb.onMusicHold(true);m.av.setHold({L:H.L&&[H.L[0],H.L[1]*k,H.L[2]],R:H.R&&[H.R[0],H.R[1]*k,H.R[2]],mo:H.mo});sp.node.visible=false;this.cb.onMusicHold&&this.cb.onMusicHold(true);
   m.av.setPose(H.pose);m.pose=H.pose;this.seat={it:{id:'gx'},gx:true,front:[Math.sin(m.yaw),Math.cos(m.yaw)],d:.2};this.goal=null;this.placeFigure(m);this.setNear(null);this.nearId='';
   this.cb.onNear&&this.cb.onNear({act:{k:'stand',label:'Put back'}});this.gxUi(sp.kind);this.markDirty(true);};
 P.gxStop=function(){
-  const m=this.me,h=this._held;this.gxUiOff();if(h){this.cb.onMusicHold&&this.cb.onMusicHold(false);h.sp.node.visible=true;if(m)m.holder.remove(h.g);h.g.traverse(o=>{if(o.geometry)o.geometry.dispose();});this._held=null;}
+  const m=this.me,h=this._held;this.gxUiOff();this.host.classList.remove('gx-on');if(h){this.cb.onMusicHold&&this.cb.onMusicHold(false);h.sp.node.visible=true;if(m)m.holder.remove(h.g);h.g.traverse(o=>{if(o.geometry)o.geometry.dispose();});this._held=null;}
   if(m&&this.seat&&this.seat.gx){m.av.setHold(null);m.av.setPose('stand');m.pose='stand';}if(this.seat&&this.seat.gx)this.seat=null;this.nearId='x';this.setNear(null);this.markDirty(true);};
 const baseStand=P.standUp;P.standUp=function(){if(this.seat&&this.seat.gx)return this.gxStop();return baseStand.call(this);};
 const baseStop=P.stopWalk;P.stopWalk=function(){if(this._held)this.gxStop();return baseStop.apply(this,arguments);};
-const baseDestroy=P.destroy;if(baseDestroy)P.destroy=function(){this.gxUiOff();return baseDestroy.apply(this,arguments);};
+const baseDestroy=P.destroy;if(baseDestroy)P.destroy=function(){this.gxUiOff();this.gxInfoOff();return baseDestroy.apply(this,arguments);};
 /* near an instrument or speaker the usual action button appears */
 const baseNear=P.nearest;P.nearest=function(){
   if(!this._house||!this.me||!this.spots)return baseNear.call(this);
@@ -426,5 +525,46 @@ const baseTap=P.walkTap;P.walkTap=function(it,e){
   if(this._house&&this.me&&!this.seat&&this._gxObjs){this.ray.setFromCamera(this.ndc(e),this.cam);const live=this._gxObjs.filter(o=>o.visible);const hit=this.ray.intersectObjects(live,true)[0];
     if(hit){let o=hit.object;while(o&&!o.userData.spot)o=o.parent;if(o){const sp=o.userData.spot,m=this.me,tx=sp.x+sp.nx*.8,tz=sp.z+sp.nz*.8,q=this.pushOut(tx,tz,.24,this.blockers());
       this.goal={x:q[0],z:q[1],t:0,stuck:0,lx:m.x,lz:m.z,then:{it:{id:'gx',kind:'gx',spot:sp},k:'gx'}};this.showMark(q[0],q[1]);return;}}}
+  if(it&&it.kind==='gxinfo'){if(this.seat&&this.seat.gx)return;this.gxInfo(it.info);return;}
   return baseTap.call(this,it,e);};
+
+/* ----- tap a work, an object or an instrument to read about it (objects and instruments can be turned in 3D) ----- */
+const vis=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
+const basePick=P.pickItem;P.pickItem=function(e){
+  if(this._house&&!this.edit){this.ray.setFromCamera(this.ndc(e),this.cam);const hits=this.ray.intersectObjects([this.shell,this.root],true);
+    for(const h of hits){if(!vis(h.object))continue;
+      let o=h.object;while(o&&!o.userData.info)o=o.parent;if(o)return{kind:'gxinfo',id:'gxi:'+o.userData.info.kind+o.userData.info.key,info:o.userData.info};
+      if(h.object.geometry&&h.object.geometry.type!=='PlaneGeometry')break;}}
+  return basePick.call(this,e);};
+P.gxInfo=function(inf){
+  css();this.gxInfoOff();const d=INFO[inf.kind][inf.key];if(!d)return;
+  const bg=document.createElement('div');bg.className='gx-info';const card=document.createElement('div');card.className='gx-card';bg.append(card);
+  const close=document.createElement('button');close.className='gx-x';close.setAttribute('aria-label','Close');close.textContent='✕';close.onclick=()=>this.gxInfoOff();
+  const body=document.createElement('div');body.className='gx-body';
+  const t=document.createElement('h3');t.textContent=d[0];const sb=document.createElement('div');sb.className='gx-sub';sb.textContent=d[1];const tx=document.createElement('p');tx.textContent=d[2];
+  const stage=document.createElement('div');stage.className='gx-stage';
+  if(inf.kind==='art'){const c=document.createElement('canvas');c.width=400;c.height=500;ART[inf.key](c.getContext('2d'),400,500);c.className='gx-art';stage.append(c);}
+  else{const hint=document.createElement('div');hint.className='gx-hint';hint.textContent='Drag to turn · pinch or scroll to zoom';stage.append(hint);this._gxInspect=inspect(stage,inf);}
+  body.append(t,sb,tx);card.append(close,stage,body);this.host.append(bg);this._gxInfoEl=bg;};
+P.gxInfoOff=function(){if(this._gxInspect){this._gxInspect.stop();this._gxInspect=null;}if(this._gxInfoEl){this._gxInfoEl.remove();this._gxInfoEl=null;}};
+function inspect(stage,inf){
+  const cv=document.createElement('canvas');cv.className='gx-cv';stage.prepend(cv);
+  let r;try{r=new T.WebGLRenderer({canvas:cv,antialias:true,alpha:true});}catch(e){return{stop(){}};}
+  r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));r.outputEncoding=T.sRGBEncoding;
+  const sc=new T.Scene(),cam=new T.PerspectiveCamera(36,1,.05,50);sc.add(new T.HemisphereLight(0xffffff,0x8a8a92,.95));const dl=new T.DirectionalLight(0xffffff,.9);dl.position.set(2,3,2.5);sc.add(dl);const dl2=new T.DirectionalLight(0xffeedd,.35);dl2.position.set(-2,1,-2);sc.add(dl2);
+  const pivot=new T.Group(),obj=new T.Group();pivot.add(obj);sc.add(pivot);(inf.kind==='obj'?OBJ:INSTR)[inf.key](obj);
+  obj.traverse(o=>{if(o.name==='stick')o.visible=true;});
+  const bb=new T.Box3().setFromObject(obj),ctr=bb.getCenter(new T.Vector3()),sz=bb.getSize(new T.Vector3()),m=Math.max(sz.x,sz.y,sz.z)||1;
+  obj.position.sub(ctr);pivot.scale.setScalar(1.5/m);
+  let yaw=-.6,pit=.18,dist=4.2,auto=true,run=true;const ptr=new Map();let pd=0;
+  const size=()=>{const w=stage.clientWidth||300,h=stage.clientHeight||300;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();};
+  const draw=()=>{if(!run)return;if(auto)yaw+=.006;pivot.rotation.set(pit,yaw,0);cam.position.set(0,0,dist);cam.lookAt(0,0,0);r.render(sc,cam);raf=requestAnimationFrame(draw);};let raf=0;
+  cv.style.touchAction='none';
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);auto=false;pd=0;});
+  cv.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;if(ptr.size===2){const a=[...ptr.values()],o=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);ptr.set(e.pointerId,[e.clientX,e.clientY]);const b=[...ptr.values()],n=Math.hypot(b[0][0]-b[1][0],b[0][1]-b[1][1]);dist=Math.max(2.2,Math.min(7,dist*(o/(n||o))));return;}
+    yaw+=(e.clientX-p[0])*.012;pit=Math.max(-1.2,Math.min(1.2,pit+(e.clientY-p[1])*.01));ptr.set(e.pointerId,[e.clientX,e.clientY]);});
+  const up=e=>{ptr.delete(e.pointerId);};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',e=>{e.preventDefault();auto=false;dist=Math.max(2.2,Math.min(7,dist*(1+e.deltaY*.001)));},{passive:false});
+  size();const ro=window.ResizeObserver?new ResizeObserver(size):null;if(ro)ro.observe(stage);draw();
+  return{stop(){run=false;cancelAnimationFrame(raf);if(ro)ro.disconnect();obj.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(mm=>{if(mm.map)mm.map.dispose();mm.dispose();});}});r.dispose();try{r.forceContextLoss();}catch(e){}cv.remove();}};}
 })();

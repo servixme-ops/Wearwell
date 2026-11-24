@@ -138,7 +138,7 @@ async function discoverView(){
     crBox.replaceChildren(h('h2',{class:'sec'},'Creators'),h('p',{class:'sec-sub'},act.length?'A glowing ring means they are live right now. Tap to join.':'Rings light up when a creator goes live, watches a video or plays music.'),
       h('div',{class:'creators'},rows.map(r=>{const a=r.a,u={avatar_url:r.avatar_url,display_name:r.display_name,username:r.username};
         return h('button',{class:'creator'+(a?' live':''),title:a?(a.label||''):'','aria-label':'@'+r.username+(a?', '+KIND[a.kind].toLowerCase()+' now: '+a.label:''),onclick:()=>go(a&&a.kind==='space'?'#/space/'+a.target:'#/@'+r.username)},
-          h('span',{class:'ring'},avatarEl(u)),a?h('span',{class:'now '+a.kind},KIND[a.kind]):null,'@'+r.username);}))); };
+          h('span',{class:'ring'},avatarEl(u)),a?h('span',{class:'now '+a.kind},KIND[a.kind]):null,h('span',{class:'cn'},'@'+r.username));}))); };
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
   const FL=await appFlags();
@@ -544,6 +544,7 @@ async function visitView(hs0){
   /* YouTube links play on the room's shared TV (synced for everyone in the room) */
   function tvPlay(it,src){OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src,title:it.title||null,comments:{load:v=>Store.videoComments(d.room.id,v),post:async(v,t)=>{if(!needAuth('Sign in to comment'))throw new Error('auth');try{await Store.videoComment(d.room.id,v,t);}catch(e){toast(friendlyError(e),'err');throw e;}}}});}
   function openItem(it){
+    if(it&&it.kind==='gxinfo'){R&&R.gxInfo&&R.gxInfo(it.info);return;}
     if(it.type==='speaker'&&o.verified){if(HM&&Auth.isAdmin){HM.unpark&&HM.unpark();}else toast('The gallery music is chosen by OpenWalls');return;}
     if(it.type==='speaker'){const src=it.link&&OWTv.parse(it.link);OWTv.open({host,roomId:d.room.id,uid:Auth.user&&Auth.user.id,isOwner:!!d.is_me,vid:src||null,title:it.title||null,music:true,seed:d.is_me?(d.room.theme&&d.room.theme.playlist):null,onQueue:d.is_me?(q=>Store.savePlaylist(q)):null});return;}
     const src=it.link&&OWTv.parse(it.link);if(src)return tvPlay(it,src);
