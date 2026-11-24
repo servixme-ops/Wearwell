@@ -443,8 +443,8 @@ const baseBlk=P.blockers;
 P.blockers=function(){const l=baseBlk.call(this);if(!this._house||!this.colliders)return l;return l.concat(this.colliders.map(c=>({kind:'furniture',type:'__col',x:c.x,z:c.z,rot:0,scale:c.hw*2/.9})));};
 const baseFurn=OW.furn;OW.furn=function(t){if(t==='__col')return{w:.9,d:.9,floor:false,surface:false};return baseFurn.apply(this,arguments);};
 /* ---------- playing the instruments: pick one off the wall, your avatar holds it, pads make real sounds (heard on your phone only) ---------- */
-let AC=null,master=null;
-function audio(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();master=AC.createGain();master.gain.value=.7;const cp=AC.createDynamicsCompressor();master.connect(cp);cp.connect(AC.destination);}if(AC.state==='suspended')AC.resume();return AC;}
+let AC=null,master=null,comp=null;
+function audio(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();master=AC.createGain();master.gain.value=.7;const cp=AC.createDynamicsCompressor();master.connect(cp);cp.connect(AC.destination);comp=cp;}if(AC.state==='suspended')AC.resume();return AC;}
 const ksCache={};
 function ksBuf(f){const k=Math.round(f);if(ksCache[k])return ksCache[k];const sr=AC.sampleRate,len=Math.floor(sr*1.9),N=Math.max(2,Math.round(sr/f)),b=AC.createBuffer(1,len,sr),d=b.getChannelData(0),ring=new Float32Array(N);
   for(let i=0;i<N;i++)ring[i]=Math.random()*2-1;let p=0;for(let i=0;i<len;i++){const n=(p+1)%N,v=(ring[p]+ring[n])*.5*.9965;ring[p]=v;d[i]=v*(1-i/len*.35);p=n;}return ksCache[k]=b;}
@@ -479,6 +479,7 @@ function css(){if(document.getElementById('gx-css'))return;const st=document.cre
 '.gx-pl{position:absolute;left:0;right:0;bottom:calc(92px + var(--sab,0px));z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}.gx-pl *{pointer-events:auto}'+
 '.gx-t{background:rgba(20,17,31,.82);color:#fff;border-radius:99px;padding:6px 14px;font:700 13px var(--disp,system-ui);backdrop-filter:blur(6px)}'+
 '.gx-pads{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:94vw}.gx-pad{min-width:62px;min-height:62px;border:2px solid rgba(255,255,255,.85);border-radius:18px;background:rgba(108,75,255,.88);color:#fff;font:800 15px var(--disp,system-ui);touch-action:manipulation;user-select:none;-webkit-user-select:none}'+
+'.gx-rec{margin-top:8px;padding:8px 16px;border-radius:99px;border:1.5px solid rgba(255,255,255,.8);background:rgba(20,16,12,.55);color:#fff;font:700 13px system-ui}.gx-rec.on{background:#d62839;border-color:#fff}.gx-recres{position:absolute;left:12px;right:12px;bottom:calc(210px + env(safe-area-inset-bottom));z-index:60;background:rgba(20,16,12,.94);color:#fff;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}.gx-recres .tt{font:600 12px system-ui;opacity:.85}.gx-recres audio{width:100%;height:36px}.gx-recres button{padding:10px;border-radius:12px;border:0;background:#ff5a3c;color:#fff;font:700 14px system-ui}.gx-recres button.x{background:rgba(255,255,255,.15)}'+
 '.gx-pad:active{transform:scale(.94);background:#ff5a3c}.gx-pad.big{min-width:140px}.gx-pad.k{min-width:44px;min-height:92px;border-radius:12px;font-size:12px}';document.head.append(st);}
 const LAB={djembe:'Djembe',udu:'Udu clay pot drum',agogo:'Agogo bells',flute:'Bamboo flute',guitar:'Guitar · tap a chord to strum',drum:'Talking drum',shekere:'Shekere',kalimba:'Kalimba'};
 P.gxUi=function(kind){
@@ -492,7 +493,39 @@ P.gxUi=function(kind){
   else if(kind==='flute'){FL.forEach((f,i)=>add(String(i+1),()=>flute(i),'k'));}
   else if(kind==='shekere'){add('Shake',()=>shake(3),'big');add('Tap',()=>shake(1),'big');}
   else{KAL.forEach((f,i)=>add(String(i+1),()=>kal(i),'k'));}
-  const t=document.createElement('div');t.className='gx-t';t.textContent=LAB[kind]+' · only you hear it';wrap.append(t,pads);this.host.append(wrap);this._gxEl=wrap;};
+  const t=document.createElement('div');t.className='gx-t';t.textContent=LAB[kind]+' · only you hear it';
+  const rb=document.createElement('button');rb.className='gx-rec'+(REC.on?' on':'');rb.innerHTML=REC.on?'■ Stop <span class="tm">'+mmss((Date.now()-REC.t0)/1000)+'</span>':'● Record (optional)';
+  rb.onclick=()=>{if(REC.on){this.gxRecStop();rb.classList.remove('on');rb.innerHTML='● Record (optional)';}else if(this.gxRecStart()){rb.classList.add('on');rb.innerHTML='■ Stop <span class="tm">0:00</span>';}};
+  wrap.append(t,pads,rb);this.host.append(wrap);this._gxEl=wrap;};
+/* ----- optional recording of the instrument sounds (only what you play, only on your phone; saved as a WAV file you can download) ----- */
+const REC={on:false,mr:null,chunks:[],t0:0,tick:0,dest:null};
+function wavOf(buf){const n=buf.length,ch=buf.getChannelData(0),sr=buf.sampleRate,ab=new ArrayBuffer(44+n*2),v=new DataView(ab);
+  const w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i));};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){const x=Math.max(-1,Math.min(1,ch[i]));v.setInt16(44+i*2,x<0?x*0x8000:x*0x7fff,true);}
+  return new Blob([ab],{type:'audio/wav'});}
+const mmss=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+P.gxRecStart=function(){
+  const a=audio();if(!a||REC.on)return false;
+  if(typeof MediaRecorder==='undefined'||!a.createMediaStreamDestination){toast&&toast('Recording is not supported on this phone','err');return false;}
+  try{REC.dest=a.createMediaStreamDestination();comp.connect(REC.dest);REC.mr=new MediaRecorder(REC.dest.stream);}catch(e){toast&&toast('Could not start recording','err');return false;}
+  REC.chunks=[];REC.mr.ondataavailable=e=>{if(e.data&&e.data.size)REC.chunks.push(e.data);};REC.mr.start(500);REC.on=true;REC.t0=Date.now();
+  clearInterval(REC.tick);REC.tick=setInterval(()=>{const t=(Date.now()-REC.t0)/1000;document.querySelectorAll('.gx-rec .tm').forEach(e=>e.textContent=mmss(t));if(t>=120)this.gxRecStop();},500);
+  return true;};
+P.gxRecStop=function(){
+  if(!REC.on)return;REC.on=false;clearInterval(REC.tick);const mr=REC.mr,host=this.host;
+  mr.onstop=async()=>{try{comp.disconnect(REC.dest);}catch(e){}REC.dest=null;
+    const secs=(Date.now()-REC.t0)/1000;if(!REC.chunks.length||secs<.5){document.querySelectorAll('.gx-rec').forEach(e=>e.classList.remove('on'));return;}
+    let blob;try{const ab=await new Blob(REC.chunks).arrayBuffer();const buf=await new Promise((res,rej)=>AC.decodeAudioData(ab,res,rej));blob=wavOf(buf);}catch(e){blob=new Blob(REC.chunks,{type:REC.mr.mimeType||'audio/webm'});}
+    const ext=/wav/.test(blob.type)?'wav':/mp4|aac/.test(blob.type)?'m4a':'webm',url=URL.createObjectURL(blob);
+    document.querySelectorAll('.gx-recres').forEach(e=>e.remove());
+    const box=document.createElement('div');box.className='gx-recres';
+    const au=document.createElement('audio');au.controls=true;au.src=url;
+    const dl=document.createElement('button');dl.textContent='Download audio';dl.onclick=()=>{const a=document.createElement('a');a.href=url;a.download='openwalls-instruments-'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.'+ext;document.body.appendChild(a);a.click();a.remove();};
+    const x=document.createElement('button');x.className='x';x.textContent='Discard';x.onclick=()=>{box.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+    const t=document.createElement('div');t.className='tt';t.textContent='Your recording · '+mmss(secs)+' · saved only if you download it';
+    box.append(t,au,dl,x);host.append(box);document.querySelectorAll('.gx-rec').forEach(e=>e.classList.remove('on'));};
+  try{mr.stop();}catch(e){}};
 P.gxUiOff=function(){if(this._gxEl){this._gxEl.remove();this._gxEl=null;}};
 /* hold position and orientation of each instrument relative to the avatar (facing +z) */
 const HOLD={
