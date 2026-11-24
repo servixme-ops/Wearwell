@@ -141,10 +141,13 @@ const ART={
 };
 function mathMax(a,b){return Math.max(a,b);}
 const artCache={};
+const PHOTO=['zuma','bridge','eyo','lagoon','uli'];let curRoom=null;
 function artTex(k){
   if(artCache[k])return artCache[k];const c=OW.canvas(400,500),g=c.getContext('2d');
-  if(ART[k])ART[k](g,400,500);else{try{const s=OWPaint.refCanvas('ref:'+k);g.drawImage(s,0,0,400,500);}catch(e){g.fillStyle='#ccc';g.fillRect(0,0,400,500);}}
-  return artCache[k]=OW.tex(c);}
+  if(ART[k])ART[k](g,400,500);else{g.fillStyle='#ccc';g.fillRect(0,0,400,500);}
+  const tex=OW.tex(c);
+  if(PHOTO.includes(k)){const im=new Image();im.onload=()=>{tex.image=im;tex.needsUpdate=true;if(curRoom&&curRoom.markDirty)curRoom.markDirty(true);};im.src='assets/gallery/'+k+'.jpg';}
+  return artCache[k]=tex;}
 
 OW.artCanvases=function(){return['adire','ankara','danfo','gele','aso','drum','uli','zuma','bridge','eyo','lagoon'].map(k=>{const c=OW.canvas(400,500);ART[k](c.getContext('2d'),400,500);return c;});};
 /* a framed picture on a wall; n = wall normal axis */
@@ -372,6 +375,7 @@ function labelMesh(title,sub,w,h,dark){
   const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:OW.tex(c)}));m.userData.own=1;return m;}
 
 P._galleryBuild=function(g){
+  curRoom=this;
   Object.keys(artCache).forEach(k=>delete artCache[k]);
   const G=OW.GALLERY,W=this.W,D=this.D,H=this.H,fl=new T.Mesh(new T.PlaneGeometry(W,D),new T.MeshStandardMaterial({map:marble(W,D),roughness:.2,metalness:.1}));
   fl.rotation.x=-PI/2;fl.position.y=.004;fl.receiveShadow=true;fl.userData.own=1;g.add(fl);
@@ -543,7 +547,7 @@ P.gxInfo=function(inf){
   const body=document.createElement('div');body.className='gx-body';
   const t=document.createElement('h3');t.textContent=d[0];const sb=document.createElement('div');sb.className='gx-sub';sb.textContent=d[1];const tx=document.createElement('p');tx.textContent=d[2];
   const stage=document.createElement('div');stage.className='gx-stage';
-  if(inf.kind==='art'){const c=document.createElement('canvas');c.width=400;c.height=500;ART[inf.key](c.getContext('2d'),400,500);c.className='gx-art';stage.append(c);}
+  if(inf.kind==='art'){const c=document.createElement('canvas');if(PHOTO.includes(inf.key)){const im=document.createElement('img');im.src='assets/gallery/'+inf.key+'.jpg';im.className='gx-art';im.alt=d[0];stage.append(im);}else{c.width=400;c.height=500;ART[inf.key](c.getContext('2d'),400,500);c.className='gx-art';stage.append(c);}}
   else{const hint=document.createElement('div');hint.className='gx-hint';hint.textContent='Drag to turn · pinch or scroll to zoom';stage.append(hint);this._gxInspect=inspect(stage,inf);}
   body.append(t,sb,tx);card.append(close,stage,body);this.host.append(bg);this._gxInfoEl=bg;};
 P.gxInfoOff=function(){if(this._gxInspect){this._gxInspect.stop();this._gxInspect=null;}if(this._gxInfoEl){this._gxInfoEl.remove();this._gxInfoEl=null;}};
