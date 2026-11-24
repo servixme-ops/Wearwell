@@ -423,8 +423,6 @@ P._galleryBuild=function(g){
   const pl=new T.Mesh(new T.PlaneGeometry(1.6,.4),new T.MeshBasicMaterial({map:OW.tex(pc)}));pl.position.set(0,2.9,D/2-.02);pl.rotation.y=PI;g.add(pl);
   /* the lights that actually light the art (few, no shadows: kind to phones) */
   (this._gl||[]).forEach(l=>{this.scene.remove(l);if(l.target)this.scene.remove(l.target);});this._gl=[];
-  /* phone heat: about 30 frames a second, a lower pixel density, no shadow pass and no extra warm light */
-  try{this.fpsCap=34;this.r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));if(this.resize)this.resize();if(this.sun)this.sun.castShadow=false;if(this.pend)this.pend.visible=false;}catch(e){}
   [[-2.9,-3.4,-W/2,2.0,-3.4],[-2.9,1.2,-W/2,2.0,1.2],[2.9,-3.4,W/2,2.0,-3.4],[2.9,1.2,W/2,2.0,1.2],[0,-D/2+1.3,0,2.0,-D/2]].forEach(([x,z,tx,ty,tz])=>{const s=new T.SpotLight(0xfff1d6,.9,9,.62,.7,1.4);s.position.set(x,H-.2,z);s.target.position.set(tx,ty,tz);this.scene.add(s,s.target);this._gl.push(s);});
   /* walking collisions around plinths and speakers */
   this.colliders=PL.map(([k,x,z,h,w,d])=>({x,z,hw:Math.max(w,d)/2+.05})).concat([{x:-W/2+.45,z:D/2-.5,hw:.35},{x:W/2-.45,z:D/2-.5,hw:.35}]);
@@ -545,7 +543,6 @@ const basePick=P.pickItem;P.pickItem=function(e){
   return basePick.call(this,e);};
 P.gxInfo=function(inf){
   css();this.gxInfoOff();const d=INFO[inf.kind][inf.key];if(!d)return;
-  this._gxWas=!!this.paused;try{this.setPaused(true);}catch(e){}/* the card covers the room: stop drawing it underneath (keeps the phone cool) */
   const bg=document.createElement('div');bg.className='gx-info';const card=document.createElement('div');card.className='gx-card';bg.append(card);
   const close=document.createElement('button');close.className='gx-x';close.setAttribute('aria-label','Close');close.textContent='✕';close.onclick=()=>this.gxInfoOff();
   const body=document.createElement('div');body.className='gx-body';
@@ -554,7 +551,7 @@ P.gxInfo=function(inf){
   if(inf.kind==='art'){const c=document.createElement('canvas');if(PHOTO.includes(inf.key)){const im=document.createElement('img');im.src='assets/gallery/'+inf.key+'.jpg';im.className='gx-art';im.alt=d[0];stage.append(im);}else{c.width=400;c.height=500;ART[inf.key](c.getContext('2d'),400,500);c.className='gx-art';stage.append(c);}}
   else{const hint=document.createElement('div');hint.className='gx-hint';hint.textContent='Drag to turn · pinch or scroll to zoom';stage.append(hint);this._gxInspect=inspect(stage,inf);}
   body.append(t,sb,tx);card.append(close,stage,body);this.host.append(bg);this._gxInfoEl=bg;};
-P.gxInfoOff=function(){if(this._gxWas===false){this._gxWas=null;try{this.setPaused(false);}catch(e){}}if(this._gxInspect){this._gxInspect.stop();this._gxInspect=null;}if(this._gxInfoEl){this._gxInfoEl.remove();this._gxInfoEl=null;}};
+P.gxInfoOff=function(){if(this._gxInspect){this._gxInspect.stop();this._gxInspect=null;}if(this._gxInfoEl){this._gxInfoEl.remove();this._gxInfoEl=null;}};
 function inspect(stage,inf){
   const cv=document.createElement('canvas');cv.className='gx-cv';stage.prepend(cv);
   let r;try{r=new T.WebGLRenderer({canvas:cv,antialias:true,alpha:true});}catch(e){return{stop(){}};}
