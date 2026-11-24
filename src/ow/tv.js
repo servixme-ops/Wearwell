@@ -343,7 +343,11 @@ const OWTv=(()=>{
       park(){if(!o.music||!alive)return;box.classList.add('parked');if(!box.classList.contains('mini'))mn.click();},
       unpark(){if(!box.classList.contains('parked'))return;box.classList.remove('parked');box.style.left='';box.style.top='';if(box.classList.contains('mini'))mn.click();},
       show(){box.classList.remove('tv-away');},
-      toggle(){const on=box.classList.contains('tv-away');box.classList.toggle('tv-away',!on);return on;},
+      toggle(){if(box.classList.contains('tv-away')){api.reopen();return true;}api.away();return false;},
+      /* gallery music: Close stops it and hides the bar; the music icon brings it back and plays again */
+      away(){if(!alive)return;if(S.play){S.play=false;busy(1500);try{ad&&ad.pause();}catch(e){}render();}api._was=false;box.classList.add('tv-away');o.onAway&&o.onAway();},
+      reopen(){if(!alive)return;box.classList.remove('tv-away');const r=box.getBoundingClientRect(),hr=o.host.getBoundingClientRect();if(r.right<hr.left+40||r.left>hr.right-40||r.bottom<hr.top+40||r.top>hr.bottom-40){box.style.left=box.style.top=box.style.right=box.style.bottom='';}
+        if(S.q.length&&!S.play){S.play=true;busy(1500);try{ad&&ad.play();}catch(e){}render();}try{api.kick();}catch(e){}},
       /* the gallery pauses its music while someone plays an instrument, and picks it up again afterwards */
       hold(on){if(!alive)return;if(on){api._was=!!S.play;if(S.play){S.play=false;busy(1500);try{ad&&ad.pause();}catch(e){}render();}}else if(api._was){api._was=false;S.play=true;busy(1500);try{ad&&ad.play();}catch(e){}render();}},
       kick(){if(!alive||!S.play||!ad||!ad.play)return;if(box.classList.contains('tv-blocked')||stall>=2||startB.classList.contains('on')){try{ad.play();}catch(e){}box.classList.remove('tv-blocked');startB.classList.remove('on');stall=0;}},
@@ -351,7 +355,7 @@ const OWTv=(()=>{
       duck(on){clearTimeout(duckT);if(on)duckF=.3;else duckT=setTimeout(()=>{duckF=1;},2500);applyVol();},
       addOrFocus(src){if(ro||!src||!valid(src))return;if(!S.q.some(v=>v.id===src.id))add(src);else{const k=S.q.findIndex(v=>v.id===src.id);if(k!==S.i)playIndex(k);}},
       destroy(){if(!alive)return;alive=false;if(o.music){try{localStorage.removeItem('ow_music_state');}catch(e){}}if(lastRep)report(false);api.alive=false;clearInterval(tick);clearInterval(hb);clearInterval(ramp);document.removeEventListener('visibilitychange',onVis);clearInterval(cT);clearInterval(cI);clearTimeout(uiT);try{adP&&adP.p.then(a=>a.destroy()).catch(()=>{});}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}box.remove();document.body.classList.remove('tv-rotated');try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}delete cur[o.roomId];o.onClose&&o.onClose();}};
-    cl.onclick=()=>{if(o.quiet){box.classList.add('tv-away');return;}api.destroy();};
+    cl.onclick=()=>{if(o.house){api.away();return;}if(o.quiet){box.classList.add('tv-away');return;}api.destroy();};
     cur[ck]=api;return api;
   }
   /* music outlives the room page: it lives in its own holder on the page and is parked as a small bar until the person stops it */
