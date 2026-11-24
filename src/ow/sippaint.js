@@ -472,7 +472,12 @@ function openArtwork(a){
     wall.onclick=()=>{try{localStorage.setItem('ow_pending_deco',JSON.stringify({path:a.image_path,asp:CW/CH,at:Date.now()}));}catch(e){toast('Could not prepare that. Try again.','err');return;}close();toast('Opening your room…');setTimeout(()=>go('#/edit'),250);};
     const save=h('button',{class:'btn block',style:{marginTop:'8px'}},'Save to my phone');
     save.onclick=()=>guard(save,async()=>{const blob=await (await fetch(url)).blob();download(blob,'openwalls-artwork.jpg');});
-    body.append(img,h('p',{class:'f-hint',style:{margin:'8px 0'}},new Date(a.created_at).toLocaleDateString()+' \u00b7 It hangs on the wall you are facing and you can move or resize it.'),wall,save);
+    const del=h('button',{class:'btn block',style:{marginTop:'8px',color:'#d33'}},'Delete this artwork');
+    del.onclick=async()=>{if(!(await confirmBox('Delete this artwork?','It will be removed from My artworks for good. Copies already hung in your room stay until you remove them.','Delete',true)))return;
+      guard(del,async()=>{const r=await sb.from('paint_artworks').delete().eq('id',a.id).eq('user_id',Auth.user.id).select('id');if(r.error)throw r.error;if(!(r.data||[]).length)throw new Error('Could not delete that artwork');
+        try{await sb.storage.from('room-images').remove([a.image_path]);}catch(e){}
+        close();toast('Artwork deleted','ok');setTimeout(()=>myArtworks(),250);});};
+    body.append(img,h('p',{class:'f-hint',style:{margin:'8px 0'}},new Date(a.created_at).toLocaleDateString()+' \u00b7 It hangs on the wall you are facing and you can move or resize it.'),wall,save,del);
   });
 }
 async function myArtworks(){
