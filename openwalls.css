@@ -671,3 +671,15 @@ button.fm-int{border:0}
 .creator .cn{display:block;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 auto}
 
 .room.gx-on .actbtn{bottom:auto;top:calc(78px + var(--sat,0px));right:14px;min-width:0;height:46px;padding:0 18px;border-radius:23px}
+
+/* the music bar can be dragged by its grip or any empty part of the bar */
+.tv-bar{touch-action:none}.tv-bar>.tv-grip{flex:0 0 auto;width:22px;text-align:center;letter-spacing:-3px;opacity:.7;cursor:grab;font-size:16px;line-height:1;padding:8px 0 8px 2px}
+.tvplayer.rot .tv-bar>.tv-grip{display:none}
+/* gallery music: a round icon under the hand button opens a small player */
+.ow-music-fab{position:absolute;right:26px;bottom:calc(130px + var(--sab));width:48px;height:48px;border-radius:50%;background:rgba(21,35,44,.85);color:#fff;pointer-events:auto;display:grid;place-items:center;box-shadow:0 6px 16px rgba(10,20,30,.35);z-index:6}
+.ow-music-fab.on{background:#6c4bff}.ow-music-fab svg{width:22px;height:22px}
+.room.gx-on .ow-music-fab{display:none}
+.tvplayer.tv-house{left:auto;right:12px;top:auto;bottom:calc(196px + var(--sab));z-index:30}
+.tvplayer.tv-house.tv-away{display:block!important;visibility:hidden;pointer-events:none}
+.tvplayer.tv-house.tv-ro .tv-bar>.tv-grip{display:none}
+.tvplayer.tv-house.mini{width:min(330px,calc(100vw - 24px))!important;min-width:0}
