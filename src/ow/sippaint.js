@@ -415,26 +415,21 @@ function guideCanvas(id,onLoad){
 
 /* ---------------- the drawing engine: one painting = a list of strokes ---------------- */
 class PC{
-  constructor(onChange){this.cv=document.createElement('canvas');this.cv.width=CW;this.cv.height=CH;this.g=this.cv.getContext('2d');this.ops=[];this.redo=[];this.onChange=onChange||(()=>{});this.tex=null;this.pts=0;this.blank();
-    /* a phone can drop a canvas's drawing surface (low memory, app switch): redraw everything from the strokes when it is back */
-    try{this.cv.addEventListener('contextlost',e=>e.preventDefault());this.cv.addEventListener('contextrestored',()=>this.heal());}catch(e){}}
-  /* start the drawing surface fresh (resets every brush setting the browser keeps) and redraw all strokes from the saved list */
-  heal(){try{this.cv.width=CW;this.cv.height=CH;this.g=this.cv.getContext('2d');}catch(e){}this.render();if(this.tex)this.tex.needsUpdate=true;}
-  reset(){const g=this.g;g.setLineDash&&g.setLineDash([]);g.lineDashOffset=0;g.globalCompositeOperation='source-over';g.shadowBlur=0;g.shadowOffsetX=g.shadowOffsetY=0;g.shadowColor='rgba(0,0,0,0)';try{g.filter='none';}catch(e){}g.globalAlpha=1;g.miterLimit=10;g.lineCap='round';g.lineJoin='round';}
-  blank(){this.reset();this.g.fillStyle=PAPER;this.g.fillRect(0,0,CW,CH);}
-  style(op){const g=this.g;this.reset();
+  constructor(onChange){this.cv=document.createElement('canvas');this.cv.width=CW;this.cv.height=CH;this.g=this.cv.getContext('2d');this.ops=[];this.redo=[];this.onChange=onChange||(()=>{});this.tex=null;this.pts=0;this.blank();}
+  blank(){this.g.globalAlpha=1;this.g.fillStyle=PAPER;this.g.fillRect(0,0,CW,CH);}
+  style(op){const g=this.g;g.lineCap='round';g.lineJoin='round';g.globalAlpha=1;
     if(op.t==='e'){g.strokeStyle=g.fillStyle=PAPER;g.lineWidth=op.z*1.7;}
     else if(op.t==='p'){g.strokeStyle=g.fillStyle=op.c;g.lineWidth=Math.max(1.2,op.z*.28);}
-    else{g.strokeStyle=g.fillStyle=/^#[0-9a-f]{3,8}$/i.test(op.c||'')?op.c:'#1d1a2b';g.lineWidth=Math.max(1,+op.z||8);}}
+    else{g.strokeStyle=g.fillStyle=op.c;g.lineWidth=op.z;g.globalAlpha=.96;}}
   seg(op,i0){const p=op.p,g=this.g;if(!p||p.length<2)return;this.style(op);
     if(p.length===2||i0===0&&p.length<4){g.beginPath();g.arc(p[0],p[1],g.lineWidth/2,0,7);g.fill();if(p.length<4)return;}
     g.beginPath();g.moveTo(p[Math.max(0,i0-2)],p[Math.max(0,i0-2)+1]);for(let i=Math.max(2,i0);i<p.length;i+=2)g.lineTo(p[i],p[i+1]);g.stroke();g.globalAlpha=1;}
   render(){this.blank();this.pts=0;for(const op of this.ops){if(op.k==='clr')this.blank();else if(op.k==='s'){this.seg(op,0);this.pts+=op.p.length;}}this.onChange();}
   start(t,c,z,x,y,id){const op={k:'s',t,c,z,p:[Math.round(x),Math.round(y)],id:id||null};this.ops.push(op);this.redo=[];this.seg(op,0);this.pts+=2;this.onChange();return op;}
   extend(op,x,y){x=Math.round(x);y=Math.round(y);const p=op.p,lx=p[p.length-2],ly=p[p.length-1];if(Math.abs(x-lx)<2&&Math.abs(y-ly)<2)return false;p.push(x,y);this.pts+=2;this.seg(op,p.length-2);this.onChange();return true;}
-  undo(){let i=this.ops.length-1;while(i>=0&&this.ops[i].k==='m')i--;if(i<0)return false;this.redo.push(...this.ops.splice(i,1));this.heal();return true;}
+  undo(){let i=this.ops.length-1;while(i>=0&&this.ops[i].k==='m')i--;if(i<0)return false;this.redo.push(...this.ops.splice(i,1));this.render();return true;}
   redoOp(){const o=this.redo.pop();if(!o)return false;this.ops.push(o);this.render();return true;}
-  clear(){this.ops.push({k:'clr'});this.redo=[];this.heal();}
+  clear(){this.ops.push({k:'clr'});this.redo=[];this.render();}
   state(){for(let i=this.ops.length-1;i>=0;i--)if(this.ops[i].k==='m')return this.ops[i].s|0;return 0;}
   setState(s){this.ops=this.ops.filter(o=>o.k!=='m');if(s>0)this.ops.push({k:'m',s});}
   load(ops){this.ops=Array.isArray(ops)?ops.filter(o=>o&&(o.k==='s'||o.k==='clr'||o.k==='m')):[];this.redo=[];this.render();}
@@ -744,8 +739,7 @@ function attach(R,ctx){
     cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.style.touchAction='none';
     /* leaving the page or switching apps mid-stroke can swallow the pointer-up; finish the stroke so the brush never gets stuck */
     cv.addEventListener('lostpointercapture',up);
-    const stuckFix=()=>{ptrs.clear();gA=false;gLock=false;if(!ov||!ov.isConnected){document.removeEventListener('visibilitychange',stuckFix);window.removeEventListener('blur',stuckFix);window.removeEventListener('pageshow',stuckFix);return;}endStroke();if(document.visibilityState==='visible'&&drawing===null){try{mine.heal();}catch(e){}}};
-    try{mine.heal();}catch(e){}
+    const stuckFix=()=>{ptrs.clear();gA=false;gLock=false;if(!ov||!ov.isConnected){document.removeEventListener('visibilitychange',stuckFix);window.removeEventListener('blur',stuckFix);window.removeEventListener('pageshow',stuckFix);return;}endStroke();};
     document.addEventListener('visibilitychange',stuckFix);window.addEventListener('blur',stuckFix);window.addEventListener('pageshow',stuckFix);
     size_.oninput=()=>{size=+size_.value;};
     const key=e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName)&&e.target.type!=='range')return;const k=e.key.toLowerCase();
