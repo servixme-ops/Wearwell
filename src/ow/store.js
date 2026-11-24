@@ -27,6 +27,7 @@ const Store={
     return{room:r.data,items:i.data||[]};
   },
   async saveHousePlaylist(list){try{const r=await sb.rpc('ow_house_set_playlist',{p_playlist:Array.isArray(list)?list.slice(0,60):[]});if(r.error)throw r.error;}catch(e){}},
+  async roomByCode(code){const r=await sb.rpc('ow_room_by_code',{p_code:code});if(r.error)throw r.error;return r.data;},
   async inviteCode(reset){const r=await sb.rpc('ow_invite_get',{p_reset:!!reset});if(r.error)throw r.error;return r.data;},
   async byUsername(u,code){const r=await sb.rpc('ow_room_by_username',{p_username:u,p_code:code||null});if(r.error)throw r.error;return r.data;},
   async feed(limit,offset,seed){const r=await sb.rpc('ow_wall_feed',{p_limit:limit||24,p_offset:offset||0,p_seed:seed||''});if(r.error)throw r.error;return r.data||[];},

@@ -142,7 +142,7 @@ async function discoverView(){
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
   const FL=await appFlags();
-  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Walls, paintings and creators.'),FL.sip_paint===false?null:Spaces.paintSection(),h('div',{class:'ent-list'},FL.live_spaces!==true?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),FL.forum!==true?null:h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,qi,adHost,sr,sec);
+  v.append(h('div',{class:'pg-head'},h('div',{class:'brand'},h('b',null,'Discover')),h('p',{class:'tag'},'Walls, paintings and creators.'),FL.sip_paint===false?null:Spaces.paintSection(),h('div',{class:'ent-list'},FL.live_spaces!==true?null:h('button',{class:'ent2 live',onclick:()=>go('#/spaces')},h('span',{class:'ent2-ic'},icon('mic')),h('span',{class:'ent2-tx'},h('b',null,'Live Spaces'),h('span',null,'Join live audio rooms and talk with people')),h('span',{class:'ent2-go'},h('i',{class:'ent-dot'}),'Listen')),FL.forum!==true?null:h('button',{class:'ent2 forum',onclick:()=>go('#/forum')},h('span',{class:'ent2-ic'},icon('topics')),h('span',{class:'ent2-tx'},h('b',null,'Forum'),h('span',null,'Start topics, join discussions, meet people')),h('span',{class:'ent2-go'},'Join')))),crBox,joinCodeRow(),qi,adHost,sr,sec);
   App.teardown=()=>{OWAds.stop();clearInterval(actT);};
   const searchRun=async()=>{const q=qv.trim().toLowerCase(),my=++qn;
     if(q.length<2){sr.replaceChildren();sec.style.display='';adHost.style.display='';return;}
@@ -266,6 +266,31 @@ function ownerSheet(o,cn){
       h('div',{class:'counts'},h('button',{onclick:()=>{close();followSheet(o.id,'followers');}},h('b',null,cn.followers),h('span',null,'followers')),h('button',{onclick:()=>{close();followSheet(o.id,'following');}},h('b',null,cn.following),h('span',null,'following')))),activeSpaces(o.id,close));
   });
 }
+
+/* join a private room with a code the owner shared */
+function joinCodeRow(){
+  const inp=h('input',{type:'text',class:'ds-search',maxlength:'24',placeholder:'Have a private room code?',autocapitalize:'none',autocomplete:'off','aria-label':'Private room code',style:{marginBottom:'0',flex:'1',minWidth:'0',width:'auto'}});
+  const go2=h('button',{class:'btn coral'},'Join');
+  const run=()=>guard(go2,async()=>{const c=inp.value.trim().toLowerCase();if(c.length<6){toast('Enter the full code','err');return;}if(!needAuth('Sign in to join a private room'))return;
+    let u=null;try{u=await Store.roomByCode(c);}catch(e){toast(friendlyError(e),'err');return;}
+    if(!u){toast('That code did not match a private room','err');return;}go('#/@'+u+'/'+encodeURIComponent(c));});
+  go2.onclick=run;inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+  return h('div',{class:'row',style:{gap:'8px',margin:'10px 0 0'}},inp,go2);
+}
+
+/* the owner's invite code: show it, copy it, share the link, or make a new one */
+function inviteField(room){
+  const codeEl=h('div',{style:{font:'800 24px/1.1 ui-monospace,Menlo,monospace',letterSpacing:'.12em',padding:'12px 14px',borderRadius:'12px',background:'rgba(108,75,255,.1)',textAlign:'center',userSelect:'all',wordBreak:'break-all'}},'…');
+  let code='';const isPriv=()=>(room.visibility||'public')==='private';
+  const load=async(reset)=>{try{code=await Store.inviteCode(!!reset);codeEl.textContent=code;}catch(e){codeEl.textContent='Save your room first';}};load(false);
+  const need=()=>{if(!isPriv()){toast('Save the room as Private first');return true;}return false;};
+  return h('div',{class:'field'},h('span',{class:'f-label'},'Private room code'),codeEl,
+    h('p',{class:'f-hint',style:{margin:'6px 0'}},'Share this code. People enter it under Discover > "Have a private room code?" to join your private room. Anyone with it can come in, so send it only to people you trust.'),
+    h('div',{class:'row',style:{gap:'8px',flexWrap:'wrap'}},
+      h('button',{class:'btn',onclick:async()=>{if(need()||!code)return;if(await copyText(code))toast('Code copied','ok');else dialog({title:'Your room code',body:code});}},'Copy code'),
+      h('button',{class:'btn',onclick:()=>{if(need())return;shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),
+      h('button',{class:'btn light',onclick:async()=>{if(need())return;if(!(await confirmBox('Make a new code?','The old code and links stop working. People already inside can stay until they leave.','New code')))return;await load(true);toast('New code ready. The old one no longer works','ok');}},'New code')));
+}
 async function shareRoom(username,name,vis){
   let url=roomUrl(username);
   if(vis==='private'){try{url+='/'+await Store.inviteCode();}catch(e){toast('Could not make the invite link','err');return;}}
@@ -290,10 +315,10 @@ function roomSettings(room,done){
     let feat=((room.theme&&room.theme.featured)||[]).filter(x=>typeof x==='string').slice(0,2);const fw=h('div',{class:'ft-slots'});
     const pf=()=>{fw.replaceChildren(...[0,1].map(n=>feat[n]?h('button',{class:'ft-slot on','aria-label':'Remove painting '+(n+1),onclick:()=>{feat.splice(n,1);pf();}},h('img',{src:publicUrl('room-images',feat[n]),alt:''}),h('i',null,'\u00d7')):h('button',{class:'ft-slot','aria-label':'Add a painting',onclick:()=>featPicker(feat,x=>{feat=x;pf();})},'+')));};pf();
     let vis=room.visibility==='private'?'private':'public';const vw=h('div',{class:'seg'});
-    const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you and people with your invite link can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
+    const pv=()=>vw.replaceChildren(...[['public','Public','Anyone can visit and see it on Discover'],['private','Private','Only you and people with your room code or link can enter. Hidden from Discover and the Wall']].map(([k,l,n])=>h('button',{class:k===vis?'on':'',onclick:()=>{vis=k;pv();}},h('b',null,l),h('span',null,n))));pv();
     const hide=Object.assign({},room.theme&&room.theme.hide);
     const save=h('button',{class:'btn primary block',style:{marginTop:'14px'},onclick:()=>guard(save,async()=>{room.name=nm.value.trim()||'Open room';room.visibility=vis;room.theme=Object.assign({},room.theme,{hide});if(feat.length)room.theme.featured=feat;else delete room.theme.featured;await Store.saveRoom(room);toast('Saved','ok');close();done&&done();})},'Save');
-    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Paintings on your room card (up to 2)'),fw,h('p',{class:'f-hint',style:{margin:'6px 0 0'}},'These show on your card in Discover and on the Wall. Tap a painting to remove it.')),room.id?h('div',{class:'field'},h('span',{class:'f-label'},'Invite link (for private rooms)'),h('div',{class:'row',style:{gap:'8px'}},h('button',{class:'btn',onclick:async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}shareRoom(Auth.profile.username,room.name,'private');}},'Share link'),h('button',{class:'btn light',onclick:()=>guard(null,async()=>{if((room.visibility||'public')!=='private'){toast('Save the room as Private first');return;}await Store.inviteCode(true);toast('Old links no longer work','ok');})},'New link'))):null,save);
+    body.append(field('Room name',nm),h('div',{class:'field'},h('span',{class:'f-label'},'Who can visit'),vw),h('div',{class:'field'},h('span',{class:'f-label'},'Paintings on your room card (up to 2)'),fw,h('p',{class:'f-hint',style:{margin:'6px 0 0'}},'These show on your card in Discover and on the Wall. Tap a painting to remove it.')),room.id?inviteField(room):null,save);
   });
 }
 
