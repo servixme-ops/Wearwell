@@ -133,6 +133,7 @@ P.stageTick=function(dt){
   const fit=w=>Math.max(2.1,w/2/Math.min(tanH,Math.tan(this.cam.fov*Math.PI/360)*1.4)*1.06);
   let want;const e=st.auto&&st.focus&&st.map.get(st.focus);
   if(e){const x=st.lay.pos[e.idx].x;want={az:-x*.14,el:.16,dist:fit(1.05),tx:x*.92,ty:1.1,tz:SZ+.25};}
+  else if(st.paint&&st.lay.cap<=4)want={az:0,el:.1,dist:fit(2.5),tx:0,ty:1.42,tz:SZ+.1};
   else if(st.paint){const L=st.lay,rw=L.rows-1;want={az:0,el:.12+.17*rw,dist:fit(Math.max(2.5,L.width+.5))+rw*.9,tx:0,ty:1.42+.1*rw,tz:SZ+.1+st.shift-rw*.5};}
   else want={az:0,el:.26,dist:fit(2.25),tx:0,ty:1.05,tz:SZ+.1};
   const k=Math.min(1,dt*3.2);let mv=0;for(const q in want){const d=want[q]-c[q];c[q]+=d*k;mv+=Math.abs(d);}
