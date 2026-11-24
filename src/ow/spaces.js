@@ -333,7 +333,7 @@ async function room(id){
       const row=(l,ic,cb,danger)=>h('button',{class:'sp-menu'+(danger?' danger':''),onclick:()=>{close();cb();}},icon(ic),l);
       const vs=h('input',{type:'range',min:'0',max:'100',value:String(Math.round(audio.voiceVol()*100)),'aria-label':'Voices volume',style:{width:'100%'}});vs.addEventListener('input',()=>audio.setVoiceVol(vs.value/100));
       b.append(...[h('div',{class:'sp-vv'},h('b',null,'Voices volume'),h('span',{class:'muted small-t',style:{display:'block',margin:'2px 0 6px'}},'Only changes how loud people speaking sound. Music has its own volume in the music player.'),vs),D.space.description?h('p',{class:'tag',style:{marginBottom:'12px'}},D.space.description):null,
-        row('Share link','share',async()=>{const u=CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
+        row('Share link','share',async()=>{const u=CFG.pretty?CFG.site+'s/'+id:CFG.site+'#/space/'+id;try{if(navigator.share)await navigator.share({title:D.space.title,url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}}),
         paintMode()&&typeof OWTv!=='undefined'?row('Music','music',()=>{if(!OWTv.showMusic()&&startMusic)startMusic();}):null,
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
         paintMode()&&isHost()?row('Gist & Paint look: text and colours','palette',lookSheet):null,
@@ -455,7 +455,7 @@ async function room(id){
 /* ================= scheduled Gist & Paint sessions (own page) ================= */
   const icsFor=r=>{const st=new Date(r.scheduled_start),en=new Date(st.getTime()+45*60000),f=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
     const t=(r.title||'Gist & Paint').replace(/[\r\n,;]/g,' ');
-    const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//OpenWalls//Gist and Paint//EN','BEGIN:VEVENT','UID:'+r.id+'@openwalls','DTSTAMP:'+f(new Date()),'DTSTART:'+f(st),'DTEND:'+f(en),'SUMMARY:Gist & Paint - '+t,'DESCRIPTION:Join the painting session: '+CFG.site+'#/space/'+r.id,'URL:'+CFG.site+'#/space/'+r.id,'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Gist & Paint starts soon','TRIGGER:-PT10M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+    const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//OpenWalls//Gist and Paint//EN','BEGIN:VEVENT','UID:'+r.id+'@openwalls','DTSTAMP:'+f(new Date()),'DTSTART:'+f(st),'DTEND:'+f(en),'SUMMARY:Gist & Paint - '+t,'DESCRIPTION:Join the painting session: '+(CFG.pretty?CFG.site+'s/':CFG.site+'#/space/')+r.id,'URL:'+(CFG.pretty?CFG.site+'s/':CFG.site+'#/space/')+r.id,'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Gist & Paint starts soon','TRIGGER:-PT10M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
     return new Blob([txt],{type:'text/calendar'});};
   const dayLabel=t=>{const d=new Date(t),n=new Date(),tm=new Date(n.getTime()+86400000);return d.toDateString()===n.toDateString()?'Today':d.toDateString()===tm.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});};
   const sr=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,mine=Auth.user&&hs&&hs.id===Auth.user.id,t=new Date(r.scheduled_start);

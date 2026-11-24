@@ -28,7 +28,7 @@ function embedFor(u){
     if(host==='soundcloud.com')return{src:'https://w.soundcloud.com/player/?auto_play=false&url='+encodeURIComponent(u),height:166,kind:'music',name:'SoundCloud'};
     if(host==='music.apple.com')return{src:'https://embed.music.apple.com'+x.pathname+x.search,height:x.pathname.includes('/song/')||x.search.includes('i=')?175:352,kind:'music',name:'Apple Music'};
   }catch(e){}return null;}
-const roomUrl=u=>CFG.site+'#/@'+u;
+const roomUrl=u=>CFG.pretty?CFG.site+'r/'+u:CFG.site+'#/@'+u;
 const ytId=u=>{try{const x=new URL(u);if(/youtu\.be$/.test(x.hostname))return x.pathname.slice(1);if(/youtube\.com$/.test(x.hostname)){if(x.searchParams.get('v'))return x.searchParams.get('v');const m=x.pathname.match(/\/(embed|shorts)\/([\w-]+)/);if(m)return m[2];}}catch(e){}return null;};
 const go=hash=>{if(location.hash===hash)route();else location.hash=hash;};
 function setView(full){const v=$view();v.classList.toggle('full',!!full);v.classList.remove('sp-view','intro-view');v.scrollTop=0;v.replaceChildren();$nav().classList.toggle('hide',!!full);return v;}

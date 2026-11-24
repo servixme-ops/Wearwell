@@ -9,5 +9,7 @@ const CFG={
   site:location.origin+location.pathname.replace(/[^/]*$/,''),
   // Public site address, used when sharing rooms.
   mainSite:'https://servixme-ops.github.io/Wearwell/',
+  // Cloudflare serves /r/<user>, /s/<space> and /gallery with a proper link card for WhatsApp and socials; other hosts (GitHub Pages) use the plain # links
+  pretty:!/github\.io$|^localhost$|^127\./.test(location.hostname)&&location.protocol==='https:',
   limits:{magazinePhotos:2,imageMB:12,wallpaperMB:6,gifMB:5,avatarMB:2},
 };
