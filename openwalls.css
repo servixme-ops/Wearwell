@@ -692,5 +692,3 @@ button.fm-int{border:0}
 
 /* solo painting: no voices, no listeners */
 .sp-solo .sp-crowd,.sp-solo #sp-lh,.sp-solo .sp-hstage{display:none!important}
-/* gallery music is audio only: keep the video surface tiny so the phone does not decode a big picture (heat) */
-.tvplayer.tv-house .tv-screen{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;overflow:hidden;pointer-events:none}
