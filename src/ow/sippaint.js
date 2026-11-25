@@ -374,7 +374,10 @@ const REFDRAW={
 };
 const refCache=new Map();
 function refCanvas(id,onLoad){
-  if(refCache.has(id))return refCache.get(id);
+  if(refCache.has(id)){const k=refCache.get(id);
+    /* a phone can quietly empty a picture it kept in memory: if the saved copy has gone blank, draw it again */
+    let blank=false;try{blank=k.getContext('2d').getImageData(0,0,1,1).data[3]===0;}catch(e){}
+    if(!blank)return k;refCache.delete(id);}
   const c=document.createElement('canvas');c.width=400;c.height=500;const g=c.getContext('2d');g.fillStyle='#eee';g.fillRect(0,0,400,500);
   if(/^ref:/.test(id||'')){const f=REFDRAW[id.slice(4)];if(f)try{f(g,400,500);}catch(e){}refCache.set(id,c);}
   else if(/^img:/.test(id||'')){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const s=Math.max(400/im.width,500/im.height),dw=im.width*s,dh=im.height*s;g.drawImage(im,(400-dw)/2,(500-dh)/2,dw,dh);onLoad&&onLoad();};im.src=publicUrl('room-images',id.slice(4));refCache.set(id,c);}
