@@ -31,7 +31,7 @@ function embedFor(u){
 const roomUrl=u=>CFG.pretty?CFG.site+'r/'+u:CFG.site+'#/@'+u;
 const ytId=u=>{try{const x=new URL(u);if(/youtu\.be$/.test(x.hostname))return x.pathname.slice(1);if(/youtube\.com$/.test(x.hostname)){if(x.searchParams.get('v'))return x.searchParams.get('v');const m=x.pathname.match(/\/(embed|shorts)\/([\w-]+)/);if(m)return m[2];}}catch(e){}return null;};
 const go=hash=>{if(location.hash===hash)route();else location.hash=hash;};
-function setView(full){const v=$view();v.classList.toggle('full',!!full);v.classList.remove('sp-view','intro-view');v.scrollTop=0;v.replaceChildren();$nav().classList.toggle('hide',!!full);return v;}
+function setView(full){const v=$view();v.classList.toggle('full',!!full);[...v.classList].forEach(c=>{if(/^(sp-|pt-|intro-)/.test(c))v.classList.remove(c);}); /* nothing from the previous page (a Gist & Paint space, an intro, a painting end page) may stay on the new one */v.scrollTop=0;v.replaceChildren();$nav().classList.toggle('hide',!!full);return v;}
 function teardown(){if(App.teardown){try{App.teardown();}catch(e){}App.teardown=null;}}
 
 /* ---------- navigation ---------- */
@@ -547,6 +547,7 @@ async function visitView(hs0){
   else{host.append(fallback(d));}
   if(!App.visited[d.room.id]&&!d.is_me){App.visited[d.room.id]=1;Store.visit(d.room.id);}
   let cn={followers:0,following:0,iFollow:false};try{cn=await Store.counts(o.id);}catch(e){}
+  if(!host.isConnected){try{R&&R.destroy();}catch(e){}return;} /* left the page while it was still loading */
   const fol=h('button',{class:'rbtn '+(cn.iFollow?'':'coral'),onclick:()=>{if(!Auth.user){authSheet('signin','Sign in to follow '+o.username);return;}guard(fol,async()=>{await Store.follow(o.id,!cn.iFollow);cn.iFollow=!cn.iFollow;fol.textContent=cn.iFollow?'Following':'Follow';fol.classList.toggle('coral',!cn.iFollow);});}},cn.iFollow?'Following':'Follow');
   const cntPill=h('span',{class:'live-n',style:{display:'none'},'aria-label':'People in this room'});if(R)R.onCount=n=>{cntPill.style.display=n>0?'':'none';cntPill.replaceChildren(h('i'),String(n));};
   const top=h('div',{class:'rtop'},h('button',{class:'rbtn','aria-label':'Back',onclick:()=>go(d.is_me?'#/me':'#/wall')},icon('back')),
@@ -724,7 +725,7 @@ function introBuild(){
   show(0);restart();
 }
 function route(){
-  document.querySelectorAll('.sheet-ov,.dlg-ov').forEach(e=>e.remove());teardown();const hs=decodeURIComponent(location.hash.replace(/^#\/?/,''));App.hadRoute=App.route!=='';App.route=hs||'wall';
+  document.querySelectorAll('.sheet-ov,.dlg-ov,.sp-tip').forEach(e=>e.remove());teardown();const hs=decodeURIComponent(location.hash.replace(/^#\/?/,''));App.hadRoute=App.route!=='';App.route=hs||'wall';
   document.title="OpenWalls · Discover what's on everyone's walls";
   if(!Auth.user){App.route='welcome';return introView();}
   if(hs==='welcome'){history.replaceState(null,'','#/wall');App.route='wall';return wallView?wallView():discoverView();}

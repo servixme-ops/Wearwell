@@ -182,7 +182,9 @@ async function discover(){
 async function room(id){
   if(!Auth.user){authSheet('signin','Sign in to join Live Spaces');go('#/spaces');return;}
   const v=setView(true);v.classList.add('sp-view');
-  let solo=false,musicOn=false,startMusic=null,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false;
+  let solo=false,musicOn=false,startMusic=null,D=null,audio=null,speaking=new Set(),dead=false,lastMsg=0,connecting=false,micErr=null,chatOpen=false,chatSeen=0,playbackOk=true,connState='connecting',lastRole=null,reqBusy=false,gone=false,pollT,hbT,chatT;
+  /* registered at the very start, so pressing Back while the space is still joining or loading its 3D room cleans everything up */
+  App.teardown=()=>{gone=true;try{OWTv.stopMusic();}catch(e){}document.querySelectorAll('.sp-tip').forEach(e=>e.remove());if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();try{audio&&audio.close();}catch(e){}rpc('space_leave',{p_space:id}).catch(()=>{});};
   const stage=h('div',{class:'sp-stage'}),crowd=h('div',{class:'sp-crowd'}),reqBox=h('div'),banner=h('div'),floats=h('div',{class:'sp-floats'});
   const titleEl=h('h2'),metaEl=h('div',{class:'sp-meta'}),bar=h('div',{class:'sp-bar'}),timerEl=h('div',{class:'sp-timer'}),nowEl=h('div',{class:'sp-now'}),tbox=h('div',{class:'sp-titlebox'},titleEl,metaEl,timerEl,nowEl);let voiceKey='';let R=null,camAuto=true,PT=null;const paintMode=()=>D&&D.space&&D.space.category==='sipandpaint';
   const msgs=h('div',{class:'sp-msgs'}),inp=h('input',{type:'text',maxlength:'300',placeholder:'Say something…'}),sendB=h('button',{class:'btn coral small'},icon('send'));
@@ -268,6 +270,7 @@ async function room(id){
     if(!OWRoom.supported())return;
     try{
       let d=null;try{d=await Store.byUsername(D.host.username);}catch(e){}
+      if(dead||gone)return;
       const box=stageBox=h('div',{class:'room sp-3d'});v.insertBefore(box,v.firstChild);
       const r=new OWRoom(box,{edit:false});const rm=d&&d.room?Object.assign({},d.room):{name:'Studio',size:'medium',width:6,depth:5.4,height:2.9,theme:{}};if(paintMode()){const th=Object.assign({},rm.theme),hd=Object.assign({},th.hide);hd.light=1;delete hd.until;th.hide=hd;rm.theme=th;}r.load(rm,d&&d.room?d.items:[]);
       if(paintMode()&&typeof OWTv!=='undefined'&&!musicOn){musicOn=true;try{if(isHost())hostTip();}catch(e){}startMusic=()=>{try{if(isHost())hostTip();}catch(e){}try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.2,vid:null,autoplay:true,seed:null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}};const kick=()=>{if(dead){document.removeEventListener('pointerdown',kick,true);return;}try{OWTv.kickMusic();}catch(e){}};document.addEventListener('pointerdown',kick,true);try{OWTv.open({host:document.body,roomId:'gp'+id,uid:Auth.user&&Auth.user.id,isOwner:isHost(),music:true,quiet:true,vol:.3,vid:null,autoplay:true,seed:isHost()?((rm.theme&&rm.theme.playlist&&rm.theme.playlist.length)?rm.theme.playlist:((d&&d.items)||[]).filter(it=>it.type==='speaker'&&it.link).map(it=>OWTv.parse(it.link)).filter(Boolean)):null,onQueue:isHost()?(q=>Store.savePlaylist(q)):null});}catch(e){}}
@@ -400,6 +403,7 @@ async function room(id){
     location.replace(paintMode()?'#/discover':'#/spaces');
   }
   async function finish(msg){
+    if(gone)return;
     const wasPaint=paintMode(),title=D&&D.space&&D.space.title;
     dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);if(PT){try{await PT.finalSave();}catch(e){}}killStage();try{await audio.close();}catch(e){}
     try{OWTv.stopMusic();}catch(e){}
@@ -448,7 +452,6 @@ async function room(id){
     }catch(e){if(/not found/i.test(e.message||'')){finish('This space is no longer available.');}}
   }
   const hb=()=>{if(!dead&&D&&me()&&me().status==='active')rpc('space_heartbeat',{p_space:id}).catch(()=>{});};
-  let pollT,hbT,chatT;
   window.addEventListener('pagehide',()=>{if(!dead){try{rpc('space_leave',{p_space:id});}catch(e){}}},{once:true});
 
   /* join */
@@ -456,19 +459,22 @@ async function room(id){
   try{
     connecting=true;
     try{const pre=await rpc('space_get',{p_space:id});solo=!!(pre&&pre.space&&pre.space.solo);}catch(e){}
+    if(gone){try{await audio.close();}catch(e){}return;}
     if(solo){v.classList.add('sp-solo');await rpc('space_join',{p_space:id}).catch(()=>{});}else await audio.connect(id);
+    if(gone){try{await audio.close();}catch(e){}if(solo)rpc('space_leave',{p_space:id}).catch(()=>{});return;}
     connecting=false;connState='connected';
-    await tick();v.querySelector('.sp-joining')&&v.querySelector('.sp-joining').remove();await initStage();
+    await tick();if(gone)return;v.querySelector('.sp-joining')&&v.querySelector('.sp-joining').remove();await initStage();if(gone)return;
     pollT=setInterval(()=>{if(!document.hidden)tick();},3000);hbT=setInterval(hb,15000);chatT=setInterval(()=>{if(!document.hidden)chat();},3000);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!dead){tick();chat();hb();if(audio.room)audio.startPlayback();}});
     await chat();await syncMic();paintBanner();
   }catch(e){
     connecting=false;dead=true;try{await audio.close();}catch(er){}
+    if(gone)return;
     const m=friendlyError(e);
     v.replaceChildren(h('div',{class:'sp-ended'},h('h2',null,/not configured/i.test(m)?'Live audio is not set up yet':'Could not join'),h('p',{class:'tag'},/not configured/i.test(m)?m:friendlyError({message:m})),h('button',{class:'btn coral',onclick:()=>go('#/discover')},'Back to Discover')));
     return;
   }
-  App.teardown=()=>{try{OWTv.stopMusic();}catch(e){}if(dead)return;dead=true;clearInterval(pollT);clearInterval(hbT);clearInterval(chatT);killStage();audio.close();rpc('space_leave',{p_space:id}).catch(()=>{});};
+
 }
 
 /* Gist & Paint lives inside Discover: a banner to host, and the sessions that are live now */
