@@ -10,7 +10,7 @@ const STATES=['Painting','Almost done','Completed'];
 /* colours that are really in the reference picture, most used first, so the swatches match what you are painting */
 const palCache=new Map();
 function refPalette(id){
-  if(!id)return COLS;if(palCache.has(id))return palCache.get(id);
+  if(!id)return COLS;if(OWPhoto.isMine(id))return OWPhoto.colours(id)||COLS;if(palCache.has(id))return palCache.get(id);
   try{
     /* count only flat pixels (same colour as the pixel to the right and below) at full size, so thin white lines and tiny details are kept and edge blends are not */
     const c=refCanvas(id),w=c.width,hh=c.height,g=c.getContext('2d'),d=g.getImageData(0,0,w,hh).data;
@@ -374,6 +374,7 @@ const REFDRAW={
 };
 const refCache=new Map();
 function refCanvas(id,onLoad){
+  if(OWPhoto.isMine(id))return OWPhoto.canvas(id,onLoad);
   if(refCache.has(id)){const k=refCache.get(id);
     /* a phone can quietly empty a picture it kept in memory: if the saved copy has gone blank, draw it again */
     let blank=false;try{blank=k.getContext('2d').getImageData(0,0,1,1).data[3]===0;}catch(e){}
@@ -387,6 +388,7 @@ function refCanvas(id,onLoad){
 /* ---------------- stroke guide: an outline "skeleton" of the reference with arrows showing which way to stroke ---------------- */
 const guideCache=new Map();
 function guideCanvas(id,onLoad){
+  if(OWPhoto.isMine(id))return OWPhoto.guide(id,onLoad);
   const key=id||'';if(guideCache.has(key))return guideCache.get(key);
   const out=document.createElement('canvas');out.width=CW;out.height=CH;guideCache.set(key,out);
   if(!id)return out;
@@ -496,6 +498,9 @@ async function myArtworks(){
 /* ---------------- attach the studio to a running Space stage ---------------- */
 function attach(R,ctx){
   const st=R.stage,S=R.STAGE,SX=S.SX,SZ=S.SZ,DESKY=S.DESKY,me=Auth.user.id,spaceId=ctx.id;
+  /* a personal reference made from the person's own photo: kept on this device only, used instead of the host's picture on their own canvas */
+  let myRef=null;const myKey=OWPhoto.PREFIX+spaceId;const eff=()=>myRef||sp.ref;
+  OWPhoto.load(myKey).then(d=>{if(d){myRef=myKey;ov&&ov._upd&&ov._upd();}});
   const canv=new Map();let dead=false,ch=null,chOk=false,saveT=null,flushT=null,pending=null,cur=null,sp={ref:null,state:'waiting',note:'',title:'',ends:0},award=null,upFlag=false,skew=0,nSeated=0,lastPaintPing=0,ov=null,lockUntil=0;
   const redraw=(()=>{let q=false;return()=>{if(q||dead)return;q=true;requestAnimationFrame(()=>{q=false;if(dead||ov)return;canv.forEach(pc=>{if(pc.tex)pc.tex.needsUpdate=true;});R.markDirty&&R.markDirty();});};})();
   const get=uid=>{let pc=canv.get(uid);if(!pc){pc=new PC(redraw);canv.set(uid,pc);}return pc;};
@@ -670,14 +675,32 @@ function attach(R,ctx){
     const pc=get(uid),p=ctx.participants().find(x=>x.id===uid)||{};
     sheet('@'+(p.username||'painter'),(body)=>{const c=h('canvas',{width:CW,height:CH,class:'pt-view'});const g=c.getContext('2d');const t=setInterval(()=>{if(!c.isConnected){clearInterval(t);return;}g.drawImage(pc.cv,0,0);},400);g.drawImage(pc.cv,0,0);body.append(c,h('p',{class:'f-hint',style:{textAlign:'center'}},STATES[pc.state()]));});
   }
+  /* ---- make a reference from my own photo (all on this phone) ---- */
+  function photoBox(){
+    if(!ov)return;ov.querySelectorAll('.pt-refbox').forEach(x=>x.remove());
+    let file=null,url=null;
+    const inp=h('input',{type:'file',accept:'image/jpeg,image/png,image/webp',style:{display:'none'}});
+    const prev=h('img',{alt:'Your photo',style:{width:'100%',maxHeight:'240px',objectFit:'cover',borderRadius:'12px',display:'none',margin:'8px 0'}});
+    const msg=h('p',{class:'f-hint',style:{margin:'6px 0'}},'Your photo is turned into an illustration on this phone. It is never uploaded or saved online.');
+    const pick=h('button',{class:'btn block',onclick:()=>inp.click()},'Choose a photo');
+    const mk=h('button',{class:'btn coral block',style:{display:'none',margin:'8px 0'}},'Generate Illustration');
+    const box=h('div',{class:'pt-sig pt-refbox',onclick:e=>{if(e.target===box&&!mk.disabled)close();}},h('div',{class:'pt-sigc',style:{width:'min(360px,100%)',maxHeight:'100%',overflow:'auto'}},
+      h('b',null,'Reference from my photo'),msg,prev,inp,pick,mk,h('button',{class:'btn block',onclick:()=>{if(!mk.disabled)close();}},'Cancel')));
+    const close=()=>{if(url)URL.revokeObjectURL(url);box.remove();};
+    inp.onchange=()=>{file=inp.files&&inp.files[0];if(!file)return;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);prev.src=url;prev.style.display='block';mk.style.display='';pick.textContent='Choose a different photo';msg.style.color='';msg.textContent='Your photo is turned into an illustration on this phone. It is never uploaded or saved online.';};
+    mk.onclick=async()=>{mk.disabled=true;pick.disabled=true;mk.textContent='Making your illustration…';msg.style.color='';msg.textContent='The first time can take a little while while the tool loads.';
+      try{const d=await OWPhoto.make(file);await OWPhoto.save(myKey,d);myRef=myKey;ov&&ov._upd&&ov._upd();close();showRef();toast('Your illustration is ready. It is now your reference, guide and colours.');}
+      catch(e){msg.style.color='#c1121f';msg.textContent=OWPhoto.friendly(e);mk.disabled=false;pick.disabled=false;mk.textContent='Generate Illustration';}};
+    ov.append(box);
+  }
   /* ---- reference viewer ---- */
   function showRef(){
     if(ov){/* inside the painting screen: show it on top of that screen, not on the page behind it */
       ov.querySelector('.pt-refbox')&&ov.querySelector('.pt-refbox').remove();
       const c=h('canvas',{width:400,height:500,class:'pt-view',style:{width:'100%',height:'auto',borderRadius:'12px',display:'block'}}),g=c.getContext('2d');
-      const paint=()=>{if(sp.ref)g.drawImage(refCanvas(sp.ref,paint),0,0);};paint();
+      const paint=()=>{if(eff())g.drawImage(refCanvas(eff(),paint),0,0);};paint();
       const box=h('div',{class:'pt-sig pt-refbox',onclick:e=>{if(e.target===box)box.remove();}},h('div',{class:'pt-sigc',style:{width:'min(360px,100%)',maxHeight:'100%',overflow:'auto'}},
-        h('b',null,'Reference'),h('div',{style:{margin:'8px 0'}},sp.ref?c:h('p',{class:'f-hint'},'The host has not picked a picture yet.')),sp.note?h('p',{style:{margin:'0 0 8px'}},sp.note):null,h('button',{class:'btn block',onclick:()=>box.remove()},'Close')));
+        h('b',null,'Reference'),h('div',{style:{margin:'8px 0'}},eff()?c:h('p',{class:'f-hint'},'The host has not picked a picture yet.')),sp.note?h('p',{style:{margin:'0 0 8px'}},sp.note):null,h('button',{class:'btn block',style:{marginBottom:'8px'},onclick:()=>photoBox()},myRef?'Make a new one from my photo':'Make one from my photo'),myRef&&sp.ref?h('button',{class:'btn block',style:{marginBottom:'8px'},onclick:()=>{myRef=null;OWPhoto.remove(myKey);ov._upd();box.remove();showRef();}},'Use the host\'s picture again'):null,h('button',{class:'btn block',onclick:()=>box.remove()},'Close')));
       ov.append(box);return;}
     sheet('Reference',(body)=>{const c=h('canvas',{width:400,height:500,class:'pt-view'});const g=c.getContext('2d');const paint=()=>{if(sp.ref){g.drawImage(refCanvas(sp.ref,paint),0,0);}else{g.fillStyle='#eee';g.fillRect(0,0,400,500);}};paint();
       body.append(sp.ref?c:h('p',{class:'f-hint'},'The host has not picked a picture yet.'),sp.note?h('p',null,sp.note):null);});
@@ -689,12 +712,12 @@ function attach(R,ctx){
     if(!st.map.has(me)){toast('Only the host and people invited to paint have an easel. You are watching. Ask the host to invite you to paint.');return;}
     let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true,Z=1,PX=0,PY=0,gA=false,gLock=false,g0=null,strokeT=0;const ptrs=new Map();
     const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';let guideOn=true;const gcv=h('canvas',{class:'pt-guide',width:CW,height:CH});const stack=h('div',{class:'pt-stack'},cv,gcv);frame.append(stack);
-    function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&sp.ref?'':'none';if(guideOn&&sp.ref)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);}
+    function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&eff()?'':'none';if(guideOn&&eff())g.drawImage(guideCanvas(eff(),drawGuide),0,0);}
     const banner=h('div',{class:'pt-ban'});
     const sw=h('div',{class:'pt-sw'}),tools=h('div',{class:'pt-tools'}),stch=h('div',{class:'pt-st'}),size_=h('input',{type:'range',min:'3',max:'44',value:String(size),'aria-label':'Brush size'});
-    let miniT=0;const mini=h('button',{class:'pt-mini','aria-label':'Hide this picture for a few seconds',onclick:()=>{mini.classList.add('away');clearTimeout(miniT);miniT=setTimeout(()=>mini.classList.remove('away'),6000);}});const mc=refCanvas(sp.ref||'',()=>drawMini());const mg=h('canvas',{width:120,height:150});mini.append(mg);
-    function drawMini(){const g=mg.getContext('2d');g.fillStyle='#eee';g.fillRect(0,0,120,150);if(sp.ref)g.drawImage(refCanvas(sp.ref,drawMini),0,0,120,150);}
-    let palRef='__';const paintSw=()=>{palRef=sp.ref||'';const PL=refPalette(sp.ref);if(!PL.some(([n,c])=>c===color))color=PL[0][1];sw.replaceChildren(...PL.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:c,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));};
+    let miniT=0;const mini=h('button',{class:'pt-mini','aria-label':'Hide this picture for a few seconds',onclick:()=>{mini.classList.add('away');clearTimeout(miniT);miniT=setTimeout(()=>mini.classList.remove('away'),6000);}});const mc=refCanvas(eff()||'',()=>drawMini());const mg=h('canvas',{width:120,height:150});mini.append(mg);
+    function drawMini(){const g=mg.getContext('2d');g.fillStyle='#eee';g.fillRect(0,0,120,150);if(eff())g.drawImage(refCanvas(eff(),drawMini),0,0,120,150);}
+    let palRef='__';const paintSw=()=>{palRef=eff()||'';const PL=refPalette(eff());if(!PL.some(([n,c])=>c===color))color=PL[0][1];sw.replaceChildren(...PL.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:c,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));};
     const T3=[['b','Brush'],['p','Pencil'],['e','Eraser']];
     const act=(l,fn,cls)=>h('button',{class:'pt-b '+(cls||''),onclick:fn},l);
     function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),h('button',{class:'pt-b'+(guideOn?' on':''),onclick:()=>{guideOn=!guideOn;drawGuide();paintTools();}},'Guide'),act('Sign',()=>signPad(false)),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
@@ -771,7 +794,7 @@ function attach(R,ctx){
       banner,frame,mini,
       h('div',{class:'pt-dock'},tools,h('div',{class:'pt-sz'},h('span',null,'Size'),size_),sw,stch));
     document.body.appendChild(ov);R.setPaused&&R.setPaused(true);ro&&ro.observe(frame);fit();paintTools();paintSw();paintState();paintBan();drawMini();drawGuide();
-    ov._upd=()=>{paintBan();drawMini();drawGuide();if((sp.ref||'')!==palRef)paintSw();};
+    ov._upd=()=>{paintBan();drawMini();drawGuide();if((eff()||'')!==palRef)paintSw();};
   }
 
   /* ---- host studio panel ---- */
