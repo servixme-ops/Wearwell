@@ -130,6 +130,7 @@ async function discoverView(){
   const adHost=h('div',{class:'ad-host'}),sr=h('div'),qi=h('input',{type:'search',class:'ds-search',placeholder:'Search rooms and creators','aria-label':'Search',maxlength:'60'});let qv='',qt=null,qn=0;
   let act=[];const crBox=h('div',{class:'cr-box'});
   const KIND={space:'LIVE',movie:'WATCHING',music:'LISTENING'};
+  const doing=a=>a.kind==='movie'?'Watching a movie':a.kind==='music'?'Playing music':(a.cat==='sipandpaint'?'Painting':'In a live space');
   const drawCreators=()=>{
     const seenU={},rows=[];
     act.forEach(a=>{if(!seenU[a.username]){seenU[a.username]=1;rows.push({username:a.username,display_name:a.display_name,avatar_url:a.avatar_url,a});}});
@@ -138,7 +139,7 @@ async function discoverView(){
     crBox.replaceChildren(h('h2',{class:'sec'},'Creators'),h('p',{class:'sec-sub'},act.length?'A glowing ring means they are live right now. Tap to join.':'Rings light up when a creator goes live, watches a video or plays music.'),
       h('div',{class:'creators'},rows.map(r=>{const a=r.a,u={avatar_url:r.avatar_url,display_name:r.display_name,username:r.username};
         return h('button',{class:'creator'+(a?' live':''),title:a?(a.label||''):'','aria-label':'@'+r.username+(a?', '+KIND[a.kind].toLowerCase()+' now: '+a.label:''),onclick:()=>go(a&&a.kind==='space'?'#/space/'+a.target:'#/@'+r.username)},
-          h('span',{class:'ring'},avatarEl(u)),a?h('span',{class:'now '+a.kind},KIND[a.kind]):null,h('span',{class:'cn'},'@'+r.username));}))); };
+          h('span',{class:'ring'},avatarEl(u)),a?h('span',{class:'now '+a.kind},KIND[a.kind]):null,h('span',{class:'cn'},'@'+r.username),a?h('span',{class:'cdo '+a.kind},doing(a)):null);}))); };
   const loadAct=async()=>{try{const r=await sb.rpc('ow_active_now');act=Array.isArray(r.data)?r.data:[];}catch(e){act=[];}drawCreators();};
   loadAct();const actT=setInterval(()=>{if(document.hidden||!crBox.isConnected)return;loadAct();},30000);
   const FL=await appFlags();
