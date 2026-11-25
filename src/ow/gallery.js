@@ -549,6 +549,12 @@ P.gxStop=function(){
 const baseStand=P.standUp;P.standUp=function(){if(this.seat&&this.seat.gx)return this.gxStop();return baseStand.call(this);};
 const baseStop=P.stopWalk;P.stopWalk=function(){if(this._held)this.gxStop();return baseStop.apply(this,arguments);};
 const baseDestroy=P.destroy;if(baseDestroy)P.destroy=function(){this.gxUiOff();this.gxInfoOff();return baseDestroy.apply(this,arguments);};
+/* gallery only: visitors start in the middle of the entrance aisle, well away from the speakers in the front corners */
+const baseStartWalk=P.startWalk;if(baseStartWalk)P.startWalk=function(){
+  const r=baseStartWalk.apply(this,arguments);
+  if(this._house&&this.me){const f=this.me,sp=this.freeNear((Math.random()-.5)*1.4,this.D/2-2.9,.3);f.x=sp[0];f.z=sp[1];f.yaw=Math.PI;this.placeFigure(f);
+    this.wTarget=new T.Vector3(f.x,1.1,f.z);this.setCam(f.yaw+PI,.36,3.1);this.markDirty(true);}
+  return r;};
 /* near an instrument or speaker the usual action button appears */
 const baseNear=P.nearest;P.nearest=function(){
   if(!this._house||!this.me||!this.spots)return baseNear.call(this);
