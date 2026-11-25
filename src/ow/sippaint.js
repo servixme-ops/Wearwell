@@ -736,9 +736,11 @@ function attach(R,ctx){
     const move=e=>{if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(gA){e.preventDefault();moveG();return;}if(gLock)return;if(drawing!==e.pointerId||!cur)return;lastMoveT=Date.now();e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];(ev.length?ev:[e]).forEach(q=>{const[x,y]=pos(q);if(mine.extend(cur,x,y))sendBuf.push(Math.round(x),Math.round(y));});const n=Date.now();if(n-lastSend>110)flush();if(n-lastPaintPing>600){lastPaintPing=n;R.stagePaint(me);}};
     const up=e=>{ptrs.delete(e.pointerId);if(gLock){if(ptrs.size<2)gA=false;if(ptrs.size===0)gLock=false;return;}if(drawing!==e.pointerId)return;drawing=null;flush();cur=null;saveSoon();};
     function flush(){lastSend=Date.now();if(!cur||!sendBuf.length)return;const p={u:me,id:cur.id,p:sendBuf};if(cur.first){p.t=cur.t;p.c=cur.c;p.z=cur.z;cur.first=false;}send('seg',p);sendBuf=[];}
-    cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.style.touchAction='none';
+    /* the canvas element is kept between visits, so these handlers must be removed on close or a second visit paints every stroke twice (old colour and size underneath) */
+    if(mine._ac){try{mine._ac.abort();}catch(x){}}const ac=mine._ac=new AbortController(),sg={signal:ac.signal};
+    cv.addEventListener('pointerdown',down,sg);cv.addEventListener('pointermove',move,sg);cv.addEventListener('pointerup',up,sg);cv.addEventListener('pointercancel',up,sg);cv.style.touchAction='none';
     /* leaving the page or switching apps mid-stroke can swallow the pointer-up; finish the stroke so the brush never gets stuck */
-    cv.addEventListener('lostpointercapture',up);
+    cv.addEventListener('lostpointercapture',up,sg);
     const stuckFix=()=>{ptrs.clear();gA=false;gLock=false;if(!ov||!ov.isConnected){document.removeEventListener('visibilitychange',stuckFix);window.removeEventListener('blur',stuckFix);window.removeEventListener('pageshow',stuckFix);return;}endStroke();};
     document.addEventListener('visibilitychange',stuckFix);window.addEventListener('blur',stuckFix);window.addEventListener('pageshow',stuckFix);
     size_.oninput=()=>{size=+size_.value;};
@@ -755,7 +757,7 @@ function attach(R,ctx){
     function stepZ(d){const nz=d>0?(ZS.find(q=>q>Z+.01)||4):([...ZS].reverse().find(q=>q<Z-.01)||1);PX=PX*nz/Z;PY=PY*nz/Z;Z=nz;if(Z===1){PX=PY=0;}applyZ();}
     function fit(){const w=frame.clientWidth,hh=frame.clientHeight;if(!w||!hh)return;const s=Math.min(w/CW,hh/CH);cv.style.width=Math.floor(CW*s)+'px';cv.style.height=Math.floor(CH*s)+'px';applyZ();}
     const ro=window.ResizeObserver?new ResizeObserver(fit):null;
-    function close(){if(!ov)return;flush();document.removeEventListener('keydown',key);ro&&ro.disconnect();stack.remove();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;R.setPaused&&R.setPaused(false);redraw();saveNow();sendSync();}
+    function close(){if(!ov)return;flush();try{ac.abort();}catch(x){}document.removeEventListener('keydown',key);ro&&ro.disconnect();stack.remove();cv.remove();cv.removeAttribute('style');ov.remove();ov=null;R.setPaused&&R.setPaused(false);redraw();saveNow();sendSync();}
     ov=h('div',{class:'pt-ov'},
       h('div',{class:'pt-top'},h('button',{class:'pt-done',onclick:close},'Done'),h('b',null,'My canvas'),h('span',{class:'pt-topr'},h('button',{class:'pt-ref',onclick:()=>{zp.hidden=!zp.hidden;}},'Zoom'),h('button',{class:'pt-ref',onclick:showRef},'Reference'))),zp,
       banner,frame,mini,
@@ -815,7 +817,7 @@ function attach(R,ctx){
       if(s.server_now){const x=new Date(s.server_now).getTime();if(x)skew=x-Date.now();}const ne=s.paint_ends_at?new Date(s.paint_ends_at).getTime():0;const ce=ne!==sp.ends;sp={ref:s.paint_ref||null,state:s.paint_state||'waiting',note:s.paint_note||'',title:s.title,ends:ne};if(ce){upFlag=false;award=null;tickClock();}seatSync();if(ch_||ce){paintHud();ov&&ov._upd&&ov._upd();}},
     seatSync,
     async finalSave(){ctx.final=true;await saveNow();},
-    destroy(){dead=true;clearTimeout(saveT);try{if(ov){mine.cv.remove();ov.remove();ov=null;}}catch(e){}try{R.host.removeEventListener('click',onClick);}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}badges.forEach(b=>b.remove());hud.remove();}};
+    destroy(){dead=true;clearTimeout(saveT);try{if(mine._ac)mine._ac.abort();}catch(e){}try{if(ov){mine.cv.remove();ov.remove();ov=null;}}catch(e){}try{R.host.removeEventListener('click',onClick);}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}badges.forEach(b=>b.remove());hud.remove();}};
 }
 return{attach,galleryView,myArtworks,PC,REFS,guideCanvas,refCanvas,refPalette};
 })();
