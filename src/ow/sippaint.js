@@ -437,6 +437,8 @@ class PC{
   setState(s){this.ops=this.ops.filter(o=>o.k!=='m');if(s>0)this.ops.push({k:'m',s});}
   load(ops){this.ops=Array.isArray(ops)?ops.filter(o=>o&&(o.k==='s'||o.k==='clr'||o.k==='m')):[];this.redo=[];this.render();}
   empty(){return !this.ops.some(o=>o.k==='s');}
+  /* a phone can empty a canvas it kept in memory while the app was in the background (e.g. after saving a picture to the phone): if the picture has gone blank, draw it again from the strokes */
+  ensure(){try{const g=this.g;if(g.getImageData(0,0,1,1).data[3]===0||g.getImageData(CW-1,CH-1,1,1).data[3]===0){this.render();return true;}}catch(e){}return false;}
   /* re-draws the strokes at k times the size, so saved and downloaded paintings stay sharp */
   hires(k){const c=document.createElement('canvas');c.width=CW*k;c.height=CH*k;const t=Object.create(PC.prototype);t.g=c.getContext('2d');t.cv=c;t.g.scale(k,k);t.blank();for(const op of this.ops){if(op.k==='clr')t.blank();else if(op.k==='s')t.seg(op,0);}return c;}
   texture(){if(!this.tex){this.tex=new T.CanvasTexture(this.cv);this.tex.encoding=T.sRGBEncoding;this.tex.anisotropy=4;}return this.tex;}
@@ -498,6 +500,8 @@ function attach(R,ctx){
   const redraw=(()=>{let q=false;return()=>{if(q||dead)return;q=true;requestAnimationFrame(()=>{q=false;if(dead||ov)return;canv.forEach(pc=>{if(pc.tex)pc.tex.needsUpdate=true;});R.markDirty&&R.markDirty();});};})();
   const get=uid=>{let pc=canv.get(uid);if(!pc){pc=new PC(redraw);canv.set(uid,pc);}return pc;};
   const mine=get(me);
+  const wake=()=>{if(dead||document.visibilityState==='hidden')return;let any=false;canv.forEach(pc=>{if(pc.ensure())any=true;});if(any){redraw();try{R.markDirty&&R.markDirty();}catch(e){}}};
+  document.addEventListener('visibilitychange',wake);window.addEventListener('pageshow',wake);window.addEventListener('focus',wake);
 
   /* ---- 3D studio ---- */
   const G=new T.Group();st.g.add(G);st.cv=[];st.cvMesh=[];
@@ -744,7 +748,8 @@ function attach(R,ctx){
     cv.addEventListener('pointerdown',down,sg);cv.addEventListener('pointermove',move,sg);cv.addEventListener('pointerup',up,sg);cv.addEventListener('pointercancel',up,sg);cv.style.touchAction='none';
     /* leaving the page or switching apps mid-stroke can swallow the pointer-up; finish the stroke so the brush never gets stuck */
     cv.addEventListener('lostpointercapture',up,sg);
-    const stuckFix=()=>{ptrs.clear();gA=false;gLock=false;if(!ov||!ov.isConnected){document.removeEventListener('visibilitychange',stuckFix);window.removeEventListener('blur',stuckFix);window.removeEventListener('pageshow',stuckFix);return;}endStroke();};
+    const stuckFix=()=>{ptrs.clear();gA=false;gLock=false;if(document.visibilityState==='visible'){try{mine.ensure();}catch(x){}}if(!ov||!ov.isConnected){document.removeEventListener('visibilitychange',stuckFix);window.removeEventListener('blur',stuckFix);window.removeEventListener('pageshow',stuckFix);return;}endStroke();};
+    try{mine.ensure();}catch(x){}
     document.addEventListener('visibilitychange',stuckFix);window.addEventListener('blur',stuckFix);window.addEventListener('pageshow',stuckFix);
     size_.oninput=()=>{size=+size_.value;};
     const key=e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName)&&e.target.type!=='range')return;const k=e.key.toLowerCase();
@@ -820,7 +825,7 @@ function attach(R,ctx){
       if(s.server_now){const x=new Date(s.server_now).getTime();if(x)skew=x-Date.now();}const ne=s.paint_ends_at?new Date(s.paint_ends_at).getTime():0;const ce=ne!==sp.ends;sp={ref:s.paint_ref||null,state:s.paint_state||'waiting',note:s.paint_note||'',title:s.title,ends:ne};if(ce){upFlag=false;award=null;tickClock();}seatSync();if(ch_||ce){paintHud();ov&&ov._upd&&ov._upd();}},
     seatSync,
     async finalSave(){ctx.final=true;await saveNow();},
-    destroy(){dead=true;clearTimeout(saveT);try{if(mine._ac)mine._ac.abort();}catch(e){}try{if(ov){mine.cv.remove();ov.remove();ov=null;}}catch(e){}try{R.host.removeEventListener('click',onClick);}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}badges.forEach(b=>b.remove());hud.remove();}};
+    destroy(){dead=true;document.removeEventListener('visibilitychange',wake);window.removeEventListener('pageshow',wake);window.removeEventListener('focus',wake);clearTimeout(saveT);try{if(mine._ac)mine._ac.abort();}catch(e){}try{if(ov){mine.cv.remove();ov.remove();ov=null;}}catch(e){}try{R.host.removeEventListener('click',onClick);}catch(e){}try{ch&&sb.removeChannel(ch);}catch(e){}badges.forEach(b=>b.remove());hud.remove();}};
 }
 return{attach,galleryView,myArtworks,PC,REFS,guideCanvas,refCanvas,refPalette};
 })();
