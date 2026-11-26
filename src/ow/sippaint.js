@@ -24,7 +24,7 @@ function refPalette(id){
     if(!/^img:/.test(id)||out.length>=3)palCache.set(id,res);return res;
   }catch(e){return COLS;}
 }
-const REFS=[['sunset','Palm sunset'],['flowers','Flower vase'],['mountains','Mountain lake'],['city','City at night'],['abstract','Colour circles'],['cat','Sleepy cat'],['sunflower','Sunflower'],['fish','Goldfish bowl'],['house','Cosy house'],['rocket','Rocket in space'],['moonsea','Moonlit sea'],['dunes','Desert dunes'],['fluid','Fluid colour'],['monstera','Monstera leaves'],['deco','Art-deco sunrise'],['vinyl','Vinyl night'],['pines','Misty pines'],['neonrain','Neon rain street'],['bridge','Lagoon bridge dusk'],['aelephant','Elephant at sunset'],['afox','Fox under the moon'],['astag','Stag and moon'],['alion','Lion mane'],['aflamingo','Flamingo'],['awhale','Whale tail'],['asun','Boho sun and mountains'],['acat','Cat and moon'],['aowl','Night owl'],['abutterfly','Butterfly'],['bcamera','Vintage camera'],['bguitar','Acoustic guitar'],['bheadphones','Headphones and notes'],['btoast','Cheers'],['bperfume','Perfume bottle'],['hafro','Afro portrait'],['hdance','Dancing couple'],['hpop','Cap and shades'],['hflower','Flower crown'],['hsax','Saxophone player'],['balloon','Hot-air balloon'],['hrobe','Man in a flowing robe'],['xmoons','Moon phases'],['sfruit','Fruit bowl'],['steapot','Teapot and cups'],['scandle','Candle and books'],['spine','Pineapple and mangoes'],['dkoi','Koi pond'],['dlight','Lighthouse at dusk'],['dboom','Retro boombox'],['dmartini','Cocktail hour'],['dcaravan','Desert caravan'],['pgele','Gele and gold earrings'],['pkaftan','Senator kaftan'],['pbraids','Long braids'],['phood','Twists and headset'],['ppuffs','Twin puffs and ankara'],['plocs','Locs and dashiki'],['pcurls','Curls and glasses'],['pelder','Elder in Hausa cap'],['psnap','Snapback and shades'],['pbeanie','Beanie and shades'],['pbob','Honey-brown bob']];
+const REFS=[['sunset','Palm sunset'],['flowers','Flower vase'],['mountains','Mountain lake'],['city','City at night'],['abstract','Colour circles'],['cat','Sleepy cat'],['sunflower','Sunflower'],['fish','Goldfish bowl'],['house','Cosy house'],['rocket','Rocket in space'],['moonsea','Moonlit sea'],['dunes','Desert dunes'],['fluid','Fluid colour'],['monstera','Monstera leaves'],['deco','Art-deco sunrise'],['vinyl','Vinyl night'],['pines','Misty pines'],['neonrain','Neon rain street'],['bridge','Lagoon bridge dusk'],['aelephant','Elephant at sunset'],['afox','Fox under the moon'],['astag','Stag and moon'],['alion','Lion mane'],['aflamingo','Flamingo'],['awhale','Whale tail'],['asun','Boho sun and mountains'],['acat','Cat and moon'],['aowl','Night owl'],['abutterfly','Butterfly'],['bcamera','Vintage camera'],['bguitar','Acoustic guitar'],['bheadphones','Headphones and notes'],['btoast','Cheers'],['bperfume','Perfume bottle'],['hafro','Afro portrait'],['hdance','Dancing couple'],['hpop','Cap and shades'],['hflower','Flower crown'],['hsax','Saxophone player'],['balloon','Hot-air balloon'],['hrobe','Man in a flowing robe'],['xmoons','Moon phases'],['sfruit','Fruit bowl'],['steapot','Teapot and cups'],['scandle','Candle and books'],['spine','Pineapple and mangoes'],['dkoi','Koi pond'],['dlight','Lighthouse at dusk'],['dboom','Retro boombox'],['dmartini','Cocktail hour'],['dcaravan','Desert caravan'],['pgele','Gele and gold earrings'],['pkaftan','Senator kaftan'],['pbraids','Long braids'],['phood','Twists and headset'],['ppuffs','Twin puffs and ankara'],['plocs','Locs and dashiki'],['pcurls','Curls and glasses'],['pelder','Elder in Hausa cap'],['psnap','Snapback and shades'],['pbeanie','Beanie and shades'],['pbob','Honey-brown bob'],['phtie','Head tie and beads'],['pwaves','Long waves and pearls']];
 
 /* ---------------- reference pictures (drawn in code, 400 x 500) ---------------- */
 const lin=(g,x0,y0,x1,y1,stops)=>{const l=g.createLinearGradient(x0,y0,x1,y1);stops.forEach(([o,c])=>l.addColorStop(o,c));return l;};
@@ -453,7 +453,7 @@ ppuffs(g,w,h){g.fillStyle='#ffafcc';g.fillRect(0,0,w,h);const cx=w/2,SK='#a1662f
  pp_eyes(g,w,h,cx,h*.465,'down');pp_mouth(g,w,h,cx,h*.57,'grin');pp_stars(g,w,h,cx,h*.52,'#ffd23f');}});
 
 /* studio picker groups: every picture belongs to one type */
-const REF_CATS=[['Portraits',['pgele','pkaftan','pbraids','phood','ppuffs','plocs','pcurls','pelder','psnap','pbeanie','pbob','hafro','hpop','hflower','hrobe']],['People and music',['hdance','hsax']],['Animals',['cat','acat','fish','dkoi','aelephant','afox','astag','alion','aflamingo','awhale','aowl','abutterfly']],['Landscapes and places',['sunset','mountains','city','house','moonsea','dunes','pines','neonrain','bridge','asun','dlight','dcaravan','balloon','rocket','xmoons','deco']],['Flowers and plants',['flowers','sunflower','monstera']],['Objects',['bcamera','bguitar','bheadphones','btoast','bperfume','dboom','vinyl','dmartini']],['Still life and food',['sfruit','steapot','scandle','spine']],['Abstract',['abstract','fluid']]];
+const REF_CATS=[['Portraits',['pgele','pkaftan','pbraids','phood','ppuffs','plocs','pcurls','pelder','psnap','pbeanie','pbob','phtie','pwaves','hafro','hpop','hflower','hrobe']],['People and music',['hdance','hsax']],['Animals',['cat','acat','fish','dkoi','aelephant','afox','astag','alion','aflamingo','awhale','aowl','abutterfly']],['Landscapes and places',['sunset','mountains','city','house','moonsea','dunes','pines','neonrain','bridge','asun','dlight','dcaravan','balloon','rocket','xmoons','deco']],['Flowers and plants',['flowers','sunflower','monstera']],['Objects',['bcamera','bguitar','bheadphones','btoast','bperfume','dboom','vinyl','dmartini']],['Still life and food',['sfruit','steapot','scandle','spine']],['Abstract',['abstract','fluid']]];
 const refGroups=()=>{const seen=new Set(),out=[];REF_CATS.forEach(([t,ids])=>{const items=ids.map(i=>REFS.find(r=>r[0]===i)).filter(Boolean);items.forEach(r=>seen.add(r[0]));if(items.length)out.push([t,items]);});const rest=REFS.filter(r=>!seen.has(r[0]));if(rest.length)out.push(['More',rest]);return out;};
 Object.assign(REFDRAW,{plocs(g,w,h){g.fillStyle='#2ec4b6';g.fillRect(0,0,w,h);const cx=w/2,SK='#5a3520';
  FP(g,[[w*.06,h],[w*.12,h*.82],[w*.36,h*.72],[w*.64,h*.72],[w*.88,h*.82],[w*.94,h]],'#f77f00');
@@ -543,6 +543,39 @@ pbob(g,w,h){g.fillStyle='#ffe0cc';g.fillRect(0,0,w,h);const cx=w/2,SK='#b5703f';
  FL(g,k=>{k.moveTo(w*.3,h*.58);k.bezierCurveTo(w*.3,h*.5,w*.32,h*.46,w*.34,h*.44);},null,0);
  pp_eyes(g,w,h,cx,h*.465,'up');pp_mouth(g,w,h,cx,h*.57,'lips','#e76f51');
  [-1,1].forEach(m=>{const x=cx+m*w*.165;FD(g,x,h*.52,4,'#ffd23f');FL(g,k=>{k.moveTo(x,h*.535);k.bezierCurveTo(x+9,h*.55,x+9,h*.6,x,h*.62);k.bezierCurveTo(x-9,h*.6,x-9,h*.55,x,h*.535);},'#ffd23f',3);});
+}});
+function pp_bgd(g,w,h,st){const cx=w/2,W='rgba(255,255,255,';g.save();
+ if(st=='arch'){g.fillStyle=W+'.4)';g.beginPath();g.moveTo(w*.1,h);g.lineTo(w*.1,h*.42);g.arc(cx,h*.42,w*.4,Math.PI,0);g.lineTo(w*.9,h);g.closePath();g.fill();g.fillStyle=W+'.3)';g.beginPath();g.moveTo(w*.2,h);g.lineTo(w*.2,h*.42);g.arc(cx,h*.42,w*.3,Math.PI,0);g.lineTo(w*.8,h);g.closePath();g.fill();}
+ if(st=='diamond'){[.5,.36].forEach((r,i)=>{g.fillStyle=W+(.3+i*.12)+')';g.beginPath();g.moveTo(cx,h*.46-w*r*1.15);g.lineTo(cx+w*r,h*.46);g.lineTo(cx,h*.46+w*r*1.15);g.lineTo(cx-w*r,h*.46);g.closePath();g.fill();});}
+ g.restore();}
+Object.assign(REFDRAW,{phtie(g,w,h){g.fillStyle='#b7e4c7';g.fillRect(0,0,w,h);const cx=w/2,SK='#9a5b32';pp_bgd(g,w,h,'arch');
+ FP(g,[[w*.1,h],[w*.14,h*.84],[w*.36,h*.76],[w*.64,h*.76],[w*.86,h*.84],[w*.9,h]],'#14697a');
+ FL(g,k=>k.rect(cx-w*.06,h*.62,w*.12,h*.16),SK);
+ FL(g,k=>{k.moveTo(w*.34,h*.76);k.quadraticCurveTo(cx,h*.94,w*.66,h*.76);k.closePath();},SK);
+ FE(g,cx,h*.46,w*.14,h*.19,SK);
+ const tie=k=>{k.moveTo(w*.29,h*.43);k.bezierCurveTo(w*.22,h*.1,w*.78,h*.1,w*.71,h*.43);k.bezierCurveTo(w*.62,h*.35,w*.38,h*.35,w*.29,h*.43);};
+ FL(g,tie,'#e9c46a');g.save();g.beginPath();tie(g);g.clip();g.translate(cx,h*.25);g.rotate(-.6);g.fillStyle='#2a9d8f';for(let i=-8;i<9;i++)g.fillRect(i*40-10,-h,20,h*2);g.restore();
+ g.strokeStyle=INK;g.lineWidth=4;g.beginPath();tie(g);g.stroke();
+  FE(g,cx-w*.085,h*.205,w*.085,h*.05,'#c1121f',-.45,4);FE(g,cx+w*.085,h*.205,w*.085,h*.05,'#c1121f',.45,4);
+ FD(g,cx,h*.225,w*.04+3,INK);FD(g,cx,h*.225,w*.04,'#ffd23f');
+ pp_eyes(g,w,h,cx,h*.465,'half');pp_mouth(g,w,h,cx,h*.57,'lips','#9d0208');
+ [-1,1].forEach(m=>{const x=cx+m*w*.155;FD(g,x,h*.52,4,'#ffd23f');FL(g,k=>{k.moveTo(x,h*.535);k.quadraticCurveTo(x+10,h*.58,x,h*.63);k.quadraticCurveTo(x-10,h*.58,x,h*.535);},'#ffd23f',3);});
+ [[.09,.07,'#e63946'],[.125,.11,'#ffd23f'],[.16,.15,'#e63946']].forEach(([rx,ry,c],i)=>{for(let j=0;j<=10;j++){const a=Math.PI*(.12+j*.076);FD(g,cx+Math.cos(a)*w*rx,h*.7+Math.sin(a)*h*ry,5,j%2?c:'#ffd23f');}});
+ FL(g,k=>{k.moveTo(cx-6,h*.855);k.lineTo(cx,h*.89);k.lineTo(cx+6,h*.855);k.closePath();},'#ffd23f',3);},
+pwaves(g,w,h){g.fillStyle='#bde0fe';g.fillRect(0,0,w,h);const cx=w/2,SK='#8d5524';pp_bgd(g,w,h,'diamond');
+ FL(g,k=>{k.moveTo(w*.26,h*.84);k.bezierCurveTo(w*.18,h*.4,w*.26,h*.12,cx,h*.12);k.bezierCurveTo(w*.74,h*.12,w*.82,h*.4,w*.74,h*.84);k.closePath();},'#2b1a14');
+ FP(g,[[w*.12,h],[w*.16,h*.84],[w*.36,h*.76],[w*.64,h*.76],[w*.84,h*.84],[w*.88,h]],'#0b6e4f');
+ FL(g,k=>k.rect(cx-w*.06,h*.62,w*.12,h*.16),SK);
+ FL(g,k=>{k.moveTo(w*.38,h*.76);k.lineTo(cx,h*.92);k.lineTo(w*.62,h*.76);k.closePath();},SK);
+ FE(g,cx,h*.46,w*.14,h*.19,SK);
+ FL(g,k=>{k.moveTo(w*.325,h*.45);k.bezierCurveTo(w*.26,h*.1,w*.74,h*.1,w*.675,h*.45);k.bezierCurveTo(w*.67,h*.36,w*.58,h*.28,w*.5,h*.27);k.bezierCurveTo(w*.42,h*.28,w*.33,h*.36,w*.325,h*.45);},'#2b1a14');
+ g.strokeStyle=INK;g.lineWidth=3;g.beginPath();g.moveTo(cx,h*.17);g.lineTo(cx,h*.27);g.stroke();
+ [-1,1].forEach(m=>{FL(g,k=>{k.moveTo(cx+m*w*.17,h*.4);k.bezierCurveTo(cx+m*w*.24,h*.55,cx+m*w*.12,h*.66,cx+m*w*.2,h*.8);k.bezierCurveTo(cx+m*w*.27,h*.84,cx+m*w*.31,h*.76,cx+m*w*.27,h*.68);k.bezierCurveTo(cx+m*w*.33,h*.54,cx+m*w*.26,h*.44,cx+m*w*.2,h*.4);k.closePath();},'#2b1a14',3.5);});
+ g.strokeStyle='rgba(255,255,255,.2)';g.lineWidth=3;[-1,1].forEach(m=>{g.beginPath();g.moveTo(cx+m*w*.2,h*.5);g.quadraticCurveTo(cx+m*w*.24,h*.6,cx+m*w*.22,h*.72);g.stroke();});
+ pp_eyes(g,w,h,cx,h*.465,'down');pp_mouth(g,w,h,cx,h*.57,'lips','#d62839');
+ [-1,1].forEach(m=>{const x=cx+m*w*.14;FD(g,x,h*.52,4,'#ffd23f');FL(g,k=>{k.moveTo(x,h*.535);k.quadraticCurveTo(x+7,h*.57,x,h*.61);k.quadraticCurveTo(x-7,h*.57,x,h*.535);},'#ffd23f',3);});
+ for(let j=0;j<=14;j++){const a=Math.PI*(.1+j*.057);const x=cx+Math.cos(a)*w*.12,y=h*.7+Math.sin(a)*h*.13;FD(g,x,y,6.5,'#fff');g.strokeStyle=INK;g.lineWidth=2;g.beginPath();g.arc(x,y,6.5,0,7);g.stroke();}
+ FL(g,k=>{k.moveTo(cx,h*.835);k.quadraticCurveTo(cx+12,h*.87,cx,h*.91);k.quadraticCurveTo(cx-12,h*.87,cx,h*.835);},'#ffd23f',3.5);
 }});
 const refCache=new Map();
 function refCanvas(id,onLoad){
