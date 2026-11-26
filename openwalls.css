@@ -706,3 +706,5 @@ button.fm-int{border:0}
 .pt-gc .btn.small{white-space:normal;line-height:1.15;padding:10px 8px;min-height:44px}
 
 .creator .cdo{display:block;max-width:78px;margin:2px auto 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 10px var(--disp);color:#ff3b30}.creator .cdo.movie{color:#5b3fd4}.creator .cdo.music{color:#14a37f}
+
+.pt-cat{font:800 13px var(--disp);margin:12px 0 6px;color:var(--ink,#1b1424);opacity:.8}
