@@ -136,7 +136,7 @@ async function makeAI(file,token){
   const c=document.createElement('canvas');c.width=300;c.height=375;const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(bmp,0,0,300,375);try{bmp.close&&bmp.close();}catch(e){}
   const id=g.getImageData(0,0,300,375);id.flat=true;
   const d=await runWorker(id);if(!d||!d.ok||!d.regions||!d.regions.length)throw new Error('empty');
-  d.ai=true;d.photo=new Blob([u8],{type:j.image.indexOf('iVBOR')===0?'image/png':'image/jpeg'});return d;   /* the AI picture itself is the reference; the flat shapes are only used for the guide and the swatches */
+  d.ai=true;if(j.lines){const b2=atob(j.lines),v8=new Uint8Array(b2.length);for(let i=0;i<b2.length;i++)v8[i]=b2.charCodeAt(i);d.lines=new Blob([v8],{type:j.lines.indexOf('iVBOR')===0?'image/png':'image/jpeg'});}d.photo=new Blob([u8],{type:j.image.indexOf('iVBOR')===0?'image/png':'image/jpeg'});return d;   /* the AI picture itself is the reference; the flat shapes are only used for the guide and the swatches */
 }
 async function make(file){
   const img=await prepare(file);
@@ -172,9 +172,35 @@ function canvas(id,onLoad){
   else{cvs.set(id,c);load(id).then(d=>{if(d){paint(d);guides.delete(id);onLoad&&onLoad();}});}
   return c;
 }
+/* guide from the AI's own line drawing: its dark lines become clean purple lines, with arrows along them showing which way to draw */
+async function guideFromLines(c,blob){
+  const bmp=await createImageBitmap(blob);const w=512,h=640;
+  const t=document.createElement('canvas');t.width=w;t.height=h;const tg=t.getContext('2d',{willReadFrequently:true});tg.fillStyle='#fff';tg.fillRect(0,0,w,h);tg.drawImage(bmp,0,0,w,h);try{bmp.close&&bmp.close();}catch(e){}
+  const im=tg.getImageData(0,0,w,h),dd=im.data,dark=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++){const lum=(dd[i*4]*.3+dd[i*4+1]*.59+dd[i*4+2]*.11);const a=Math.max(0,Math.min(1,(200-lum)/110));dark[i]=a;dd[i*4]=92;dd[i*4+1]=62;dd[i*4+2]=220;dd[i*4+3]=Math.round(a*235);}
+  const g=c.getContext('2d');g.clearRect(0,0,w,h);g.putImageData(im,0,0);
+  /* arrows: in each cell pick the darkest line spot, point along the line */
+  const cell=44,cands=[];
+  for(let cy=0;cy<h-cell+1;cy+=cell)for(let cx=0;cx<w-cell+1;cx+=cell){let sum=0,bx=0,by=0,bv=0;
+    for(let y=cy;y<cy+cell;y++)for(let x=cx;x<cx+cell;x++){const v=dark[y*w+x];sum+=v;if(v>bv){bv=v;bx=x;by=y;}}
+    if(sum<cell*.9||bv<.6)continue;
+    /* direction of the line = the way it extends (principal axis of dark pixels near the spot) */
+    let sxx=0,sxy=0,syy=0,mx=0,my=0,n=0;for(let y=Math.max(0,by-14);y<Math.min(h,by+15);y++)for(let x=Math.max(0,bx-14);x<Math.min(w,bx+15);x++){const v=dark[y*w+x];if(v>.5){mx+=x;my+=y;n++;}}
+    if(n<8)continue;mx/=n;my/=n;for(let y=Math.max(0,by-14);y<Math.min(h,by+15);y++)for(let x=Math.max(0,bx-14);x<Math.min(w,bx+15);x++){const v=dark[y*w+x];if(v>.5){sxx+=(x-mx)**2;sxy+=(x-mx)*(y-my);syy+=(y-my)**2;}}
+    const ang=.5*Math.atan2(2*sxy,sxx-syy);let ux=Math.cos(ang),uy=Math.sin(ang);if(ux<-.2||(Math.abs(ux)<=.2&&uy<0)){ux=-ux;uy=-uy;}
+    cands.push({x:bx,y:by,ux,uy,sum});}
+  cands.sort((a,b)=>b.sum-a.sum);
+  const picked=[];for(const k of cands){if(picked.length>=18)break;if(picked.every(p=>Math.hypot(p.x-k.x,p.y-k.y)>70))picked.push(k);}
+  g.strokeStyle='#ff5a36';g.fillStyle='#ff5a36';g.lineWidth=3.4;g.lineCap='round';
+  for(const k of picked){const L=15,ax=k.x-k.ux*L,ay=k.y-k.uy*L,bx=k.x+k.ux*L,by=k.y+k.uy*L;g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();
+    g.beginPath();g.moveTo(bx+k.ux*6,by+k.uy*6);g.lineTo(bx-k.ux*7+k.uy*8,by-k.uy*7-k.ux*8);g.lineTo(bx-k.ux*7-k.uy*8,by-k.uy*7+k.ux*8);g.closePath();g.fill();}
+}
 function guide(id,onLoad){
   if(guides.has(id))return guides.get(id);
   const c=document.createElement('canvas');c.width=512;c.height=640;
+  const ready=d=>{if(d.ai&&d.lines){guideFromLines(c,d.lines).then(()=>{guides.set(id,c);onLoad&&onLoad();}).catch(()=>{drawGuide(c.getContext('2d'),d,512,640);guides.set(id,c);onLoad&&onLoad();});return true;}return false;};
+  if(mem.has(id)&&ready(mem.get(id)))return c;
+  if(!mem.has(id)){load(id).then(d=>{if(d&&!ready(d)){drawGuide(c.getContext('2d'),d,512,640);guides.set(id,c);onLoad&&onLoad();}});return c;}
   if(mem.has(id)){drawGuide(c.getContext('2d'),mem.get(id),512,640);guides.set(id,c);}
   else load(id).then(d=>{if(d){drawGuide(c.getContext('2d'),d,512,640);guides.set(id,c);onLoad&&onLoad();}});
   return c;
