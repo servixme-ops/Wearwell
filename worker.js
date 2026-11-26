@@ -66,7 +66,7 @@ function reply(html){return new Response(html,{headers:{'Content-Type':'text/htm
    The photo is sent here, passed straight to the model and never saved. Each person gets 3 a day and everyone together 120 a day
    (counted in the database), which keeps the free daily AI allowance from running out. */
 const AI_MODEL='@cf/black-forest-labs/flux-2-klein-4b';
-const PROMPT='Redraw the person in image 0 as a flat vector cartoon illustration drawn in exactly the style of images 1 and 2: bold clean dark outlines, flat solid colours with no gradients or shading, simplified geometric shapes, simple face with small dark eyes, a small nose line and a simple mouth, simplified hair and clothing, and one plain solid colour background. Keep this person\'s face shape, skin tone, hairstyle, facial hair, glasses and clothing. Head and shoulders only, one person, centred.';
+const PROMPT='Redraw the person in this photo as a stylish 2D vector cartoon portrait illustration, in the style of modern Figma character illustrations: smooth clean shapes, bold clean outlines, flat colours with minimal soft shading, simplified stylised features and elegant proportions, a simple plain background. Keep the same likeness: face shape, skin tone, hairstyle, facial hair, glasses, expression, pose and clothing with their real colours.';
 const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 async function userRpc(fn,token){
   try{const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:'{}'});
@@ -85,7 +85,6 @@ async function illustrate(request,env,u){
   try{
     const fd=new FormData();fd.append('prompt',PROMPT);fd.append('width','384');fd.append('height','480');
     fd.append('input_image_0',new Blob([buf],{type:request.headers.get('Content-Type')||'image/jpeg'}),'photo.jpg');
-    for(const [i,n] of [[1,'hflower'],[2,'hpop']]){const r=await env.ASSETS.fetch(new Request(u.origin+'/assets/style/'+n+'.jpg'));if(!r.ok)throw new Error('style');fd.append('input_image_'+i,await r.blob(),n+'.jpg');}
     const form=new Response(fd);
     const out=await env.AI.run(AI_MODEL,{multipart:{body:form.body,contentType:form.headers.get('content-type')}});
     const img=out&&(out.image||(out.result&&out.result.image));
