@@ -11,6 +11,8 @@ const mem=new Map(),cvs=new Map(),guides=new Map();
 
 /* ---------- smooth outlines (Chaikin corner cutting) ---------- */
 function smooth(p,it){let a=[];for(let i=0;i<p.length;i+=2)a.push([p[i],p[i+1]]);
+  /* add points along long straight stretches first, so rounding only softens real corners and straight edges stay straight */
+  {const b=[];for(let i=0;i<a.length;i++){const u=a[i],v=a[(i+1)%a.length],n=Math.max(1,Math.ceil(Math.hypot(v[0]-u[0],v[1]-u[1])/5));for(let k=0;k<n;k++)b.push([u[0]+(v[0]-u[0])*k/n,u[1]+(v[1]-u[1])*k/n]);}a=b;}
   for(let k=0;k<it;k++){const b=[];for(let i=0;i<a.length;i++){const u=a[i],v=a[(i+1)%a.length];b.push([u[0]*.75+v[0]*.25,u[1]*.75+v[1]*.25],[u[0]*.25+v[0]*.75,u[1]*.25+v[1]*.75]);}a=b;}
   return a;}
 function tracePath(g,pts,s){g.moveTo(pts[0][0]*s,pts[0][1]*s);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0]*s,pts[i][1]*s);g.closePath();}
@@ -60,9 +62,14 @@ function palette(d){const seen=new Set(),out=[];const add=c=>{c=c.toLowerCase();
 function drawGuide(g,d,w,h){
   const s=w/d.w;g.clearRect(0,0,w,h);g.lineJoin='round';g.lineCap='round';
   const lines=[];
-  d.regions.forEach(r=>r.paths.forEach(p=>{const pts=smooth(p,3);let len=0;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];len+=Math.hypot(b[0]-a[0],b[1]-a[1])*s;}if(len>70)lines.push({pts,len});}));
+  /* a thin dark stroke (the illustration's own ink line) would give two parallel lines: keep one, the neighbouring colour's edge */
+  const perim=r=>r.paths.reduce((t,p)=>{let l=0;for(let i=0;i<p.length;i+=2){const j=(i+2)%p.length;l+=Math.hypot(p[j]-p[i],p[j+1]-p[i+1]);}return t+l;},0);
+  const lum=c=>{const n=parseInt(c.slice(1),16);return(.3*(n>>16&255)+.59*(n>>8&255)+.11*(n&255))/255;};
+  d.regions.forEach(r=>{if(lum(r.c)<.2&&r.a/Math.max(1,perim(r))<3.2)return;r.paths.forEach(p=>{const pts=smooth(p,3);let len=0;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];len+=Math.hypot(b[0]-a[0],b[1]-a[1])*s;}if(len>70)lines.push({pts,len});});});
   g.strokeStyle='rgba(92,62,220,.85)';g.lineWidth=3;
-  lines.forEach(l=>{g.beginPath();tracePath(g,l.pts,s);g.stroke();});
+  /* skip the stretches that only run along the picture's own edge, so the guide has no frame */
+  const edge=(p)=>p[0]<2.5||p[1]<2.5||p[0]>d.w-3.5||p[1]>d.h-3.5;
+  lines.forEach(l=>{const pts=l.pts;let pen=false;g.beginPath();for(let i=0;i<=pts.length;i++){const a=pts[i%pts.length],b=pts[(i+1)%pts.length];if(i===pts.length&&!pen)break;if(edge(a)&&edge(b)){pen=false;continue;}if(!pen){g.moveTo(a[0]*s,a[1]*s);pen=true;}g.lineTo(b[0]*s,b[1]*s);}g.stroke();});
   if(d.face){const f=d.face;g.save();g.globalAlpha=.78;g.lineWidth=2.6;g.strokeStyle='#5c3edc';g.fillStyle='transparent';
     const cx=f.cx*s,fw=f.fw*s,fh=f.fh*s,ey=f.eyeY*s,m=f.mouth,x0=m.x0*s,x1=m.x1*s,my=m.y*s,mw=x1-x0;
     f.eyes.forEach(x0e=>{const x=x0e*s;g.beginPath();g.ellipse(x,ey,fw*.062,fw*.05,0,0,7);g.stroke();g.beginPath();g.moveTo(x-fw*.095,ey-fw*.115);g.quadraticCurveTo(x,ey-fw*.16,x+fw*.095,ey-fw*.115);g.stroke();});
@@ -75,7 +82,7 @@ function drawGuide(g,d,w,h){
     let area=0;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];area+=a[0]*b[1]-b[0]*a[1];}
     const dir=area>=0?1:-1;
     for(let i=Math.floor(step/2);i<pts.length&&n<16;i+=step){const a=pts[i],b=pts[(i+(dir>0?3:pts.length-3))%pts.length];
-      const dx=(b[0]-a[0])*s,dy=(b[1]-a[1])*s,m=Math.hypot(dx,dy);if(m<1)continue;const ux=dx/m,uy=dy/m,px=a[0]*s,py=a[1]*s,L=14;
+      if(edge(a))continue;const dx=(b[0]-a[0])*s,dy=(b[1]-a[1])*s,m=Math.hypot(dx,dy);if(m<1)continue;const ux=dx/m,uy=dy/m,px=a[0]*s,py=a[1]*s,L=14;
       g.beginPath();g.moveTo(px-ux*L,py-uy*L);g.lineTo(px+ux*L*.4,py+uy*L*.4);g.stroke();
       const hx=px+ux*L,hy=py+uy*L;g.beginPath();g.moveTo(hx,hy);g.lineTo(hx-ux*10+uy*6,hy-uy*10-ux*6);g.lineTo(hx-ux*10-uy*6,hy-uy*10+ux*6);g.closePath();g.fill();n++;}}
 }
@@ -88,7 +95,7 @@ function getWorker(){
   worker.onerror=()=>{waits.forEach(w=>{clearTimeout(w.t);w.rej(new Error('engine'));});waits.clear();try{worker.terminate();}catch(e){}worker=null;};
   return worker;
 }
-function runWorker(img){return new Promise((res,rej)=>{const id=++seq,wk=getWorker();const t=setTimeout(()=>{waits.delete(id);try{wk.terminate();}catch(e){}worker=null;rej(new Error('slow'));},90000);waits.set(id,{res,rej,t});wk.postMessage({id,w:img.width,h:img.height,data:img.data});});}
+function runWorker(img){return new Promise((res,rej)=>{const id=++seq,wk=getWorker();const t=setTimeout(()=>{waits.delete(id);try{wk.terminate();}catch(e){}worker=null;rej(new Error('slow'));},90000);waits.set(id,{res,rej,t});wk.postMessage({id,w:img.width,h:img.height,data:img.data,flat:!!img.flat});});}
 
 /* decode, shrink (phones give 12 MP photos) and crop to the picture shape, keeping the head area */
 async function prepare(file){
@@ -104,6 +111,33 @@ async function prepare(file){
   try{bmp.close&&bmp.close();}catch(e){}
   return g.getImageData(0,0,TW,TH);
 }
+/* AI route (only when the person agrees): the photo goes to our Cloudflare Worker, which asks Workers AI (FLUX.2 klein) to redraw it in the
+   OpenWalls style and sends the picture back. It is not saved anywhere. We then turn that picture into the same flat outlined shapes as the
+   on-device route, so the reference, guide and swatches all match it exactly. */
+async function prepareJpeg(file){
+  if(!file)throw new Error('none');
+  if(!TYPES.test(file.type||'')&&!/\.(jpe?g|png|webp)$/i.test(file.name||''))throw new Error('type');
+  if(file.size>MAX_BYTES)throw new Error('big');
+  let bmp;try{bmp=await createImageBitmap(file);}catch(e){bmp=await new Promise((res,rej)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{URL.revokeObjectURL(u);res(im);};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('decode'));};im.src=u;});}
+  const sw=bmp.width,sh=bmp.height;if(!sw||!sh)throw new Error('decode');
+  const TW=384,TH=480,sc=Math.max(TW/sw,TH/sh),dw=sw*sc,dh=sh*sc,dx=(TW-dw)/2,dy=-(dh-TH)*(dh>TH*1.25?.3:.5);
+  const c=document.createElement('canvas');c.width=TW;c.height=TH;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,TW,TH);g.drawImage(bmp,dx,dy,dw,dh);try{bmp.close&&bmp.close();}catch(e){}
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('decode')),'image/jpeg',.9));
+}
+async function makeAI(file,token){
+  const blob=await prepareJpeg(file);
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),70000);let r;
+  try{r=await fetch('/api/illustrate',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'image/jpeg'},body:blob,signal:ctl.signal});}
+  catch(e){throw new Error('net');}finally{clearTimeout(t);}
+  let j=null;try{j=await r.json();}catch(e){}
+  if(!j||!j.ok||!j.image)throw new Error('ai:'+((j&&j.why)||'fail'));
+  const bin=atob(j.image),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+  const bmp=await createImageBitmap(new Blob([u8],{type:j.image.indexOf('iVBOR')===0?'image/png':'image/jpeg'}));
+  const c=document.createElement('canvas');c.width=300;c.height=375;const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(bmp,0,0,300,375);try{bmp.close&&bmp.close();}catch(e){}
+  const id=g.getImageData(0,0,300,375);id.flat=true;
+  const d=await runWorker(id);if(!d||!d.ok||!d.regions||!d.regions.length)throw new Error('empty');
+  d.ai=true;return d;
+}
 async function make(file){
   const img=await prepare(file);
   const d=await runWorker(img);
@@ -115,6 +149,10 @@ function friendly(e){const m=String(e&&e.message||e);
   if(m==='big')return 'That photo is too large. Choose one under 20 MB.';
   if(m==='decode')return 'This phone could not open that photo. Try another one.';
   if(m==='slow')return 'That took too long. Try a smaller photo.';
+  if(m==='ai:limit')return 'You have used your 3 AI illustrations for today. Try again tomorrow, or make one on this phone.';
+  if(m==='ai:busy')return 'The AI is busy today. Try again tomorrow, or make one on this phone.';
+  if(m==='ai:login')return 'Please sign in again to use the AI illustration.';
+  if(m==='ai:off'||m.indexOf('ai:')===0||m==='net')return 'The AI illustration is not available right now.';
   if(m==='engine')return 'The illustration tool could not start. Check your connection and try again.';
   return 'We could not make an illustration from that photo. Try a clearer photo with the face in view.';}
 
@@ -143,5 +181,5 @@ function guide(id,onLoad){
 }
 function colours(id){const d=mem.get(id);return d?palette(d):null;}
 
-return{make,friendly,save,load,remove,isMine,canvas,guide,colours,draw,palette,drawGuide,PREFIX};
+return{make,makeAI,friendly,save,load,remove,isMine,canvas,guide,colours,draw,palette,drawGuide,PREFIX};
 })();

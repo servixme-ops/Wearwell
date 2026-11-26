@@ -44,7 +44,8 @@ function kmeans(S,n,K,iters){
 
 /* ---------- the pipeline ---------- */
 async function run(inp){
-  const cv=await loadCV();const W=inp.w,H=inp.h,N=W*H,keep=[];const K_=m=>(keep.push(m),m);
+  const cv=await loadCV();const W=inp.w,H=inp.h,N=W*H,keep=[],FLAT=!!inp.flat;   /* FLAT: the picture is already an illustration (from the AI): no cut-out, no face repainting, keep its colours */
+  const K_=m=>(keep.push(m),m);
   try{
     const rgba=K_(cv.matFromArray(H,W,cv.CV_8UC4,Array.from(inp.data)));
     const rgb=K_(new cv.Mat());cv.cvtColor(rgba,rgb,cv.COLOR_RGBA2RGB);
@@ -68,7 +69,7 @@ async function run(inp){
       gd[y*gw+x]=v;
     }
     let person=null;
-    try{
+    if(!FLAT)try{
       const bg=K_(new cv.Mat()),fg=K_(new cv.Mat());
       cv.grabCut(small,gmask,new cv.Rect(0,0,gw,gh),bg,fg,4,cv.GC_INIT_WITH_MASK);
       person=new Uint8Array(N);
@@ -87,7 +88,8 @@ async function run(inp){
       while(stack.length){const i=stack.pop(),x=i%W,y=(i/W)|0;if(x>0)push(i-1);if(x<W-1)push(i+1);if(y>0)push(i-W);if(y<H-1)push(i+W);}
       for(let i=0;i<N;i++)if(!out[i])person[i]=1;}
     let pa=0;for(let i=0;i<N;i++)pa+=person[i];
-    if(pa<N*.12||pa>N*.93){ /* the cut-out failed: fall back to the oval so we still make a picture */
+    if(FLAT)person.fill(1);
+    else if(pa<N*.12||pa>N*.93){ /* the cut-out failed: fall back to the oval so we still make a picture */
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){const nx=(x+.5)/W-.5,ny=(y+.5)/H;person[y*W+x]=((nx/.38)**2+((ny-.58)/.5)**2)<1?1:0;}}
 
     /* 3. flat colours: k-means in Lab on the person, one flat colour for the background */
@@ -125,6 +127,7 @@ async function run(inp){
     /* 5. the picture's colours: bolder, flatter, darks turn into the deep ink colour the collection uses */
     const cols=[null];
     for(let k=0;k<K;k++){let[r,g,b]=lab2rgb(C[k][0],C[k][1],C[k][2]);let[h,s,v]=rgb2hsv(r,g,b);
+      if(FLAT){cols.push([r,g,b]);continue;}
       s=clamp(s*1.14,0,1);
       if(v<.2&&!((h<=38||h>=345)&&s>.3))[r,g,b]=[30,22,40];   /* very dark skin stays brown, only true darks become ink */
       else{if(v<.26&&(h<=38||h>=345)&&s>.3)v=.26;[r,g,b]=hsv2rgb(h,s,v);if(C[k][0]>88&&s<.14)[r,g,b]=[247,243,236];}   /* near-white clothes stay clean white */
@@ -134,7 +137,7 @@ async function run(inp){
     {let[h,s,v]=rgb2hsv(bgCol[0],bgCol[1],bgCol[2]);if(s<.13){h=42;s=.52;v=Math.max(.9,v);}else{s=clamp(s*1.2,.35,.9);v=clamp(v*1.05,.5,.97);}bgCol=hsv2rgb(h,s,v);}
 
     /* 6. the face: find it from skin colour, clean it and describe simple features */
-    const face=findFace(cv,K_,sm,lab,cols,K,W,H,L);
+    const face=FLAT?null:findFace(cv,K_,sm,lab,cols,K,W,H,L);
 
     /* 7. outlines of every colour region (with holes) */
     const regions=[];
@@ -150,7 +153,7 @@ async function run(inp){
       if(paths.length)regions.push({c:hex(cols[k]),a,paths,k});
     }
     regions.sort((p,q)=>q.a-p.a);
-    return{ok:true,w:W,h:H,bg:hex(bgCol),regions,face};
+    return{ok:true,w:W,h:H,bg:FLAT&&regions.length?regions[0].c:hex(bgCol),regions,face};
   }finally{keep.forEach(m=>{try{m.delete();}catch(e){}});}
 }
 

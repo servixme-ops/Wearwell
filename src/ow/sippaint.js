@@ -684,12 +684,20 @@ function attach(R,ctx){
     const msg=h('p',{class:'f-hint',style:{margin:'6px 0'}},'Your photo is turned into an illustration on this phone. It is never uploaded or saved online.');
     const pick=h('button',{class:'btn block',onclick:()=>inp.click()},'Choose a photo');
     const mk=h('button',{class:'btn coral block',style:{display:'none',margin:'8px 0'}},'Generate Illustration');
+    let useAI=false;try{useAI=localStorage.getItem('ow_photo_ai')==='1';}catch(e){}
+    const aiBox=h('input',{type:'checkbox',style:{marginTop:'3px',flex:'none'}});aiBox.checked=useAI;
+    aiBox.onchange=()=>{try{localStorage.setItem('ow_photo_ai',aiBox.checked?'1':'0');}catch(e){}};
+    const aiRow=h('label',{style:{display:'flex',gap:'8px',alignItems:'flex-start',margin:'8px 0',fontSize:'13px',lineHeight:'1.35'}},aiBox,h('span',null,'Use AI for a better likeness (3 a day). Your photo is sent to Cloudflare\'s AI to be redrawn and is not saved. Leave this off to make it on this phone only.'));
     const box=h('div',{class:'pt-sig pt-refbox',onclick:e=>{if(e.target===box&&!mk.disabled)close();}},h('div',{class:'pt-sigc',style:{width:'min(360px,100%)',maxHeight:'100%',overflow:'auto'}},
-      h('b',null,'Reference from my photo'),msg,prev,inp,pick,mk,h('button',{class:'btn block',onclick:()=>{if(!mk.disabled)close();}},'Cancel')));
+      h('b',null,'Reference from my photo'),msg,prev,inp,pick,aiRow,mk,h('button',{class:'btn block',onclick:()=>{if(!mk.disabled)close();}},'Cancel')));
     const close=()=>{if(url)URL.revokeObjectURL(url);box.remove();};
     inp.onchange=()=>{file=inp.files&&inp.files[0];if(!file)return;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);prev.src=url;prev.style.display='block';mk.style.display='';pick.textContent='Choose a different photo';msg.style.color='';msg.textContent='Your photo is turned into an illustration on this phone. It is never uploaded or saved online.';};
     mk.onclick=async()=>{mk.disabled=true;pick.disabled=true;mk.textContent='Making your illustration…';msg.style.color='';msg.textContent='The first time can take a little while while the tool loads.';
-      try{const d=await OWPhoto.make(file);await OWPhoto.save(myKey,d);myRef=myKey;ov&&ov._upd&&ov._upd();close();showRef();toast('Your illustration is ready. It is now your reference, guide and colours.');}
+      try{let d=null,note='';
+        if(aiBox.checked){try{const ss=await sb.auth.getSession();const tk=ss&&ss.data&&ss.data.session&&ss.data.session.access_token;if(!tk)throw new Error('ai:login');msg.textContent='Redrawing your photo with AI. This can take up to a minute.';d=await OWPhoto.makeAI(file,tk);}
+          catch(e){note=OWPhoto.friendly(e)+' Made on this phone instead.';}}
+        if(!d){msg.textContent='Making it on this phone. The first time can take a little while.';d=await OWPhoto.make(file);}
+        await OWPhoto.save(myKey,d);myRef=myKey;ov&&ov._upd&&ov._upd();close();showRef();toast(note||'Your illustration is ready. It is now your reference, guide and colours.');}
       catch(e){msg.style.color='#c1121f';msg.textContent=OWPhoto.friendly(e);mk.disabled=false;pick.disabled=false;mk.textContent='Generate Illustration';}};
     ov.append(box);
   }
