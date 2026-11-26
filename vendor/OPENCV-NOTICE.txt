@@ -1,2 +1,0 @@
-vendor/opencv.js is OpenCV.js 5.0 (WebAssembly build), (c) OpenCV contributors, Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0
-Used only inside the browser to turn a person's own photo into an illustration on their device.

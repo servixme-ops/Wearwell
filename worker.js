@@ -62,42 +62,8 @@ function page(origin,path,card,dest){
   +'<script>location.replace('+JSON.stringify(dest)+')</script></body></html>';
 }
 function reply(html){return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=120','X-Robots-Tag':'noindex'}});}
-/* ---- photo -> illustration with Cloudflare Workers AI (FLUX.2 klein), only when the person agrees to it in the app ----
-   The photo is sent here, passed straight to the model and never saved. Each person gets 3 a day and everyone together 120 a day
-   (counted in the database), which keeps the free daily AI allowance from running out. */
-const AI_MODEL='@cf/black-forest-labs/flux-2-klein-4b';
-const PROMPT='Redraw the person in this photo as a simple flat cartoon illustration that is easy to paint by hand: bold clean dark outlines, flat solid colours with no gradients, no shading and no texture, smooth simple geometric shapes, simplified face with small dark eyes, a small nose line and a simple mouth, simplified hair and clothing, clearly separated body parts. Show only the person, head and shoulders, centred. Remove the entire background and replace it with one plain flat light colour. Remove every other object: no microphones, no logos, no text, no furniture. Keep the same likeness: face shape, skin tone, hairstyle, facial hair, expression and clothing with their real colours. Draw exactly the hair the person really has: if the person is bald or has a shaved head, draw a bald head with no hair at all; never add hair. Do NOT add glasses, hats, jewellery or any accessory unless the person is clearly wearing it in the photo, and do not remove ones they are wearing. Include the eyebrows, eyes, nose, mouth, ears, neck and clothing details such as the collar.';
-const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
-async function userRpc(fn,token){
-  try{const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:'{}'});
-    if(!r.ok)return null;const t=await r.text();return t?JSON.parse(t):{};}catch(e){return null;}
-}
-async function illustrate(request,env,u){
-  if(request.method!=='POST')return json({ok:false,why:'method'},405);
-  if(!env.AI)return json({ok:false,why:'off'});
-  const token=(request.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
-  if(!token)return json({ok:false,why:'login'},401);
-  const buf=await request.arrayBuffer();
-  if(!buf.byteLength||buf.byteLength>1500000)return json({ok:false,why:'size'},413);
-  const q=await userRpc('photo_art_take',token);
-  if(!q)return json({ok:false,why:'login'},401);
-  if(!q.ok)return json({ok:false,why:q.why||'limit'});
-  try{
-    const fd=new FormData();fd.append('prompt',PROMPT);fd.append('width','384');fd.append('height','480');
-    fd.append('input_image_0',new Blob([buf],{type:request.headers.get('Content-Type')||'image/jpeg'}),'photo.jpg');
-    const form=new Response(fd);
-    const out=await env.AI.run(AI_MODEL,{multipart:{body:form.body,contentType:form.headers.get('content-type')}});
-    const img=out&&(out.image||(out.result&&out.result.image));
-    if(!img||typeof img!=='string')throw new Error('empty');
-    return json({ok:true,image:img,left:q.left});
-  }catch(e){
-    await userRpc('photo_art_refund',token);
-    return json({ok:false,why:'ai'});
-  }
-}
 export async function handle(request,env){
   const u=new URL(request.url),p=u.pathname;let m;
-  if(p==='/api/illustrate')return illustrate(request,env,u);
   if(request.method!=='GET'&&request.method!=='HEAD')return env.ASSETS.fetch(request);
   if(p==='/gallery'||p==='/gallery/')return reply(page(u.origin,'/gallery',galleryCard(),'/#/@openwalls'));
   if((m=p.match(/^\/r\/([A-Za-z0-9_]{3,24})(?:\/([A-Za-z0-9]{6,64}))?\/?$/))){
