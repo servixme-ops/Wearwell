@@ -55,7 +55,7 @@ function features(g,d,f,s){
 
 /* ---------- the colours really used (the painting swatches) ---------- */
 function palette(d){const seen=new Set(),out=[];const add=c=>{c=c.toLowerCase();if(!seen.has(c)){seen.add(c);out.push(c);}};
-  d.regions.forEach(r=>add(r.c));add(d.bg);add(INK);if(d.face){add(lipOf(d));add(WHITE);}
+  d.regions.forEach(r=>add(r.c));if(!d.ai){add(d.bg);add(INK);if(d.face){add(lipOf(d));add(WHITE);}}
   return out.map((c,i)=>['Colour '+(i+1),c]);}
 
 /* ---------- drawing guide: only the clean outlines of this exact illustration, with arrows for the stroke direction ---------- */
@@ -136,7 +136,7 @@ async function makeAI(file,token){
   const c=document.createElement('canvas');c.width=300;c.height=375;const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(bmp,0,0,300,375);try{bmp.close&&bmp.close();}catch(e){}
   const id=g.getImageData(0,0,300,375);id.flat=true;
   const d=await runWorker(id);if(!d||!d.ok||!d.regions||!d.regions.length)throw new Error('empty');
-  d.ai=true;return d;
+  d.ai=true;d.photo=new Blob([u8],{type:j.image.indexOf('iVBOR')===0?'image/png':'image/jpeg'});return d;   /* the AI picture itself is the reference; the flat shapes are only used for the guide and the swatches */
 }
 async function make(file){
   const img=await prepare(file);
@@ -167,7 +167,7 @@ const isMine=id=>typeof id==='string'&&id.indexOf(PREFIX)===0;
 function canvas(id,onLoad){
   const hit=cvs.get(id);if(hit){let blank=false;try{blank=hit.getContext('2d').getImageData(0,0,1,1).data[3]===0;}catch(e){}if(!blank)return hit;cvs.delete(id);}
   const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.fillStyle='#eee';g.fillRect(0,0,W,H);
-  const paint=d=>{draw(g,d,W,H);};
+  const paint=d=>{if(d.ai&&d.photo){createImageBitmap(d.photo).then(b=>{g.drawImage(b,0,0,W,H);try{b.close&&b.close();}catch(e){}guides.delete(id);onLoad&&onLoad();}).catch(()=>{});}else draw(g,d,W,H);};
   if(mem.has(id)){paint(mem.get(id));cvs.set(id,c);}
   else{cvs.set(id,c);load(id).then(d=>{if(d){paint(d);guides.delete(id);onLoad&&onLoad();}});}
   return c;

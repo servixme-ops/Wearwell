@@ -97,14 +97,14 @@ async function run(inp){
     for(let i=0;i<N;i++){const l=rgb2lab(sd[i*3],sd[i*3+1],sd[i*3+2]);L[i*3]=l[0];L[i*3+1]=l[1];L[i*3+2]=l[2];}
     const idx=[];for(let i=0;i<N;i+=2)if(person[i])idx.push(i);
     const S=new Float32Array(idx.length*3);idx.forEach((p,j)=>{S[j*3]=L[p*3];S[j*3+1]=L[p*3+1];S[j*3+2]=L[p*3+2];});
-    let C=kmeans(S,idx.length,7,14);
+    let C=kmeans(S,idx.length,FLAT?9:7,14);
     /* merge colours that look the same, so we end up with a few bold flat colours */
     const near=(c,x)=>{let b=0,bd=1e9;for(let k=0;k<c.length;k++){const d=(x[0]-c[k][0])**2+(x[1]-c[k][1])**2+(x[2]-c[k][2])**2;if(d<bd){bd=d;b=k;}}return b;};
     let cnt=new Array(C.length).fill(0);
     for(let j=0;j<idx.length;j++)cnt[near(C,[S[j*3],S[j*3+1],S[j*3+2]])]++;
     for(let again=true;again;){again=false;
       outer:for(let a=0;a<C.length;a++)for(let b=a+1;b<C.length;b++){const d=Math.hypot(C[a][0]-C[b][0],(C[a][1]-C[b][1])*1.2,(C[a][2]-C[b][2])*1.2),dk=C[a][0]<38&&C[b][0]<38;   /* dark skin and dark hair must stay apart */
-        if(d<(dk?8:22)||((cnt[a]<idx.length*.02||cnt[b]<idx.length*.02)&&d<(dk?12:40))){const t=cnt[a]+cnt[b]||1;C[a]=C[a].map((v,i)=>(v*cnt[a]+C[b][i]*cnt[b])/t);cnt[a]=t;C.splice(b,1);cnt.splice(b,1);again=true;break outer;}}}
+        if(d<(dk?8:(FLAT?15:22))||((cnt[a]<idx.length*.02||cnt[b]<idx.length*.02)&&d<(dk?12:40))){const t=cnt[a]+cnt[b]||1;C[a]=C[a].map((v,i)=>(v*cnt[a]+C[b][i]*cnt[b])/t);cnt[a]=t;C.splice(b,1);cnt.splice(b,1);again=true;break outer;}}}
     const K=C.length;
     const lab=new Uint8Array(N);   /* 0 = background, 1..K = colours */
     for(let i=0;i<N;i++)if(person[i])lab[i]=1+near(C,[L[i*3],L[i*3+1],L[i*3+2]]);
