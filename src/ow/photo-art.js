@@ -173,11 +173,28 @@ function canvas(id,onLoad){
   return c;
 }
 /* guide from the AI's own line drawing: its dark lines become clean purple lines, with arrows along them showing which way to draw */
-async function guideFromLines(c,blob){
+async function guideFromLines(c,blob,art){
   const bmp=await createImageBitmap(blob);const w=512,h=640;
   const t=document.createElement('canvas');t.width=w;t.height=h;const tg=t.getContext('2d',{willReadFrequently:true});tg.fillStyle='#fff';tg.fillRect(0,0,w,h);tg.drawImage(bmp,0,0,w,h);try{bmp.close&&bmp.close();}catch(e){}
   const im=tg.getImageData(0,0,w,h),dd=im.data,dark=new Float32Array(w*h);
-  for(let i=0;i<w*h;i++){const lum=(dd[i*4]*.3+dd[i*4+1]*.59+dd[i*4+2]*.11);const a=Math.max(0,Math.min(1,(200-lum)/110));dark[i]=a;dd[i*4]=92;dd[i*4+1]=62;dd[i*4+2]=220;dd[i*4+3]=Math.round(a*235);}
+  const lumA=new Float32Array(w*h);for(let i=0;i<w*h;i++)lumA[i]=dd[i*4]*.3+dd[i*4+1]*.59+dd[i*4+2]*.11;
+  if(art){
+    /* the illustration itself: thin dark strokes (outlines, eyes, brows, nose, mouth, folds) stand out against their surroundings;
+       big dark areas like a dark jumper do not. That is a "black top-hat": closing minus the picture. */
+    const R=5,mm=(src,max)=>{const t=new Float32Array(w*h),o=new Float32Array(w*h);
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=src[y*w+x];for(let k=Math.max(0,x-R);k<=Math.min(w-1,x+R);k++){const u=src[y*w+k];if(max?u>v:u<v)v=u;}t[y*w+x]=v;}
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=t[y*w+x];for(let k=Math.max(0,y-R);k<=Math.min(h-1,y+R);k++){const u=t[k*w+x];if(max?u>v:u<v)v=u;}o[y*w+x]=v;}
+      return o;};
+    const closed=mm(mm(lumA,true),false);
+    for(let i=0;i<w*h;i++){const bh=closed[i]-lumA[i];const a=Math.max(0,Math.min(1,(bh-28)/55));dark[i]=a;}
+    /* big colour changes with no ink line on them (dark jumper against a light wall) are also outlines: strong edges, thinned and kept one pixel wide */
+    const ed=new Float32Array(w*h);
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x,gx=lumA[i+1]-lumA[i-1],gy=lumA[i+w]-lumA[i-w],m=Math.hypot(gx,gy);
+      if(m>70&&dark[i]<.2&&dark[i-1]<.2&&dark[i+1]<.2&&dark[i-w]<.2&&dark[i+w]<.2)ed[i]=Math.min(1,(m-70)/90);}
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;let v=ed[i];for(const k of [-1,1,-w,w])if(ed[i+k]>v)v=ed[i+k];if(v*.9>dark[i])dark[i]=v*.9;}
+  }else for(let i=0;i<w*h;i++)dark[i]=Math.max(0,Math.min(1,(200-lumA[i])/110));
+  let tot=0;for(let i=0;i<w*h;i++){tot+=dark[i];dd[i*4]=92;dd[i*4+1]=62;dd[i*4+2]=220;dd[i*4+3]=Math.round(dark[i]*235);}
+  if(art&&tot<w*h*.004)throw new Error('nolines');
   const g=c.getContext('2d');g.clearRect(0,0,w,h);g.putImageData(im,0,0);
   /* arrows: in each cell pick the darkest line spot, point along the line */
   const cell=44,cands=[];
@@ -198,7 +215,7 @@ async function guideFromLines(c,blob){
 function guide(id,onLoad){
   if(guides.has(id))return guides.get(id);
   const c=document.createElement('canvas');c.width=512;c.height=640;
-  const ready=d=>{if(d.ai&&d.lines){guideFromLines(c,d.lines).then(()=>{guides.set(id,c);onLoad&&onLoad();}).catch(()=>{drawGuide(c.getContext('2d'),d,512,640);guides.set(id,c);onLoad&&onLoad();});return true;}return false;};
+  const ready=d=>{if(d.ai&&(d.lines||d.photo)){guideFromLines(c,d.lines||d.photo,!d.lines).then(()=>{guides.set(id,c);onLoad&&onLoad();}).catch(()=>{drawGuide(c.getContext('2d'),d,512,640);guides.set(id,c);onLoad&&onLoad();});return true;}return false;};
   if(mem.has(id)&&ready(mem.get(id)))return c;
   if(!mem.has(id)){load(id).then(d=>{if(d&&!ready(d)){drawGuide(c.getContext('2d'),d,512,640);guides.set(id,c);onLoad&&onLoad();}});return c;}
   if(mem.has(id)){drawGuide(c.getContext('2d'),mem.get(id),512,640);guides.set(id,c);}
