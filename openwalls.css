@@ -708,3 +708,4 @@ button.fm-int{border:0}
 .creator .cdo{display:block;max-width:78px;margin:2px auto 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 10px var(--disp);color:#ff3b30}.creator .cdo.movie{color:#5b3fd4}.creator .cdo.music{color:#14a37f}
 
 .pt-cat{font:800 13px var(--disp);margin:12px 0 6px;color:var(--ink,#1b1424);opacity:.8}
+.gp-solo{margin:10px 0}.gp-solo .solo-card{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:8px}.gp-solo .solo-open{flex:1;text-align:left;display:flex;flex-direction:column;gap:2px;background:none;border:0;color:inherit;padding:0}
