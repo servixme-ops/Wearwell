@@ -533,8 +533,9 @@ function soloBlock(){
     if(!Auth.user){list.replaceChildren();return;}
     let rows=[];try{rows=await rpc('solo_list')||[];}catch(e){}
     list.replaceChildren(...rows.map(r=>h('div',{class:'solo-card'},
-      h('button',{class:'solo-open',onclick:()=>go('#/space/'+r.id)},h('b',{class:'pn-t'},r.title),h('span',{class:'f-hint'},(r.done?'Finished \u00b7 ':'')+'Last painted '+ago(r.updated_at)),h('span',{class:'pn-join'},'Continue')),
-      h('button',{class:'btn small',onclick:async()=>{if(!await confirmBox('Delete this painting?','It will be removed from My solo paintings. Paintings you already saved to your gallery stay there.','Delete',true))return;try{await rpc('solo_remove',{p_space:r.id});toast('Deleted');load();}catch(e){toast(friendlyError(e),'err');}}},'Delete'))));
+      h('button',{class:'solo-open',onclick:()=>go('#/space/'+r.id)},h('b',{class:'pn-t'},r.title),h('span',{class:'f-hint'},(r.done?'Finished \u00b7 ':'')+'Last painted '+ago(r.updated_at))),
+      h('div',{class:'solo-act'},h('button',{class:'btn coral small',onclick:()=>go('#/space/'+r.id)},'Continue'),
+      h('button',{class:'btn small',onclick:async()=>{if(!await confirmBox('Delete this painting?','It will be removed from My solo paintings. Paintings you already saved to your gallery stay there.','Delete',true))return;try{await rpc('solo_remove',{p_space:r.id});toast('Deleted');load();}catch(e){toast(friendlyError(e),'err');}}},'Delete')))));
   }
   const start=()=>{if(!needAuth('Sign in to start a solo painting'))return;
     sheet('New solo painting',(b,close)=>{const t=h('input',{type:'text',maxlength:'80',placeholder:'Name your painting (optional)'}),go1=h('button',{class:'btn coral block'},'Start painting');
