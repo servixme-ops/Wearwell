@@ -611,19 +611,19 @@ function guideCanvas(id,onLoad){
   if(!id)return out;
   const src=refCanvas(id,()=>{guideCache.delete(key);onLoad&&onLoad();});
   try{
-    const w=128,hh=160,t=document.createElement('canvas');t.width=w;t.height=hh;const tg=t.getContext('2d');tg.imageSmoothingQuality='high';tg.drawImage(src,0,0,w,hh);
+    const w=256,hh=320,t=document.createElement('canvas');t.width=w;t.height=hh;const tg=t.getContext('2d');tg.imageSmoothingQuality='high';tg.drawImage(src,0,0,w,hh);
     const d=tg.getImageData(0,0,w,hh).data;
     const at=(x,y,c)=>d[((Math.min(hh-1,Math.max(0,y))*w)+Math.min(w-1,Math.max(0,x)))*4+c];
     const mag=new Float32Array(w*hh),gxs=new Float32Array(w*hh),gys=new Float32Array(w*hh);let mx=0;
     for(let y=0;y<hh;y++)for(let x=0;x<w;x++){let gx=0,gy=0;for(let c=0;c<3;c++){gx+=at(x+1,y,c)-at(x-1,y,c);gy+=at(x,y+1,c)-at(x,y-1,c);}
       const m=Math.hypot(gx,gy);const k=y*w+x;mag[k]=m;gxs[k]=gx;gys[k]=gy;if(m>mx)mx=m;}
-    const thr=Math.max(30,mx*.12),athr=Math.max(40,mx*.3),g=out.getContext('2d'),sx=CW/w,sy=CH/hh;
+    const thr=Math.max(22,mx*.07),athr=Math.max(60,mx*.3),g=out.getContext('2d'),sx=CW/w,sy=CH/hh;
     g.fillStyle='rgba(70,50,200,.55)';
     for(let y=1;y<hh-1;y++)for(let x=1;x<w-1;x++){const k=y*w+x,m=mag[k];if(m<thr)continue;
-      g.fillRect(Math.round(x*sx-1),Math.round(y*sy-1),5,5);}
+      g.fillRect(Math.round(x*sx-.5),Math.round(y*sy-.5),3,3);}
     /* arrows along the edges: the direction to sweep the brush */
     g.strokeStyle='#ff5a36';g.fillStyle='#ff5a36';g.lineWidth=4;g.lineCap='round';
-    const cell=15;let n=0;
+    const cell=30;let n=0;
     for(let cy=0;cy<hh&&n<48;cy+=cell)for(let cx=0;cx<w&&n<48;cx+=cell){let bk=-1,bm=0;
       for(let y=cy;y<Math.min(hh,cy+cell);y++)for(let x=cx;x<Math.min(w,cx+cell);x++){const k=y*w+x;if(mag[k]>bm){bm=mag[k];bk=k;}}
       if(bk<0||bm<athr)continue;
