@@ -603,6 +603,44 @@ function refCanvas(id,onLoad){
   return c;
 }
 
+
+/* ---------------- colour numbers: each area of the picture gets the number of the swatch to paint it with ---------------- */
+const numCache=new Map();
+const lumOf=hex=>{const n=parseInt(hex.slice(1),16);return .299*(n>>16)+.587*((n>>8)&255)+.114*(n&255);};
+function numberCanvas(id,onLoad){
+  const key=id||'';if(numCache.has(key))return numCache.get(key);
+  const out=document.createElement('canvas');out.width=CW;out.height=CH;numCache.set(key,out);
+  if(!id)return out;
+  const src=refCanvas(id,()=>{numCache.delete(key);palCache.delete(id);onLoad&&onLoad();});
+  try{
+    const PL=refPalette(id);if(PL===COLS||PL.length<3)return out;
+    const rgb=PL.map(([n,c])=>{const v=parseInt(c.slice(1),16);return[v>>16,(v>>8)&255,v&255];});
+    const W=src.width,H=src.height,d=src.getContext('2d').getImageData(0,0,W,H).data,st=3,w=Math.floor(W/st),h2=Math.floor(H/st);
+    const lab=new Int16Array(w*h2);
+    for(let y=0;y<h2;y++)for(let x=0;x<w;x++){const i=((y*st+1)*W+(x*st+1))*4;let b=0,bd=1e9;for(let k=0;k<rgb.length;k++){const q=rgb[k],e=(d[i]-q[0])**2+(d[i+1]-q[1])**2+(d[i+2]-q[2])**2;if(e<bd){bd=e;b=k;}}lab[y*w+x]=b;}
+    /* distance from each pixel to the edge of its own area (one breadth-first pass from every boundary pixel) */
+    const dist=new Int16Array(w*h2).fill(-1),q=new Int32Array(w*h2);let qh=0,qt=0;
+    for(let y=0;y<h2;y++)for(let x=0;x<w;x++){const k=y*w+x,l=lab[k];
+      if(x===0||y===0||x===w-1||y===h2-1||lab[k-1]!==l||lab[k+1]!==l||lab[k-w]!==l||lab[k+w]!==l){dist[k]=0;q[qt++]=k;}}
+    while(qh<qt){const k=q[qh++],x=k%w,y=(k/w)|0,l=lab[k],dd=dist[k]+1;
+      const tr=n=>{if(dist[n]<0&&lab[n]===l){dist[n]=dd;q[qt++]=n;}};
+      if(x>0)tr(k-1);if(x<w-1)tr(k+1);if(y>0)tr(k-w);if(y<h2-1)tr(k+w);}
+    /* connected areas: the deepest point of each one is where its number goes */
+    const comp=new Int32Array(w*h2).fill(-1),stk=[];const g=out.getContext('2d'),sx=CW/w,sy=CH/h2;
+    g.textAlign='center';g.textBaseline='middle';let nc=0;const marks=[];
+    for(let s0=0;s0<w*h2;s0++){if(comp[s0]>=0)continue;const l=lab[s0];let area=0,bk=s0,bd=-1;stk.length=0;stk.push(s0);comp[s0]=nc;
+      while(stk.length){const k=stk.pop();area++;if(dist[k]>bd){bd=dist[k];bk=k;}const x=k%w,y=(k/w)|0;
+        const tr=n=>{if(comp[n]<0&&lab[n]===l){comp[n]=nc;stk.push(n);}};
+        if(x>0)tr(k-1);if(x<w-1)tr(k+1);if(y>0)tr(k-w);if(y<h2-1)tr(k+w);}
+      nc++;if(area>=45&&bd>=2)marks.push([bk,l,bd]);}
+    marks.forEach(([k,l,bd])=>{const cx=(k%w+.5)*sx,cy=((k/w|0)+.5)*sy,fs=Math.max(11,Math.min(24,bd*sx*1.5));
+      g.font='700 '+fs+'px system-ui,sans-serif';const dark=lumOf(PL[l][1])<140;
+      g.lineWidth=3;g.strokeStyle=dark?'rgba(0,0,0,.45)':'rgba(255,255,255,.55)';g.strokeText(String(l+1),cx,cy);
+      g.fillStyle=dark?'#fff':'#111';g.fillText(String(l+1),cx,cy);});
+  }catch(e){/* no numbers for a picture the browser will not let us read */}
+  return out;
+}
+
 /* ---------------- stroke guide: an outline "skeleton" of the reference with arrows showing which way to stroke ---------------- */
 const guideCache=new Map();
 function guideCanvas(id,onLoad){
@@ -930,8 +968,8 @@ function attach(R,ctx){
     if(ov)return;
     if(!st.map.has(me)){toast('Only the host and people invited to paint have an easel. You are watching. Ask the host to invite you to paint.');return;}
     let tool='b',color=COLS[1][1],size=14,drawing=null,cur=null,sendBuf=[],lastSend=0,miniOn=true,Z=1,PX=0,PY=0,gA=false,gLock=false,g0=null,strokeT=0;const ptrs=new Map();
-    const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';let guideOn=true;const gcv=h('canvas',{class:'pt-guide',width:CW,height:CH});const stack=h('div',{class:'pt-stack'},cv,gcv);frame.append(stack);
-    function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&sp.ref?'':'none';if(guideOn&&sp.ref)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);}
+    const frame=h('div',{class:'pt-frame'});const cv=mine.cv;cv.className='pt-cv';let guideOn=true,numOn=true;const gcv=h('canvas',{class:'pt-guide',width:CW,height:CH});const stack=h('div',{class:'pt-stack'},cv,gcv);frame.append(stack);
+    function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=(guideOn||numOn)&&sp.ref?'':'none';if(sp.ref){if(guideOn)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);if(numOn)g.drawImage(numberCanvas(sp.ref,drawGuide),0,0);}}
     const banner=h('div',{class:'pt-ban'});
     const sw=h('div',{class:'pt-sw'}),tools=h('div',{class:'pt-tools'}),stch=h('div',{class:'pt-st'}),size_=h('input',{type:'range',min:'3',max:'44',value:String(size),'aria-label':'Brush size'});
     const mini=h('button',{class:'pt-mini','aria-label':'Reference picture. Tap to open it.'});const mc=refCanvas(sp.ref||'',()=>drawMini());const mg=h('canvas',{width:120,height:150});mini.append(mg);
@@ -950,10 +988,10 @@ function attach(R,ctx){
         if(e.type==='pointerup'&&!t.moved&&Date.now()-t.t<450){setTimeout(()=>{if(mine.ops.length>t.n&&mine.undo())changed(true);showRef();},30);}}};
       const off=()=>{window.removeEventListener('pointerdown',pd,true);window.removeEventListener('pointermove',pm,true);window.removeEventListener('pointerup',pu,true);window.removeEventListener('pointercancel',pu,true);clearTimeout(awayT);};
       window.addEventListener('pointerdown',pd,true);window.addEventListener('pointermove',pm,true);window.addEventListener('pointerup',pu,true);window.addEventListener('pointercancel',pu,true);}
-    let palRef='__';const paintSw=()=>{palRef=sp.ref||'';const PL=refPalette(sp.ref);if(!PL.some(([n,c])=>c===color))color=PL[0][1];sw.replaceChildren(...PL.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:c,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));};
+    let palRef='__';const paintSw=()=>{palRef=sp.ref||'';const PL=refPalette(sp.ref);if(!PL.some(([n,c])=>c===color))color=PL[0][1];sw.replaceChildren(...PL.map(([n,c],i)=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c,color:lumOf(c)<140?'#fff':'#111'},'aria-label':n+(PL===COLS?'':' number '+(i+1)),title:c,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}},PL===COLS?null:String(i+1))));};
     const T3=[['b','Brush'],['p','Pencil'],['e','Eraser']];
     const act=(l,fn,cls)=>h('button',{class:'pt-b '+(cls||''),onclick:fn},l);
-    function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),h('button',{class:'pt-b'+(guideOn?' on':''),onclick:()=>{guideOn=!guideOn;drawGuide();paintTools();}},'Guide'),act('Sign',()=>signPad(false)),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
+    function paintTools(){tools.replaceChildren(...T3.map(([k,l])=>h('button',{class:'pt-b'+(tool===k?' on':''),onclick:()=>{tool=k;paintTools();}},l)),h('button',{class:'pt-b'+(guideOn?' on':''),onclick:()=>{guideOn=!guideOn;drawGuide();paintTools();}},'Guide'),h('button',{class:'pt-b'+(numOn?' on':''),onclick:()=>{numOn=!numOn;drawGuide();paintTools();}},'Numbers'),act('Sign',()=>signPad(false)),act('Undo',()=>{if(mine.undo())changed(true);}),act('Redo',()=>{if(mine.redoOp())changed(true);}),act('Clear',()=>{if(mine.empty())return;if(confirm('Clear your whole canvas?')){mine.clear();changed(true);}},'warn'));}
     function paintState(){stch.replaceChildren(...STATES.map((l,i)=>h('button',{class:'pt-sc'+(mine.state()===i?' on':''),onclick:()=>{mine.setState(i);changed(true);paintState();if(i===2&&!mine.ops.some(o=>o.sig))signPad(true);}},l)));}
     function changed(full){redraw();if(full)sendSync();saveSoon();}
     /* sign the artwork: draw a signature on a small pad, it is stamped small in the bottom-right corner as ordinary strokes (so it syncs, saves and shows in the gallery) */

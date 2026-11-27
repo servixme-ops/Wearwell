@@ -713,3 +713,5 @@ button.fm-int{border:0}
 .pt-trace-wait{position:fixed;inset:0;z-index:9999;background:rgba(245,240,232,.92);display:flex;align-items:center;justify-content:center}
 
 .pt-mini{pointer-events:none!important}
+
+.pt-c{font:700 13px system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:0}
