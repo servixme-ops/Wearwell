@@ -163,7 +163,7 @@ async function avatarView(){
   paint();OWA.loadCatalog&&OWA.loadCatalog().then(()=>{if(tab==='hair')paint();});
   done.onclick=()=>guard(done,async()=>{
     try{await Store.saveAvatar(cfg);}catch(e){toast(friendlyError(e),'err');return;}
-    if(Auth.user)Store.uploadPortrait(cfg).catch(()=>{});toast('Avatar saved','ok');App.avBack=null;back();});
+    if(Auth.user)Store.uploadPortrait(cfg).catch(()=>{});toast('Avatar saved','ok');const dest=App.avBack;App.avBack=null;if(dest)go(dest);else back();});
 }
 
 /* signing out or in starts from a clean slate: never show the previous account's avatar */
