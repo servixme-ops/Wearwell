@@ -1015,7 +1015,7 @@ function attach(R,ctx){
         strokes.forEach(st=>{const c=conv(st);if(c.length<4)c.push(c[0]+1,c[1]);mine.ops.push({k:'s',t:'p',c:'#1d1a2b',z:11,p:c,id:null,sig:1});});
         mine.render();changed(true);closeS();toast('Signed');};
       box.append(h('div',{class:'pt-sigc'},h('b',null,offer?'Your painting is complete. Sign it?':'Sign your artwork'),h('p',{class:'f-hint',style:{margin:'4px 0 8px'}},'Draw your signature with your finger. It goes small in the bottom-right corner.'),pad,
-        h('div',{class:'pt-hc',style:{marginTop:'10px'}},h('button',{class:'btn small',onclick:()=>{strokes=[];paint();}},'Clear'),h('button',{class:'btn small',onclick:()=>{mine.ops=mine.ops.filter(o=>!o.sig);mine.render();changed(true);closeS();}},'Remove signature'),h('button',{class:'btn small',onclick:closeS},offer?'Skip':'Cancel'),h('button',{class:'btn coral small',onclick:stamp},'Sign'))));
+        h('div',{class:'pt-hc',style:{marginTop:'10px'}},h('button',{class:'btn small',onclick:()=>{strokes.pop();paint();}},'Undo last'),h('button',{class:'btn small',onclick:()=>{strokes=[];paint();}},'Clear all'),h('button',{class:'btn small',onclick:()=>{mine.ops=mine.ops.filter(o=>!o.sig);mine.render();changed(true);closeS();}},'Remove signature'),h('button',{class:'btn small',onclick:closeS},offer?'Skip':'Cancel'),h('button',{class:'btn coral small',onclick:stamp},'Sign'))));
       ov.append(box);paint();
     }
     const allowed=()=>openNow();
