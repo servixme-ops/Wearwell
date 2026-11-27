@@ -527,12 +527,12 @@ function scheduledPage(){
 }
 const leftTxt=(t,mn)=>{const ms=new Date(t).getTime()+(mn||30)*60000-Date.now();if(ms<=0)return 'Ending';const m=Math.ceil(ms/60000);return m>=90?Math.floor(m/60)+'h '+(m%60)+'m left':m+' min left';};
 function soloBlock(){
-  const wrap=h('div',{class:'gp-solo'}),list=h('div',{class:'sp-list'});
+  const wrap=h('div',{class:'gp-solo'}),list=h('div',{class:'solo-list'});
   const ago=t=>{const m=Math.max(0,Math.round((Date.now()-new Date(t).getTime())/60000));return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago';};
   async function load(){
     if(!Auth.user){list.replaceChildren();return;}
     let rows=[];try{rows=await rpc('solo_list')||[];}catch(e){}
-    list.replaceChildren(...rows.map(r=>h('div',{class:'pn-card solo-card'},
+    list.replaceChildren(...rows.map(r=>h('div',{class:'solo-card'},
       h('button',{class:'solo-open',onclick:()=>go('#/space/'+r.id)},h('b',{class:'pn-t'},r.title),h('span',{class:'f-hint'},(r.done?'Finished \u00b7 ':'')+'Last painted '+ago(r.updated_at)),h('span',{class:'pn-join'},'Continue')),
       h('button',{class:'btn small',onclick:async()=>{if(!await confirmBox('Delete this painting?','It will be removed from My solo paintings. Paintings you already saved to your gallery stay there.','Delete',true))return;try{await rpc('solo_remove',{p_space:r.id});toast('Deleted');load();}catch(e){toast(friendlyError(e),'err');}}},'Delete'))));
   }
