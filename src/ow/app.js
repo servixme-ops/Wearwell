@@ -4,6 +4,7 @@ Object.assign(IC,{
   sofa:'<path d="M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3"/><path d="M3 12a2 2 0 014 0v3h10v-3a2 2 0 014 0v5H3z"/><path d="M6 19v1.5M18 19v1.5"/>',
   frame:'<rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M7.5 16l3-4 2.5 3 2-2 2 3"/><circle cx="9" cy="9" r="1.2"/>',
   rotate:'<path d="M20 12a8 8 0 11-2.6-5.9"/><path d="M20 4v4h-4"/>',
+  brush:'<path d="M19 3.5a2.1 2.1 0 013 3L12.5 16 9 12.5z"/><path d="M9 12.5C6.6 12.5 5 14 5 16c0 1.6-.9 2.7-2 3.5 3 .9 7.200-.3 7.800-3.800"/>',
   palette:'<path d="M12 3a9 9 0 100 18c1.4 0 2-1 1.5-2-.6-1.2.1-2.5 1.5-2.5H17a4 4 0 004-4c0-5-4-9.500-9-9.500z"/><circle cx="8" cy="11" r="1.1"/><circle cx="11" cy="7.500" r="1.1"/><circle cx="15.500" cy="8.500" r="1.1"/>',
   cube:'<path d="M12 3l8 4.500v9L12 21l-8-4.500v-9z"/><path d="M12 12l8-4.500M12 12v9M12 12L4 7.500"/>',
   house:'<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
