@@ -649,7 +649,7 @@ function uploadPhoto(onUse){
       const m=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);
       const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
       const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',.88));if(!blob)throw new Error('Could not prepare the picture.');
-      const r=await sb.functions.invoke('paint-trace',{body:blob,headers:{'Content-Type':'image/jpeg'}});
+      const r=await sb.functions.invoke('paint-trace',{body:blob});
       let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(e){}}
       if(!d||!d.path)throw new Error((d&&d.error)||'Could not paint that picture. Try another one.');
       wait.remove();await onUse(d.path);
