@@ -541,7 +541,7 @@ function soloBlock(){
     sheet('New solo painting',(b,close)=>{const t=h('input',{type:'text',maxlength:'80',placeholder:'Name your painting (optional)'}),go1=h('button',{class:'btn coral block'},'Start painting');
       go1.onclick=()=>guard(go1,async()=>{const id=await rpc('solo_create',{p_title:t.value});Store.hostLight&&Store.hostLight(true);close();go('#/space/'+id);});
       b.append(field('Title',t),h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Just you. No timer and no one else in the room. Your painting is saved as you go, so you can come back and continue any time.'),go1);});};
-  wrap.append(h('div',{class:'ent2 paint gp-banner'},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Solo painting'),h('span',null,'Paint on your own and continue any time')),h('button',{class:'ent2-go',onclick:start},'Start')),list);
+  wrap.append(h('div',{class:'ent2 solo gp-banner'},h('span',{class:'ent2-ic'},icon('brush')),h('span',{class:'ent2-tx'},h('b',null,'Solo painting'),h('span',null,'Paint on your own and continue any time')),h('button',{class:'ent2-go',onclick:start},'Start')),list);
   load();return wrap;
 }
 function paintSection(){
