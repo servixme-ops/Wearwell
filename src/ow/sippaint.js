@@ -636,78 +636,26 @@ function guideCanvas(id,onLoad){
 }
 
 
-/* ---------------- your own picture: crop, trace (flatten to solid colours) and use as the reference ---------------- */
-const UPLOAD_PROMPT='Turn my picture into a flat colour illustration for painting. Use only 6 to 10 solid flat colours, bold clean shapes, smooth outlines, no gradients, no textures, no shadows, no tiny details and no text. Keep the subject large and centred in a portrait 4:5 frame, with a simple background. Keep the pose and features recognisable.';
-function flattenCanvas(src,k){
-  const W=src.width,H=src.height,id=src.getContext('2d').getImageData(0,0,W,H),d=id.data,n=W*H;
-  const pts=[];for(let i=0;i<n;i+=6)pts.push(i);
-  let seed=7;const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
-  const cen=[];const f=i=>[d[i*4],d[i*4+1],d[i*4+2]];cen.push(f(pts[Math.floor(rnd()*pts.length)]));
-  const dist=(a,b)=>(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;
-  while(cen.length<k){let best=-1,bd=-1;const cand=[];for(let t=0;t<60;t++)cand.push(pts[Math.floor(rnd()*pts.length)]);
-    cand.forEach(i=>{const c=f(i);let m=1e9;cen.forEach(q=>{m=Math.min(m,dist(c,q));});if(m>bd){bd=m;best=i;}});cen.push(f(best));}
-  for(let it=0;it<8;it++){const sum=cen.map(()=>[0,0,0,0]);
-    pts.forEach(i=>{const c=f(i);let b=0,bd=1e9;cen.forEach((q,j)=>{const x=dist(c,q);if(x<bd){bd=x;b=j;}});const a=sum[b];a[0]+=c[0];a[1]+=c[1];a[2]+=c[2];a[3]++;});
-    sum.forEach((a,j)=>{if(a[3])cen[j]=[a[0]/a[3],a[1]/a[3],a[2]/a[3]];});}
-  const lab=new Uint8Array(n);
-  for(let i=0;i<n;i++){const c=f(i);let b=0,bd=1e9;for(let j=0;j<cen.length;j++){const x=dist(c,cen[j]);if(x<bd){bd=x;b=j;}}lab[i]=b;}
-  /* mode filter: removes speckles and rough edges so the shapes are clean to paint */
-  const out=new Uint8Array(n),cnt=new Uint16Array(cen.length),R=2;
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){cnt.fill(0);
-    for(let dy=-R;dy<=R;dy++){const yy=Math.min(H-1,Math.max(0,y+dy))*W;for(let dx=-R;dx<=R;dx++)cnt[lab[yy+Math.min(W-1,Math.max(0,x+dx))]]++;}
-    let b=lab[y*W+x],bc=cnt[b];for(let j=0;j<cnt.length;j++)if(cnt[j]>bc){bc=cnt[j];b=j;}out[y*W+x]=b;}
-  const oc=document.createElement('canvas');oc.width=W;oc.height=H;const og=oc.getContext('2d'),oi=og.createImageData(W,H);
-  for(let i=0;i<n;i++){const c=cen[out[i]];oi.data[i*4]=c[0];oi.data[i*4+1]=c[1];oi.data[i*4+2]=c[2];oi.data[i*4+3]=255;}
-  og.putImageData(oi,0,0);return oc;
-}
-function uploadRefSheet(onUse){
+/* ---------------- your own photo: the server crops it to the subject and paints it as flat colours ---------------- */
+function uploadPhoto(onUse){
   if(!Auth.user){toast('Sign in first.','err');return;}
-  sheet('Use your own picture',(body,close)=>{
-    const fi=h('input',{type:'file',accept:'image/*',style:{display:'none'}});
-    const stage=h('div',null);
-    let img=null,view=null,vg=null,zoom=1,ox=0,oy=0,base=1,k=10,flat=null;
-    const VW=280,VH=350;
-    const step1=()=>{stage.replaceChildren(h('p',{class:'f-hint'},'Choose a picture. You can crop and trim it next, then Openwalls traces it into flat colours so it is easy to paint and print.'),h('button',{class:'btn coral block',onclick:()=>fi.click()},'Choose a picture'));};
-    fi.onchange=()=>{const f=fi.files&&fi.files[0];fi.value='';if(!f)return;
-      if(!/^image\//.test(f.type)){toast('That is not a picture.','err');return;}
-      const u=URL.createObjectURL(f),im=new Image();
-      im.onload=()=>{URL.revokeObjectURL(u);const m=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);c.getContext('2d').drawImage(im,0,0,c.width,c.height);img=c;zoom=1;ox=0;oy=0;step2();};
-      im.onerror=()=>{URL.revokeObjectURL(u);toast('Could not open that picture.','err');};im.src=u;};
-    const clampPos=()=>{const s=base*zoom,w=img.width*s,hh=img.height*s;ox=Math.min(0,Math.max(VW-w,ox));oy=Math.min(0,Math.max(VH-hh,oy));};
-    const drawView=()=>{clampPos();const s=base*zoom;vg.fillStyle='#fff';vg.fillRect(0,0,VW,VH);vg.drawImage(img,ox,oy,img.width*s,img.height*s);};
-    const step2=()=>{
-      base=Math.max(VW/img.width,VH/img.height);ox=(VW-img.width*base)/2;oy=(VH-img.height*base)/2;
-      view=h('canvas',{width:VW,height:VH,style:{width:VW+'px',height:VH+'px',borderRadius:'12px',touchAction:'none',background:'#fff',display:'block',margin:'0 auto',border:'2px solid #c9bfff'}});vg=view.getContext('2d');
-      const ptrs=new Map();let pd=0;
-      view.onpointerdown=e=>{view.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);if(ptrs.size===2){const a=[...ptrs.values()];pd=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);}};
-      view.onpointermove=e=>{if(!ptrs.has(e.pointerId))return;const p=ptrs.get(e.pointerId);
-        if(ptrs.size===1){ox+=e.clientX-p[0];oy+=e.clientY-p[1];}
-        else if(ptrs.size===2){ptrs.set(e.pointerId,[e.clientX,e.clientY]);const a=[...ptrs.values()],dn=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(pd){const z=Math.min(4,Math.max(1,zoom*dn/pd)),r=z/zoom,cx=VW/2,cy=VH/2;ox=cx-(cx-ox)*r;oy=cy-(cy-oy)*r;zoom=z;zs.value=String(z);}pd=dn;}
-        ptrs.set(e.pointerId,[e.clientX,e.clientY]);drawView();};
-      view.onpointerup=view.onpointercancel=e=>{ptrs.delete(e.pointerId);pd=0;};
-      const zs=h('input',{type:'range',min:'1',max:'4',step:'0.01',value:'1','aria-label':'Zoom',style:{width:'100%'}});
-      zs.oninput=()=>{const z=parseFloat(zs.value),r=z/zoom,cx=VW/2,cy=VH/2;ox=cx-(cx-ox)*r;oy=cy-(cy-oy)*r;zoom=z;drawView();};
-      drawView();
-      stage.replaceChildren(h('p',{class:'f-hint'},'Drag to move, pinch or use the slider to zoom. Only what is inside the frame is used.'),view,h('div',{style:{margin:'10px 4px'}},zs),
-        h('div',{class:'pt-hc'},h('button',{class:'btn',onclick:step1},'Different picture'),h('button',{class:'btn coral',onclick:step3},'Trace it')));
-    };
-    const step3=()=>{
-      const full=document.createElement('canvas');full.width=400;full.height=500;const fg=full.getContext('2d');fg.imageSmoothingQuality='high';
-      const r=400/VW,s=base*zoom;fg.fillStyle='#fff';fg.fillRect(0,0,400,500);fg.drawImage(img,ox*r,oy*r,img.width*s*r,img.height*s*r);
-      const pv=h('canvas',{width:400,height:500,style:{width:VW+'px',height:VH+'px',borderRadius:'12px',display:'block',margin:'0 auto',border:'2px solid #c9bfff'}});
-      const lbl=h('span',null,'');const sl=h('input',{type:'range',min:'5',max:'14',step:'1',value:String(k),'aria-label':'Number of colours',style:{width:'100%'}});
-      const useB=h('button',{class:'btn coral'},'Use this picture');
-      const run=()=>{lbl.textContent=k+' colours';flat=flattenCanvas(full,k);const g=pv.getContext('2d');g.drawImage(flat,0,0);};
-      let t=0;sl.oninput=()=>{k=parseInt(sl.value,10);lbl.textContent=k+' colours';clearTimeout(t);t=setTimeout(run,120);};
-      useB.onclick=()=>guard(useB,async()=>{const blob=await new Promise(res=>flat.toBlob(res,'image/png'));if(!blob)throw new Error('Could not prepare the picture.');
-        if(blob.size>3.5*1048576)throw new Error('That picture is too detailed. Try fewer colours.');
-        const path=await uploadFile('room-images',blob,'png','image/png');close();await onUse(path);});
-      stage.replaceChildren(h('p',{class:'f-hint'},'This is how it will look to paint. Fewer colours means simpler shapes.'),pv,h('div',{style:{margin:'10px 4px'}},h('div',{class:'f-hint'},lbl),sl),
-        h('div',{class:'pt-hc'},h('button',{class:'btn',onclick:step2},'Back'),useB));
-      setTimeout(run,30);
-    };
-    body.append(fi,stage);step1();
-  });
+  const fi=h('input',{type:'file',accept:'image/*',style:{display:'none'}});document.body.append(fi);
+  fi.onchange=async()=>{const f=fi.files&&fi.files[0];fi.remove();if(!f)return;
+    if(!/^image\//.test(f.type)){toast('That is not a picture.','err');return;}
+    const wait=h('div',{class:'pt-trace-wait'},spinner('Painting your picture…'));document.body.append(wait);
+    try{
+      const u=URL.createObjectURL(f);
+      const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('Could not open that picture. Try a JPG or PNG.'));i.src=u;});
+      const m=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);
+      const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
+      const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',.88));if(!blob)throw new Error('Could not prepare the picture.');
+      const r=await sb.functions.invoke('paint-trace',{body:blob,headers:{'Content-Type':'image/jpeg'}});
+      let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(e){}}
+      if(!d||!d.path)throw new Error((d&&d.error)||'Could not paint that picture. Try another one.');
+      wait.remove();await onUse(d.path);
+    }catch(e){wait.remove();toast(friendlyError(e),'err');}
+  };
+  fi.click();
 }
 
 /* ---------------- the drawing engine: one painting = a list of strokes ---------------- */
@@ -1084,11 +1032,10 @@ function attach(R,ctx){
       const timerSet=async m=>{try{const r=await sb.rpc('paint_host',{p_space:spaceId,p_action:'timer',p_val:String(m)});if(r.error)throw r.error;sp.ends=m?nowS()+m*60000:0;if(m)sp.state='painting';upFlag=false;award=null;lockUntil=Date.now()+6000;seatSync();paintHud();tickClock();ov&&ov._upd&&ov._upd();ctx.refresh&&ctx.refresh();toast(m?'Countdown started: '+m+' minutes':'Countdown cleared');draw();}catch(e){if(/PREMIUM_REQUIRED/.test(String(e&&e.message||e))){close();typeof OWPlans!=='undefined'&&OWPlans.limitSheet(spaceId);return;}toast(friendlyError(e),'err');}};
       const tmRow=h('div',{class:'pt-neon pt-tmrow'},...[10,15,20,30,45,60].map(m=>h('button',{class:'btn small',onclick:()=>timerSet(m)},m+' min')),sp.ends?h('button',{class:'btn small',onclick:()=>timerSet(0)},'Clear'):null);
       const neonRow=h('div',{class:'pt-neon'},NEONS.map(c=>h('button',{class:'pt-nsw'+(c.toLowerCase()===String(neonC).toLowerCase()?' on':''),style:{background:c},'aria-label':'Neon colour '+c,onclick:()=>{drawSign(c);send('neon',{c});Store.hostNeon&&Store.hostNeon(c);[...neonRow.children].forEach(x=>x.classList.toggle('on',x===neonRow.children[NEONS.indexOf(c)]));}})));
-      const upBox=h('div',{class:'pt-up'},h('b',null,'Paint your own picture'),
-        h('p',{class:'f-hint',style:{margin:'4px 0 8px'}},'1. Open ChatGPT (chatgpt.com), add your picture and send the prompt below. 2. Save the artwork it makes. 3. Upload it here to crop, trace, paint and print it.'),
-        h('div',{class:'pt-upp'},UPLOAD_PROMPT),
-        h('div',{class:'pt-hc',style:{marginTop:'8px'}},h('button',{class:'btn small',onclick:()=>{try{navigator.clipboard.writeText(UPLOAD_PROMPT);toast('Prompt copied','ok');}catch(e){toast('Could not copy. Select the text and copy it.','err');}}},'Copy prompt'),h('a',{class:'btn small',href:'https://chatgpt.com',target:'_blank',rel:'noopener'},'Open ChatGPT'),h('button',{class:'btn small coral',onclick:()=>uploadRefSheet(async path=>{await send_('ref','img:'+path);toast('Your picture is ready','ok');})},'Upload picture')),
-        h('p',{class:'f-hint',style:{margin:'8px 0 0'}},'Only use pictures you made or have the right to use.'));
+      const upBox=h('div',{class:'pt-up'},h('b',null,'Paint your own photo'),
+        h('p',{class:'f-hint',style:{margin:'4px 0 8px'}},'Upload a photo. We crop it to the person or subject and turn it into a painting for you to paint and print.'),
+        h('button',{class:'btn small coral',onclick:()=>uploadPhoto(async path=>{await send_('ref','img:'+path);toast('Your picture is ready to paint','ok');})},'Upload your photo'),
+        h('p',{class:'f-hint',style:{margin:'8px 0 0'}},'Only use photos you took or have the right to use.'));
       body.append(h('p',{class:'f-hint'},'Session: '+(sp.state==='waiting'?'waiting to start':sp.state)),ctl,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Reference picture'),upBox,grid,h('div',{class:'pt-hc',style:{marginTop:'8px'}},clr),h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Instructions'),note,h('div',{style:{marginTop:'6px'}},saveN),
         h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Painting countdown (Premium)'),h('p',{class:'f-hint',style:{margin:'0 0 6px'}},'Starts now and ends painting for everyone. The first painter to mark Completed wins the Fastest finisher award.'),tmRow,
         h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Neon sign colour'),neonRow,
