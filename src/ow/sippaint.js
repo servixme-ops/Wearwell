@@ -934,8 +934,22 @@ function attach(R,ctx){
     function drawGuide(){const g=gcv.getContext('2d');g.clearRect(0,0,CW,CH);gcv.style.display=guideOn&&sp.ref?'':'none';if(guideOn&&sp.ref)g.drawImage(guideCanvas(sp.ref,drawGuide),0,0);}
     const banner=h('div',{class:'pt-ban'});
     const sw=h('div',{class:'pt-sw'}),tools=h('div',{class:'pt-tools'}),stch=h('div',{class:'pt-st'}),size_=h('input',{type:'range',min:'3',max:'44',value:String(size),'aria-label':'Brush size'});
-    let miniT=0;const mini=h('button',{class:'pt-mini','aria-label':'Hide this picture for a few seconds',onclick:()=>{mini.classList.add('away');clearTimeout(miniT);miniT=setTimeout(()=>mini.classList.remove('away'),6000);}});const mc=refCanvas(sp.ref||'',()=>drawMini());const mg=h('canvas',{width:120,height:150});mini.append(mg);
+    const mini=h('button',{class:'pt-mini','aria-label':'Reference picture. Tap to open it.'});const mc=refCanvas(sp.ref||'',()=>drawMini());const mg=h('canvas',{width:120,height:150});mini.append(mg);
     function drawMini(){const g=mg.getContext('2d');g.fillStyle='#eee';g.fillRect(0,0,120,150);if(sp.ref)g.drawImage(refCanvas(sp.ref,drawMini),0,0,120,150);}
+    /* the small picture never blocks painting: touches pass straight through it. It fades only while a stroke is inside its corner, and a plain tap on it opens the full reference. */
+    {let awayT=0,tp=null;const down=new Set();
+      const inR=(x,y)=>{const r=mini.getBoundingClientRect();return x>=r.left-6&&x<=r.right+6&&y>=r.top-6&&y<=r.bottom+6;};
+      const fade=()=>{mini.classList.add('away');clearTimeout(awayT);awayT=setTimeout(()=>mini.classList.remove('away'),2500);};
+      const area=()=>frame;
+      const pd=e=>{if(!mini.isConnected){off();return;}if(!area().contains(e.target))return;down.add(e.pointerId);
+        if(inR(e.clientX,e.clientY)&&!mini.classList.contains('away'))tp={id:e.pointerId,x:e.clientX,y:e.clientY,t:Date.now(),moved:false,n:mine.ops.length};};
+      const pm=e=>{if(!down.has(e.pointerId)||!mini.isConnected)return;
+        if(tp&&tp.id===e.pointerId&&Math.hypot(e.clientX-tp.x,e.clientY-tp.y)>8)tp.moved=true;
+        if(inR(e.clientX,e.clientY)&&(!tp||tp.id!==e.pointerId||tp.moved))fade();};
+      const pu=e=>{down.delete(e.pointerId);if(tp&&tp.id===e.pointerId){const t=tp;tp=null;
+        if(e.type==='pointerup'&&!t.moved&&Date.now()-t.t<450){setTimeout(()=>{if(mine.ops.length>t.n&&mine.undo())changed(true);showRef();},30);}}};
+      const off=()=>{window.removeEventListener('pointerdown',pd,true);window.removeEventListener('pointermove',pm,true);window.removeEventListener('pointerup',pu,true);window.removeEventListener('pointercancel',pu,true);clearTimeout(awayT);};
+      window.addEventListener('pointerdown',pd,true);window.addEventListener('pointermove',pm,true);window.addEventListener('pointerup',pu,true);window.addEventListener('pointercancel',pu,true);}
     let palRef='__';const paintSw=()=>{palRef=sp.ref||'';const PL=refPalette(sp.ref);if(!PL.some(([n,c])=>c===color))color=PL[0][1];sw.replaceChildren(...PL.map(([n,c])=>h('button',{class:'pt-c'+(c===color?' on':''),style:{background:c},'aria-label':n,title:c,onclick:()=>{color=c;if(tool==='e')tool='b';paintTools();paintSw();}})));};
     const T3=[['b','Brush'],['p','Pencil'],['e','Eraser']];
     const act=(l,fn,cls)=>h('button',{class:'pt-b '+(cls||''),onclick:fn},l);
