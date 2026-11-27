@@ -709,3 +709,4 @@ button.fm-int{border:0}
 
 .pt-cat{font:800 13px var(--disp);margin:12px 0 6px;color:var(--ink,#1b1424);opacity:.8}
 .gp-solo{margin:10px 0}.gp-solo .solo-card{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:8px}.gp-solo .solo-open{flex:1;text-align:left;display:flex;flex-direction:column;gap:2px;background:none;border:0;color:inherit;padding:0}
+.pt-up{background:#f3efff;border-radius:14px;padding:12px;margin:0 0 12px}.pt-upp{font-size:12px;line-height:1.4;background:#fff;border-radius:10px;padding:8px 10px;max-height:110px;overflow:auto;user-select:text}
