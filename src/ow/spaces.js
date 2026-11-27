@@ -100,9 +100,7 @@ function createSheet(onDone,preset){
     const timing=mk([['now','Go live now'],['later','Schedule']],()=>live?'now':'later',k=>{live=k==='now';sched.style.display=live?'none':'block';});
     const visw=mk([['public','Public'],['private','Private']],()=>vis,k=>vis=k);
     const goB=h('button',{class:'btn coral block'},'Create space');
-    const soloBox=h('div',null);const grp=[];
-    const soloRow=preset==='sipandpaint'?h('div',{class:'sp-row'},h('span',null,'Paint solo (just me)'),toggleEl(false,v=>{solo=v;if(v){live=true;sched.style.display='none';}[...grp].forEach(e=>e.style.display=v?'none':'');goB.textContent=v?'Start solo painting':'Create space';},'Paint solo')):null;
-    const soloHint=preset==='sipandpaint'?h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Solo: only you. No microphone, no viewers and no invites. Your easel, painting tools and music all stay.'):null;
+    const grp=[];const soloRow=null,soloHint=null;
     goB.onclick=()=>guard(goB,async()=>{
       if(title.value.trim().length<3){toast('Give your space a title.','err');return;}
       if(!solo&&!live&&!st.value){toast('Pick a start time.','err');return;}
@@ -358,7 +356,7 @@ async function room(id){
         R?row(camAuto?'Camera: stay wide':'Camera: follow speaker','eye',()=>{camAuto=!camAuto;R.stageAuto(camAuto);}):null,
         paintMode()&&isHost()?row('Gist & Paint look: text and colours','palette',lookSheet):null,
         isMgr()&&!solo?row('Invite people','people',()=>inviteSheet(D.space)):null,
-        isHost()?row('End space for everyone','close',endSpace,true):null,
+        isHost()&&!solo?row('End space for everyone','close',endSpace,true):null,
         !isHost()?row('Report this space','flag',()=>reportSheet(id,null),true):null].filter(Boolean));
     });
   }
@@ -390,7 +388,7 @@ async function room(id){
     await guard(null,async()=>{await adm('end',id);await finish('You ended the space.');});
   }
   async function askLeave(){
-    const ok=await confirmBox(isHost()?'Heading out?':'Leave this room?',isHost()?'Your painting stays saved. Make sure everyone has finished before you go.':'You can hop back in from Discover while the room is still live.','Yes, leave',false);
+    const ok=await confirmBox(isHost()?'Heading out?':'Leave this room?',solo?'Your painting is saved. Come back any time from Solo painting and carry on.':isHost()?'Your painting stays saved. Make sure everyone has finished before you go.':'You can hop back in from Discover while the room is still live.','Yes, leave',false);
     if(ok)leave();
   }
   async function leave(){
@@ -431,6 +429,7 @@ async function room(id){
   /* free spaces last 30 minutes, Premium 2 hours from the moment it goes live */
   let warned={};
   function paintTimer(){
+    if(solo){timerEl.textContent='';return;}
     const e=D&&D.space&&D.space.ends_at&&D.space.status==='live'?new Date(D.space.ends_at).getTime():0;
     if(!e){timerEl.textContent='';return;}
     const ms=Math.max(0,e-Date.now()),m=Math.floor(ms/60000),sc=Math.floor(ms/1000)%60;
@@ -527,6 +526,23 @@ function scheduledPage(){
   rpc('space_my_reminders').then(a=>{(a||[]).forEach(x=>REM.add(x));}).catch(()=>{}).then(load);
 }
 const leftTxt=(t,mn)=>{const ms=new Date(t).getTime()+(mn||30)*60000-Date.now();if(ms<=0)return 'Ending';const m=Math.ceil(ms/60000);return m>=90?Math.floor(m/60)+'h '+(m%60)+'m left':m+' min left';};
+function soloBlock(){
+  const wrap=h('div',{class:'gp-solo'}),list=h('div',{class:'sp-list'});
+  const ago=t=>{const m=Math.max(0,Math.round((Date.now()-new Date(t).getTime())/60000));return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago';};
+  async function load(){
+    if(!Auth.user){list.replaceChildren();return;}
+    let rows=[];try{rows=await rpc('solo_list')||[];}catch(e){}
+    list.replaceChildren(...rows.map(r=>h('div',{class:'pn-card solo-card'},
+      h('button',{class:'solo-open',onclick:()=>go('#/space/'+r.id)},h('b',{class:'pn-t'},r.title),h('span',{class:'f-hint'},(r.done?'Finished \u00b7 ':'')+'Last painted '+ago(r.updated_at)),h('span',{class:'pn-join'},'Continue')),
+      h('button',{class:'btn small',onclick:async()=>{if(!await confirmBox('Delete this painting?','It will be removed from My solo paintings. Paintings you already saved to your gallery stay there.','Delete',true))return;try{await rpc('solo_remove',{p_space:r.id});toast('Deleted');load();}catch(e){toast(friendlyError(e),'err');}}},'Delete'))));
+  }
+  const start=()=>{if(!needAuth('Sign in to start a solo painting'))return;
+    sheet('New solo painting',(b,close)=>{const t=h('input',{type:'text',maxlength:'80',placeholder:'Name your painting (optional)'}),go1=h('button',{class:'btn coral block'},'Start painting');
+      go1.onclick=()=>guard(go1,async()=>{const id=await rpc('solo_create',{p_title:t.value});Store.hostLight&&Store.hostLight(true);close();go('#/space/'+id);});
+      b.append(field('Title',t),h('p',{class:'f-hint',style:{margin:'4px 0 10px'}},'Just you. No timer and no one else in the room. Your painting is saved as you go, so you can come back and continue any time.'),go1);});};
+  wrap.append(h('div',{class:'ent2 paint gp-banner'},h('span',{class:'ent2-ic'},icon('palette')),h('span',{class:'ent2-tx'},h('b',null,'Solo painting'),h('span',null,'Paint on your own and continue any time')),h('button',{class:'ent2-go',onclick:start},'Start')),list);
+  load();return wrap;
+}
 function paintSection(){
   const list=h('div',{class:'sp-list'},spinner()),inviteBox=h('div',{class:'gp-inv'});
   const liveH=h('h3',{class:'gp-h'},'Live now'),schCnt=h('span',{class:'gp-cnt calm'},'0'),schLink=h('button',{class:'sc-link',onclick:()=>go('#/scheduled')},icon('bell'),h('span',null,'Scheduled sessions'),schCnt,h('i',{class:'sc-arr'},'\u203a'));
@@ -538,7 +554,7 @@ function paintSection(){
         let sid=null;try{sid=await rpc('space_join_by_code',{p_code:c});}catch(e){toast(friendlyError(e),'err');return;}
         if(!sid){toast('That code did not match a live private session','err');return;}go('#/space/'+sid);});
       jb.onclick=run;inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});return h('div',{class:'code-row'},inp,jb);})(),
-    inviteBox,liveH,list,schLink);
+    soloBlock(),inviteBox,liveH,list,schLink);
   const pc=r=>{const hs=r.host&&typeof r.host==='object'?r.host:null,n=(r.speakers||0)+(r.listeners||0);
     return h('button',{class:'pn-card',onclick:()=>go('#/space/'+r.id)},
       h('div',{class:'pn-art'},h('span',{class:'pn-live'},h('i'),'LIVE'),h('span',{class:'pn-ic'},icon('palette')),h('span',{class:'pn-n'},icon('people'),String(n||1)+' in the room'),r.started_at?h('span',{class:'pn-left'},'\u23f1 '+leftTxt(r.started_at,r.minutes)):null),

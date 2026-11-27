@@ -42,7 +42,7 @@ const OWPlans=(()=>{
   async function pickSession(btn){
     if(!needAuth('Sign in to upgrade a session'))return;
     await guard(btn,async()=>{
-      const [mine,plan]=await Promise.all([sb.from('spaces').select('id,title,status').eq('host_id',Auth.user.id).eq('category','sipandpaint').in('status',['live','scheduled']).order('created_at',{ascending:false}),rpc('sp_my_plan')]);
+      const [mine,plan]=await Promise.all([sb.from('spaces').select('id,title,status').eq('host_id',Auth.user.id).eq('category','sipandpaint').eq('solo',false).in('status',['live','scheduled']).order('created_at',{ascending:false}),rpc('sp_my_plan')]);
       const have=new Set((plan.sessions||[]).map(s=>s.space_id)),list=((mine.data)||[]).filter(s=>!have.has(s.id));
       if(!list.length){
         sheet('Start a session first',(b,c)=>b.append(h('p',{class:'pl-p'},'Premium Session upgrades one Gist & Paint session you are hosting. Start or schedule one, then upgrade it from inside the room.'),h('button',{class:'btn coral block',onclick:()=>{c();go('#/discover');}},'Go to Gist & Paint')));
