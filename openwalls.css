@@ -715,3 +715,10 @@ button.fm-int{border:0}
 .pt-mini{pointer-events:none!important}
 
 .pt-c{font:700 13px system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:0}
+.gp-solo{max-width:100%;overflow:hidden}
+.gp-solo .solo-list{display:flex;flex-direction:column;gap:8px;margin:8px 0 0;padding:0;overflow:visible}
+.gp-solo .solo-card{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;margin:0;padding:10px 12px;border-radius:16px;background:#fff;box-shadow:0 6px 16px -12px rgba(29,26,43,.5)}
+.gp-solo .solo-open{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:none;border:0;padding:0;text-align:left;color:inherit}
+.gp-solo .solo-open .pn-t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.gp-solo .solo-open .pn-join{margin-top:6px;padding:6px 14px;border-radius:999px;background:var(--coral);color:#fff;font-weight:700;font-size:13px}
+.gp-solo .solo-card .btn{flex:none}
