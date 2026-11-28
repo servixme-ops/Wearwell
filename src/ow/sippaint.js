@@ -675,7 +675,7 @@ function guideCanvas(id,onLoad){
 
 
 /* ---------------- your own photo: the server crops it to the subject and paints it as flat colours ---------------- */
-function uploadPhoto(onUse){
+function uploadPhoto(onUse,opt){opt=opt||{};const fn=opt.fn||'paint-trace',maxPx=opt.max||1200,msg=opt.msg||'Tracing your artwork\u2026';
   if(!Auth.user){toast('Sign in first.','err');return;}
   const fi=h('input',{type:'file',accept:'image/*',style:{display:'none'}});document.body.append(fi);
   fi.onchange=async()=>{const f=fi.files&&fi.files[0];fi.remove();if(!f)return;
@@ -684,10 +684,10 @@ function uploadPhoto(onUse){
     try{
       const u=URL.createObjectURL(f);
       const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('Could not open that picture. Try a JPG or PNG.'));i.src=u;});
-      const m=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);
+      const m=Math.min(1,maxPx/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);
       const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
       const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',.88));if(!blob)throw new Error('Could not prepare the picture.');
-      const r=await sb.functions.invoke('paint-trace',{body:blob});
+      const r=await sb.functions.invoke(fn,{body:blob});
       let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(e){}}
       if(!d||!d.path)throw new Error((d&&d.error)||'Could not paint that picture. Try another one.');
       wait.remove();await onUse(d.path);
@@ -1084,9 +1084,12 @@ function attach(R,ctx){
       const timerSet=async m=>{try{const r=await sb.rpc('paint_host',{p_space:spaceId,p_action:'timer',p_val:String(m)});if(r.error)throw r.error;sp.ends=m?nowS()+m*60000:0;if(m)sp.state='painting';upFlag=false;award=null;lockUntil=Date.now()+6000;seatSync();paintHud();tickClock();ov&&ov._upd&&ov._upd();ctx.refresh&&ctx.refresh();toast(m?'Countdown started: '+m+' minutes':'Countdown cleared');draw();}catch(e){if(/PREMIUM_REQUIRED/.test(String(e&&e.message||e))){close();typeof OWPlans!=='undefined'&&OWPlans.limitSheet(spaceId);return;}toast(friendlyError(e),'err');}};
       const tmRow=h('div',{class:'pt-neon pt-tmrow'},...[10,15,20,30,45,60].map(m=>h('button',{class:'btn small',onclick:()=>timerSet(m)},m+' min')),sp.ends?h('button',{class:'btn small',onclick:()=>timerSet(0)},'Clear'):null);
       const neonRow=h('div',{class:'pt-neon'},NEONS.map(c=>h('button',{class:'pt-nsw'+(c.toLowerCase()===String(neonC).toLowerCase()?' on':''),style:{background:c},'aria-label':'Neon colour '+c,onclick:()=>{drawSign(c);send('neon',{c});Store.hostNeon&&Store.hostNeon(c);[...neonRow.children].forEach(x=>x.classList.toggle('on',x===neonRow.children[NEONS.indexOf(c)]));}})));
+      const photoBtn=h('button',{class:'btn small',style:{display:'none'},onclick:()=>uploadPhoto(async path=>{await send_('ref','img:'+path);toast('Your photo is now an artwork to paint','ok');},{fn:'photo-art',max:1024,msg:'Painting your photo\u2026 this can take up to a minute'})},'Photo to artwork');
+      sb.rpc('app_flags_get').then(r=>{if(r.data&&r.data.photo_art===true)photoBtn.style.display='';}).catch(()=>{});
       const upBox=h('div',{class:'pt-up'},h('b',null,'Upload your artwork'),
-        h('p',{class:'f-hint',style:{margin:'4px 0 8px'}},'Upload an artwork (a flat, colourful illustration works best). We trace it into clean colour shapes, with guidelines and colours to paint on the canvas and print. Photos will be supported later.'),
+        h('p',{class:'f-hint',style:{margin:'4px 0 8px'}},'Upload an artwork (a flat, colourful illustration works best). We trace it into clean colour shapes, with guidelines and colours to paint on the canvas and print. Photo to artwork is coming soon.'),
         h('button',{class:'btn small coral',onclick:()=>uploadPhoto(async path=>{await send_('ref','img:'+path);toast('Your artwork is ready to paint','ok');})},'Upload your artwork'),
+        photoBtn,
         h('p',{class:'f-hint',style:{margin:'8px 0 0'}},'Only use artwork you made or have the right to use.'));
       body.append(h('p',{class:'f-hint'},'Session: '+(sp.state==='waiting'?'waiting to start':sp.state)),ctl,h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Reference picture'),upBox,grid,h('div',{class:'pt-hc',style:{marginTop:'8px'}},clr),h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Instructions'),note,h('div',{style:{marginTop:'6px'}},saveN),
         h('div',{class:'f-label',style:{margin:'14px 0 6px'}},'Painting countdown (Premium)'),h('p',{class:'f-hint',style:{margin:'0 0 6px'}},'Starts now and ends painting for everyone. The first painter to mark Completed wins the Fastest finisher award.'),tmRow,
