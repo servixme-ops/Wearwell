@@ -687,8 +687,11 @@ function uploadPhoto(onUse,opt){opt=opt||{};const fn=opt.fn||'paint-trace',maxPx
       const m=Math.min(1,maxPx/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);
       const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
       const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',.88));if(!blob)throw new Error('Could not prepare the picture.');
-      const r=await sb.functions.invoke(fn,{body:blob});
+      let t0=null;if(fn==='photo-art'){try{const c=await sb.rpc('photo_art_collect',{p_after:null});t0=c.data&&c.data.now;}catch(e){}}
+      let r;try{r=await sb.functions.invoke(fn,{body:blob});}catch(e){r={error:e};}
       let d=r.data;if(r.error&&r.error.context&&r.error.context.json){try{d=await r.error.context.json();}catch(e){}}
+      /* a long wait can drop the phone's connection even though the server finished: collect the finished artwork instead of failing */
+      if((!d||!(d.path||d.error))&&t0){for(let i=0;i<20&&!(d&&d.path);i++){await new Promise(z=>setTimeout(z,i?5000:1500));try{const c=await sb.rpc('photo_art_collect',{p_after:t0});if(c.data&&c.data.path)d={path:c.data.path};}catch(e){}}}
       if(!d||!d.path)throw new Error((d&&d.error)||'Could not paint that picture. Try another one.');
       wait.remove();await onUse(d.path);
     }catch(e){wait.remove();toast(friendlyError(e),'err');}
